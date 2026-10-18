@@ -21,6 +21,13 @@ class VulnerableCodeItemJSON(BaseModel):
     end_line: int | None = Field(default=None, description="Inclusive end line when known")
 
 
+PRICE_MANIPULATION_SCOPE = """AUDIT SCOPE:
+This audit exclusively targets price manipulation vulnerabilities.
+Focus planning and vulnerability analysis on this category. Do not intentionally
+investigate or report unrelated vulnerability classes. Preserve the original
+auditing methodology, exploration behavior, and evidence requirements."""
+
+
 class PlanItemSchema(BaseModel):
     goal: str = Field(description="Investigation goal or question")
     focus_areas: list[str] = Field(default_factory=list)
@@ -47,7 +54,7 @@ class HypothesisItemJSON(BaseModel):
     severity: str = Field(default="medium")
     confidence: str | float = Field(default="medium")
     reasoning: str = Field(default="")
-    mitigation: str = Field(default="", description="Suggested concrete remediation based on the identified root cause; do not add unsupported assumptions.")
+    mitigation: str = Field(default="", description="Suggested remediation, not an implemented or verified fix")
 
 
 class HypothesisBatchJSON(BaseModel):
@@ -203,6 +210,8 @@ class Strategist:
                 "FOR EACH ITEM include WHY NOW and EXIT CRITERIA in 'reasoning'.\n"
             )
 
+        system += "\n\n" + PRICE_MANIPULATION_SCOPE
+
         completed_str = "\n".join(f"- {c}" for c in completed) if completed else "(none)"
         hypotheses_str = hypotheses_summary or "(no hypotheses formed yet)"
         coverage_str = coverage_summary or "(no coverage data)"
@@ -258,18 +267,18 @@ class Strategist:
                 f"USE YOUR INTUITION TO PRIORITIZE:\n"
                 f"  1. MONETARY FLOWS: Areas where funds can be stolen, locked, or misdirected\n"
                 f"  2. CONTRADICTIONS: Salient mismatches between assumptions and observations\n"
-                f"  3. HIGH-IMPACT AUTH: Critical authentication/authorization vulnerabilities\n"
+                f"  3. PRICE-MANIPULATION PATHS: Price and oracle inputs affecting financial outcomes\n"
                 f"  4. STATE CORRUPTION: Manipulation affecting critical invariants\n\n"
                 f"TARGET THESE AREAS:\n"
                 f"  • Value transfer mechanisms and payment flows\n"
                 f"  • Clear contradictions in the annotated graphs\n"
-                f"  • Suspicious permission check patterns\n"
+                f"  • Price-path safeguards, including relevant authorization checks\n"
                 f"  • Complex cross-component value interactions\n"
                 f"  • Areas that \"feel\" vulnerable based on patterns\n\n"
                 f"GOAL EXAMPLES:\n"
                 f"  - \"Investigate potential theft in [payment flow]\"\n"
                 f"  - \"Analyze contradiction: [assumption X] vs [observation Y]\"\n"
-                f"  - \"Deep dive: authorization bypass in [critical function]\"\n\n"
+                f"  - \"Trace a manipulable price input into [financial operation]\"\n\n"
                 f"Category: Primarily 'suspicion' for specific high-impact bugs\n"
                 f"Priority: Assign 1-10 (10 = highest) based on anticipated impact\n"
                 f"Approach: Follow your intuition about what feels most vulnerable\n\n"
@@ -387,8 +396,8 @@ class Strategist:
                 "You are a security auditor analyzing code components for vulnerabilities.\n"
                 "Your task: Identify security vulnerabilities in the provided code.\n\n"
                 "INSTRUCTIONS:\n"
-                "- Look for ALL types of vulnerabilities in this component\n"
-                "- Consider issues like: missing validation, access control, overflow, reentrancy, logic errors, etc.\n"
+                "- Look for price manipulation vulnerabilities in this component\n"
+                "- Trace attacker-influenceable prices or valuations into financially sensitive operations and check relevant protections\n"
                 "- Provide thorough analysis of the component\n"
                 "- Focus on real, exploitable vulnerabilities\n"
                 "- If there are no vulnerabilities found, say 'NO_HYPOTHESES: true'\n\n"
@@ -402,14 +411,14 @@ class Strategist:
                 "You are a deep-thinking senior security auditor.\n"
                 "Your job is to: (1) think deeply about the active investigation aspect,\n"
                 "(2) uncover real, non-trivial vulnerabilities as clear hypotheses, and (3) advise the Scout on next steps.\n"
-                "Additionally, if the prepared context reveals other vulnerabilities not strictly tied to the investigation goal, include them as well.\n\n"
+                "Additionally, if the prepared context reveals other price manipulation vulnerabilities not strictly tied to the investigation goal, include them as well.\n\n"
                 "OPERATING CONSTRAINTS (IMPORTANT):\n"
                 "- Hound performs static analysis only - it cannot execute code or interact with live systems.\n"
                 "- Do NOT recommend or assume runtime execution or live system probing.\n"
                 "- All GUIDANCE must be CODE-ONLY: which files/functions/classes/methods to inspect and what to verify statically.\n"
                 "- You MAY include a theoretical exploit plan clearly labeled as \"theoretical/manual reproduction outside Hound\".\n\n"
                 "CRITICAL: Base your analysis on the investigation goal and the exploration/history shown in the context,\n"
-                "but do NOT limit yourself to only that goal — surface ANY vulnerabilities you can justify from the provided context.\n"
+                "but do NOT limit yourself to only that goal — surface any price manipulation vulnerabilities you can justify from the provided context.\n"
                 "ANTI–FALSE-POSITIVE GUARDRAILS:\n"
                 "- Propose a hypothesis only if the ROOT CAUSE is explicitly evidenced in the provided code.\n"
                 "- Cite specific files/functions in Affected Code; include exact node IDs from the graphs.\n"
@@ -422,6 +431,8 @@ class Strategist:
                 "- If you would repeat an existing hypothesis, skip it and focus on novel issues.\n"
                 "If you are highly confident there are no vulnerabilities in scope, say so.\n"
             )
+        system += "\n\n" + PRICE_MANIPULATION_SCOPE
+
         # Prepend global mission if provided
         mission_block = ""
         if isinstance(self.mission, str) and self.mission.strip():
@@ -446,10 +457,10 @@ class Strategist:
                 mission_block +
                 "CONTEXT (code being analyzed):\n" + context + "\n\n"
                 + ("⚠️ CRITICAL: DO NOT DUPLICATE THESE EXISTING HYPOTHESES ⚠️\n" + existing_hyps_section + "\n\n" if existing_hyps_section else "") +
-                "Identify and describe all security vulnerabilities in this code.\n\n"
+                "Identify and describe price manipulation vulnerabilities in this code.\n\n"
                 "OUTPUT FORMAT:\n"
                 "List each bug on a separate line using this format:\n"
-                "Title | Type | Root Cause | Attack Vector | Affected Node IDs | Affected Code | Severity | Confidence | Reasoning | Suggested Mitigation\n\n"
+                "Title | Type | Root Cause | Attack Vector | Affected Node IDs | Affected Code | Severity | Confidence | Reasoning\n\n"
                 "- Security vulnerabilities likely exist in this code.\n"
                 "- Provide up to 5 bugs maximum\n"
                 "- If you cannot identify any issues, respond with: NO_HYPOTHESES: true\n"
@@ -481,22 +492,20 @@ class Strategist:
                 "Check EACH hypothesis you're about to propose against the existing list.\n\n"
                 "OUTPUT INSTRUCTIONS:\n"
                 "1) HYPOTHESES (max 5, EXACTLY ONE PER LINE, exactly this pipe-separated format; DO NOT wrap across lines; use commas/semicolons instead of line breaks):\n"
-                "   Title | Type | Root Cause | Attack Vector | Affected Node IDs | Affected Code | Severity | Confidence | Reasoning | Suggested Mitigation\n"
+                "   Title | Type | Root Cause | Attack Vector | Affected Node IDs | Affected Code | Severity | Confidence | Reasoning\n"
                 "   - severity: critical|high|medium|low; confidence: high|medium|low\n"
                 "   - Keep Title concise and actionable.\n"
                 "   - CRITICAL: Affected Node IDs must be EXACT node IDs as shown in the NODES sections (token before the first pipe) or listed under LOADED NODES (e.g., func_transfer, contract_Token, state_balances)\n"
                 "   - Use a comma-separated list of actual node IDs. Do NOT invent new IDs or use descriptions.\n"
                 "   - You MUST provide at least one valid node ID for each hypothesis\n"
                 "   - Affected Code should reference concrete functions/files if possible.\n"
-                "   - Suggested Mitigation must describe concrete changes that address the stated root cause; do not invent additional vulnerability assumptions.\n"
-                "   - Clearly present mitigation as a recommendation, not as a verified fix.\n"
                 "   - Hard limit: keep each hypothesis under 240 characters to avoid line wrapping.\n\n"
                 "2) GUIDANCE (next steps for the Scout):\n"
                 "   - Provide 2–5 concrete CODE-ONLY actions to gather evidence or rule in/out the hypotheses (load/read specific files, trace auth/dataflow, check invariants).\n"
                 "   - Reference specific nodes/functions/files the Scout should load or analyze next.\n"
                 "   - Do NOT suggest runtime execution or live system interaction.\n\n"
                 "3) If NO credible hypothesis is found, include a line: NO_HYPOTHESES: true (still provide GUIDANCE).\n"
-                "4) You MAY include additional hypotheses that are unrelated to the exact goal if the current context clearly supports them (avoid false positives).\n"
+                "4) You MAY include additional price manipulation hypotheses that are unrelated to the exact goal if the current context clearly supports them (avoid false positives).\n"
             )
 
         # Save deep_think prompts to debug files if debug logger is available
@@ -609,8 +618,7 @@ class Strategist:
                     f"AFFECTED NODES: {', '.join(node_ids)}\n"
                     f"AFFECTED CODE: {', '.join(h.affected_code or [])}\n"
                     f"SEVERITY: {h.severity}\n"
-                    f"REASONING: {h.reasoning}\n"
-                    f"SUGGESTED MITIGATION: {h.mitigation}"
+                    f"REASONING: {h.reasoning}\nSUGGESTED MITIGATION: {h.mitigation}"
                 )
                 items.append({
                     'description': h.title,
@@ -651,8 +659,7 @@ class Strategist:
             raw_text = str(resp)
         else:
             raw_text = str(self.last_raw or '')
-        # Group multi-line hypotheses: accumulate lines until we have at least 9 pipes (10 fields).
-        # Legacy 9-field rows are recovered by the salvage path below and remain supported.
+        # Group multi-line hypotheses: new rows have 10 fields; the salvage path accepts legacy rows.
         grouped: list[str] = []
         invalid_groups: list[str] = []
         cur: list[str] = []
@@ -787,8 +794,7 @@ class Strategist:
                 f"AFFECTED NODES: {', '.join(node_ids)}\n"
                 f"AFFECTED CODE: {affected_code}\n"
                 f"SEVERITY: {severity}\n"
-                f"REASONING: {reasoning}\n"
-                f"SUGGESTED MITIGATION: {mitigation}"
+                f"REASONING: {reasoning}\nSUGGESTED MITIGATION: {mitigation}"
             )
 
             items.append({
@@ -837,7 +843,7 @@ class Strategist:
             confidence: float
             node_ids: list[str]
             reasoning: str
-            mitigation: str = Field(default="", description="Keep or refine the suggested mitigation using only supported evidence; do not imply it has been implemented or verified.")
+            mitigation: str = Field(default="", description="Keep or refine the suggested mitigation using supported evidence; do not claim it is verified.")
             accept: bool = Field(description="Accept only if evidence in context clearly supports root cause and no strong mitigation exists.")
             reason: str = Field(description="Why accepted/rejected; cite mitigating checks if rejecting.")
 
@@ -847,13 +853,13 @@ class Strategist:
         review_instr = (
             "You previously proposed candidate hypotheses. Now act as a skeptical reviewer.\n"
             "Reject any item lacking explicit evidence of the ROOT CAUSE in the provided context, or where guards/permissions clearly mitigate it.\n"
-            "Prefer fewer, higher-quality items. Keep at most 3 accepted items. Preserve or conservatively refine each candidate's suggested mitigation; do not imply it is implemented or verified. Return JSON.\n"
+            "Prefer fewer, higher-quality items. Keep at most 3 accepted items. Preserve or conservatively refine the suggested mitigation; do not claim it is verified. Return JSON.\n"
         )
 
         cand_lines = []
         for i, it in enumerate(items[:5], 1):
             cand_lines.append(
-                f"{i}. {it['description']} | type={it['vulnerability_type']} | sev={it['severity']} | conf={it['confidence']} | nodes={','.join(it.get('node_ids') or [])} | suggested_mitigation={it.get('mitigation', '')}"
+                f"{i}. {it['description']} | type={it['vulnerability_type']} | sev={it['severity']} | conf={it['confidence']} | nodes={','.join(it.get('node_ids') or [])} | mitigation={it.get('mitigation', '')}"
             )
         review_user = (
             "CONTEXT (same as above):\n" + context + "\n\n"

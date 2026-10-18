@@ -13,13 +13,19 @@ from pydantic import BaseModel, Field
 
 from llm.token_tracker import get_token_tracker
 
+from .concurrent_knowledge import GraphStore
+
 try:
     # Pydantic v2 style config
     from pydantic import ConfigDict  # type: ignore
 except Exception:  # pragma: no cover
     ConfigDict = None  # type: ignore
 
-from .concurrent_knowledge import GraphStore
+PRICE_MANIPULATION_SCOPE = """AUDIT SCOPE:
+This audit exclusively targets price manipulation vulnerabilities.
+Focus exploration on this category. Do not intentionally investigate or report
+unrelated vulnerability classes. Preserve the original auditing methodology,
+exploration behavior, and evidence requirements."""
 
 
 class AgentParameters(BaseModel):
@@ -1057,7 +1063,7 @@ SEPARATION OF ROLES (IMPORTANT):
 - Scout (you) gathers code and facts; annotate graphs with short observations/assumptions.
 - NEVER speculate about vulnerabilities and do NOT adjudicate them yourself.
 - Prefer deep_think for vulnerability analysis; use form_hypothesis only if you must capture a lead and cannot escalate yet.
-- After assembling a coherent slice of code for the current investigation, CALL deep_think. Do not call deep_think based on hunches; call it when relevant code for the investigation is collected. The Strategist will analyze your prepared context and can surface additional vulnerabilities beyond the current goal if supported by evidence in the context.
+- After assembling a coherent slice of code for the current investigation, CALL deep_think. Do not call deep_think based on hunches; call it when relevant code for the investigation is collected. The Strategist will analyze your prepared context and can surface additional price manipulation vulnerabilities beyond the current goal if supported by evidence in the context.
 
 Your task is to investigate the system and identify potential vulnerabilities. The system architecture graph is automatically loaded and visible. You can see all available graphs and which are loaded.
 
@@ -1145,7 +1151,7 @@ AFTER LOADING CODE (WHEN CLEAR SIGNALS EXIST):
    WHEN TO CALL:
    - After you have loaded enough specific code (functions/files) to represent the investigation focus.
    - Do NOT call because you "suspect" issues; call when the relevant code for the investigation has been collected.
-   The Strategist will return ANY vulnerabilities detected from the prepared context (not limited to the goal) and will filter out weak/false positives.
+   The Strategist will return price manipulation vulnerabilities detected from the prepared context (not limited to the exact goal) and will filter out weak/false positives.
    CRITICAL PREREQUISITES - DO NOT CALL deep_think UNTIL:
    - You have loaded RELEVANT graphs for the investigation topic
    - You have loaded ACTUAL CODE (nodes) that implements the feature being investigated
@@ -1218,6 +1224,8 @@ IMPORTANT JSON FORMATTING RULES:
 
 Return a JSON object with: action, reasoning, parameters"""
         
+        system_prompt += "\n\n" + PRICE_MANIPULATION_SCOPE
+
         user_prompt = f"""Current Context:
 
 {context}
