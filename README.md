@@ -1,3 +1,14 @@
+## Tang-Chieh fork：General Auditing
+
+這是 [scabench-org/hound](https://github.com/scabench-org/hound) 的正式 fork。
+目前分支 `general-auditing` 保留一般漏洞分析範圍；預設 [`main`](https://github.com/Tang-Chieh/hound/tree/main) 使用 price manipulation 指引。
+兩個分支都支援模型產生 Finding 欄位及直接輸出 `PredictionCase`。
+
+- [Fork 的分支、改動與執行說明](docs/FORK_GUIDE_ZH.md)
+- [Private 整合實驗 repo（需權限）](https://github.com/Tang-Chieh/Hound_price_manipulation_experiments)：C/D 結果、LLM Judge、Ground Truth 與完整重現流程。
+
+以下保留 upstream README。
+
 <p align="center">
   <img src="static/hound.png" alt="Hound Banner" width="75%">
 </p>

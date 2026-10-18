@@ -20,13 +20,15 @@ console = Console()
 @click.command()
 @click.argument('project_name')
 @click.option('--output', '-o', help="Output file path (default: project_dir/reports/audit_report_TIMESTAMP.html)")
+@click.option('--prediction-case-output', type=click.Path(path_type=Path), help="Also write confirmed findings as a benchmark PredictionCase JSON")
+@click.option('--repo-id', help="Repository ID for --prediction-case-output")
 @click.option('--format', '-f', type=click.Choice(['html', 'markdown', 'pdf']), default='html', help="Report format")
 @click.option('--title', '-t', help="Custom report title")
 @click.option('--auditors', '-a', help="Comma-separated list of auditor names", default="Security Team")
 @click.option('--debug', is_flag=True, help="Enable debug mode")
 @click.option('--show-prompt', is_flag=True, help="Show the LLM prompt and response used to generate the report")
 @click.option('--all', 'include_all', is_flag=True, help="Include ALL hypotheses (not just confirmed) - WARNING: No QA performed, may contain false positives")
-def report(project_name: str, output: str | None, format: str, 
+def report(project_name: str, output: str | None, prediction_case_output: Path | None, repo_id: str | None, format: str, 
           title: str | None, auditors: str, debug: bool, show_prompt: bool, include_all: bool):
     """
     Generate a professional security audit report for a project.
@@ -38,6 +40,8 @@ def report(project_name: str, output: str | None, format: str,
     - Testing coverage appendix
     """
     manager = ProjectManager()
+    if bool(prediction_case_output) != bool(repo_id):
+        raise click.UsageError("--prediction-case-output and --repo-id must be provided together")
     project = manager.get_project(project_name)
     
     if not project:
@@ -203,6 +207,46 @@ def report(project_name: str, output: str | None, format: str,
             output_path = output_path.with_suffix('.html')
             with open(output_path, 'w') as f:
                 f.write(report_data)
+
+        if prediction_case_output:
+            model_name = (config.get('models', {}).get('agent') or {}).get('model', 'unknown')
+            predictions = []
+            for hyp_id, hypothesis in hypotheses.items():
+                if str(hypothesis.get('status', '')).lower() != 'confirmed':
+                    continue
+                code_locations = hypothesis.get('vulnerable_code') or []
+                code_locations = [
+                    {
+                        key: location[key]
+                        for key in ('file', 'contract', 'function', 'start_line', 'end_line')
+                        if key in location and location[key] is not None
+                    }
+                    for location in code_locations
+                    if isinstance(location, dict)
+                    and all(isinstance(location.get(key), str) and location[key].strip() for key in ('file', 'contract', 'function'))
+                    and ((location.get('start_line') is None and location.get('end_line') is None)
+                         or (isinstance(location.get('start_line'), int) and isinstance(location.get('end_line'), int)
+                             and location['start_line'] > 0 and location['end_line'] >= location['start_line']))
+                ]
+                predictions.append({
+                    'finding_id': str(hypothesis.get('id') or hyp_id),
+                    'title': str(hypothesis.get('title') or 'Untitled Hound finding'),
+                    'description': str(hypothesis.get('finding_description') or hypothesis.get('description') or 'No description was provided by Hound.'),
+                    'impact': str(hypothesis.get('impact') or 'Not provided in the Hound output.'),
+                    'vulnerable_code': code_locations,
+                    'mitigation': str(hypothesis.get('mitigation') or 'Not provided in the Hound output.'),
+                    'severity': hypothesis.get('severity'),
+                })
+            prediction_case_output.parent.mkdir(parents=True, exist_ok=True)
+            prediction_case_output.write_text(json.dumps({
+                'repo_id': repo_id,
+                'detector_metadata': {
+                    'detector_version': 'hound-direct-prediction-case-v1',
+                    'llm_model': str(model_name),
+                },
+                'predictions': predictions,
+            }, indent=2, ensure_ascii=False) + '\n')
+            console.print(f"[bright_green]PredictionCase output: {prediction_case_output} ({len(predictions)} predictions)[/bright_green]")
         
         console.print("[bright_green]✓ Report generated successfully![/bright_green]")
         console.print(f"[bright_green]Location: {output_path}[/bright_green]")

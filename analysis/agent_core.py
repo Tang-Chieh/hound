@@ -1883,6 +1883,10 @@ DO NOT include any text before or after the JSON object."""
                     'confidence': it.get('confidence', 0.6),
                     'node_ids': it.get('node_ids', ['system']),
                     'reasoning': it.get('reasoning', ''),
+                    'mitigation': it.get('mitigation', ''),
+                    'finding_description': it.get('finding_description', ''),
+                    'impact': it.get('impact', ''),
+                    'vulnerable_code': it.get('vulnerable_code', []),
                     'graph_name': 'SystemArchitecture',
                     'guidance_model': guidance_model_info,
                 }
@@ -2087,6 +2091,10 @@ DO NOT include any text before or after the JSON object."""
             confidence=params.get('confidence', 0.5),
             node_refs=node_ids,
             reasoning=params.get('reasoning', ''),
+            mitigation=params.get('mitigation', ''),
+            finding_description=params.get('finding_description', ''),
+            impact=params.get('impact', ''),
+            vulnerable_code=params.get('vulnerable_code', []),
             created_by=self.agent_id,
             reported_by_model=senior_model or junior_model,  # Legacy field for backward compatibility
             junior_model=junior_model,

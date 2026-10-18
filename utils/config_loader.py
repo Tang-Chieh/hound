@@ -58,3 +58,17 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
     # Last resort: return empty config
     # This allows commands to run with defaults
     return {}
+
+
+def load_finalize_config(platform: str | None = None, model: str | None = None) -> dict[str, Any]:
+    """Load the shared Hound config and apply optional finalize-only overrides."""
+    config = load_config()
+    if not isinstance(config, dict):
+        config = {}
+    if platform or model:
+        finalize_config = config.setdefault("models", {}).setdefault("finalize", {})
+        if platform:
+            finalize_config["provider"] = platform
+        if model:
+            finalize_config["model"] = model
+    return config

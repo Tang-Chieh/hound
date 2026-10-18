@@ -824,6 +824,7 @@ and systematic vulnerability assessment across all identified attack surfaces.""
                     'severity': hyp.get('severity', 'medium'),
                     'type': hyp.get('vulnerability_type', 'unknown'),
                     'description': hyp.get('description', ''),
+                    'mitigation': hyp.get('mitigation', ''),
                     'confidence': hyp.get('confidence', 0),
                     'affected': hyp.get('node_refs', []),
                     'reported_by_model': hyp.get('senior_model') or hyp.get('junior_model') or hyp.get('reported_by_model', 'unknown'),
@@ -2136,6 +2137,15 @@ External dependencies are limited and clearly defined."""
                     <span style="color: #c3cfe2; line-height: 1.6;">{self._escape_html(finding['qa_comment'])}</span>
                 </div>
                 '''
+
+            mitigation_html = ''
+            if finding.get('mitigation'):
+                mitigation_html = f'''
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">{self._escape_html(finding['mitigation'])}</span>
+                </div>
+                '''
             
             # Check if there's a PoC for this hypothesis
             poc_html = ''
@@ -2153,6 +2163,7 @@ External dependencies are limited and clearly defined."""
                 </div>
                 <p><strong>Affected Components:</strong> {finding.get('affected_description', self._describe_affected_components(finding.get('affected', [])))}</p>
                 {qa_comment_html}
+                {mitigation_html}
                 {code_html}
                 {poc_html}
             </div>
@@ -2489,12 +2500,16 @@ The audit employed a comprehensive security assessment methodology including:
             qa_comment = ''
             if finding.get('qa_comment'):
                 qa_comment = f"\n\n**QA Review:** {finding['qa_comment']}"
+
+            mitigation = ''
+            if finding.get('mitigation'):
+                mitigation = f"\n\n**Suggested Mitigation (not independently verified):** {finding['mitigation']}"
             
             md_parts.append(f"""### [{finding['severity'].upper()}] {finding['title']}
 
 **Affected:** {finding.get('affected_description', self._describe_affected_components(finding.get('affected', [])))}  
 
-{finding.get('professional_description', finding['description'])}{qa_comment}
+{finding.get('professional_description', finding['description'])}{mitigation}{qa_comment}
 
 ---""")
         

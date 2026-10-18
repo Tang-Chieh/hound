@@ -150,6 +150,10 @@ class Hypothesis:
     node_refs: list[str] = field(default_factory=list)
     evidence: list[Evidence] = field(default_factory=list)
     reasoning: str = ""
+    mitigation: str = ""  # Suggested remediation; not necessarily implemented or verified
+    finding_description: str = ""
+    impact: str = ""
+    vulnerable_code: list[dict[str, Any]] = field(default_factory=list)
     properties: dict[str, Any] = field(default_factory=dict)  # Store graph name, etc.
     created_by: str | None = None
     reported_by_model: str | None = None  # Legacy field for backward compatibility

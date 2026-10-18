@@ -52,3 +52,28 @@ class TestReportGenerator(unittest.TestCase):
             self.assertIn('Proj', html)
             self.assertIn('Findings', html)
             self.assertIn('System Overview', html)
+
+    def test_suggested_mitigation_is_rendered_in_html_and_markdown(self):
+        cfg = {'models': {'reporting': {'provider': 'openai', 'model': 'x'}}}
+        # This test only checks deterministic formatting; do not initialize a
+        # real provider or require API credentials just to render the fields.
+        with patch('analysis.report_generator.UnifiedLLMClient'):
+            rg = ReportGenerator(self.tmp, cfg)
+        findings = [{
+            'id': 'h1',
+            'title': 'Manipulable spot price',
+            'severity': 'high',
+            'description': 'The redemption trusts current pool reserves.',
+            'professional_description': 'The redemption trusts current pool reserves.',
+            'affected': ['Pool.redeem'],
+            'affected_description': 'Pool.redeem',
+            'mitigation': 'Use a TWAP & validate the price.',
+            'code_samples': [],
+        }]
+
+        html = rg._format_findings_html(findings)
+        markdown = rg._format_findings_markdown(findings)
+
+        assert 'Suggested Mitigation (not independently verified)' in html
+        assert 'Use a TWAP &amp; validate the price.' in html
+        assert '**Suggested Mitigation (not independently verified):** Use a TWAP & validate the price.' in markdown

@@ -64,24 +64,12 @@ def finalize(project_name: str, threshold: float, include_below_threshold: bool,
         console.print("[yellow]No hypotheses to review.[/yellow]")
         sys.exit(0)
     
-    # Load config for LLM
-    config_path = Path(__file__).parent.parent / "config.yaml"
-    config = {}
-    if config_path.exists():
-        import yaml
-        with open(config_path) as f:
-            config = yaml.safe_load(f) or {}
-    # Apply QA overrides if provided
-    if config is None:
-        config = {}
-    if 'models' not in config:
-        config['models'] = {}
-    if platform or model:
-        config['models'].setdefault('finalize', {})
-        if platform:
-            config['models']['finalize']['provider'] = platform
-        if model:
-            config['models']['finalize']['model'] = model
+    # Use the same configuration resolution as the other Hound commands.
+    # In particular, this honors HOUND_CONFIG so subscription-gateway runs
+    # keep using the selected model/provider for QA instead of silently
+    # falling back to Hound's bundled config.yaml.
+    from utils.config_loader import load_finalize_config
+    config = load_finalize_config(platform, model)
     
     # Pending = not already finalized
     pending = {

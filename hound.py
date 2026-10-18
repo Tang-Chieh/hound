@@ -1115,6 +1115,8 @@ def finalize(
 def report(
     project: str = typer.Argument(..., help="Project name"),
     output: str | None = typer.Option(None, "--output", "-o", help="Output file path"),
+    prediction_case_output: Path | None = typer.Option(None, "--prediction-case-output", help="Also write confirmed findings as benchmark PredictionCase JSON"),
+    repo_id: str | None = typer.Option(None, "--repo-id", help="Repository ID for --prediction-case-output"),
     format: str = typer.Option("html", "--format", "-f", help="Report format (html/markdown)"),
     title: str | None = typer.Option(None, "--title", "-t", help="Custom report title"),
     auditors: str = typer.Option("Security Team", "--auditors", "-a", help="Comma-separated auditor names"),
@@ -1133,6 +1135,8 @@ def report(
     ctx.params = {
         'project_name': project,
         'output': output,
+        'prediction_case_output': prediction_case_output,
+        'repo_id': repo_id,
         'format': format,
         'title': title,
         'auditors': auditors,

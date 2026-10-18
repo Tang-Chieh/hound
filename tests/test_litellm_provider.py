@@ -1,6 +1,5 @@
 """Tests for LiteLLM provider."""
 import sys
-import types
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -8,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from pydantic import BaseModel
 
 from llm.litellm_provider import LiteLLMProvider, _is_non_retryable
+from llm.unified_client import UnifiedLLMClient
 
 
 class SampleSchema(BaseModel):
@@ -290,7 +290,6 @@ class TestUnifiedClientLiteLLMRegistration(unittest.TestCase):
             def raw(self, *, system, user): return "ok"
 
         with patch("llm.unified_client.LiteLLMProvider", DummyLiteLLM):
-            from llm.unified_client import UnifiedLLMClient
             uc = UnifiedLLMClient(cfg, profile="graph")
             assert uc.provider.provider_name == "LiteLLM"
 

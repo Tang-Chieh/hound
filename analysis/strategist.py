@@ -13,6 +13,14 @@ from llm.tokenization import count_tokens
 from llm.unified_client import UnifiedLLMClient
 
 
+class VulnerableCodeItemJSON(BaseModel):
+    file: str = Field(description="Repository-relative source path")
+    contract: str = Field(description="Solidity contract containing the vulnerable code")
+    function: str = Field(description="Affected function name, including overload signature if known")
+    start_line: int | None = Field(default=None, description="Inclusive start line when known")
+    end_line: int | None = Field(default=None, description="Inclusive end line when known")
+
+
 class PlanItemSchema(BaseModel):
     goal: str = Field(description="Investigation goal or question")
     focus_areas: list[str] = Field(default_factory=list)
@@ -28,14 +36,18 @@ class PlanBatch(BaseModel):
 
 class HypothesisItemJSON(BaseModel):
     title: str
+    description: str = Field(default="", description="Concise, evidence-grounded explanation of the vulnerability")
     type: str = Field(default="security_issue")
     root_cause: str = Field(default="")
     attack_vector: str = Field(default="")
+    impact: str = Field(default="", description="Concrete security or financial consequence if exploited")
     node_ids: list[str] = Field(default_factory=list)
     affected_code: list[str] = Field(default_factory=list)
+    vulnerable_code: list[VulnerableCodeItemJSON] = Field(default_factory=list)
     severity: str = Field(default="medium")
     confidence: str | float = Field(default="medium")
     reasoning: str = Field(default="")
+    mitigation: str = Field(default="", description="Suggested concrete remediation based on the identified root cause; do not add unsupported assumptions.")
 
 
 class HypothesisBatchJSON(BaseModel):
@@ -437,7 +449,7 @@ class Strategist:
                 "Identify and describe all security vulnerabilities in this code.\n\n"
                 "OUTPUT FORMAT:\n"
                 "List each bug on a separate line using this format:\n"
-                "Title | Type | Root Cause | Attack Vector | Affected Node IDs | Affected Code | Severity | Confidence | Reasoning\n\n"
+                "Title | Type | Root Cause | Attack Vector | Affected Node IDs | Affected Code | Severity | Confidence | Reasoning | Suggested Mitigation\n\n"
                 "- Security vulnerabilities likely exist in this code.\n"
                 "- Provide up to 5 bugs maximum\n"
                 "- If you cannot identify any issues, respond with: NO_HYPOTHESES: true\n"
@@ -469,13 +481,15 @@ class Strategist:
                 "Check EACH hypothesis you're about to propose against the existing list.\n\n"
                 "OUTPUT INSTRUCTIONS:\n"
                 "1) HYPOTHESES (max 5, EXACTLY ONE PER LINE, exactly this pipe-separated format; DO NOT wrap across lines; use commas/semicolons instead of line breaks):\n"
-                "   Title | Type | Root Cause | Attack Vector | Affected Node IDs | Affected Code | Severity | Confidence | Reasoning\n"
+                "   Title | Type | Root Cause | Attack Vector | Affected Node IDs | Affected Code | Severity | Confidence | Reasoning | Suggested Mitigation\n"
                 "   - severity: critical|high|medium|low; confidence: high|medium|low\n"
                 "   - Keep Title concise and actionable.\n"
                 "   - CRITICAL: Affected Node IDs must be EXACT node IDs as shown in the NODES sections (token before the first pipe) or listed under LOADED NODES (e.g., func_transfer, contract_Token, state_balances)\n"
                 "   - Use a comma-separated list of actual node IDs. Do NOT invent new IDs or use descriptions.\n"
                 "   - You MUST provide at least one valid node ID for each hypothesis\n"
                 "   - Affected Code should reference concrete functions/files if possible.\n"
+                "   - Suggested Mitigation must describe concrete changes that address the stated root cause; do not invent additional vulnerability assumptions.\n"
+                "   - Clearly present mitigation as a recommendation, not as a verified fix.\n"
                 "   - Hard limit: keep each hypothesis under 240 characters to avoid line wrapping.\n\n"
                 "2) GUIDANCE (next steps for the Scout):\n"
                 "   - Provide 2–5 concrete CODE-ONLY actions to gather evidence or rule in/out the hypotheses (load/read specific files, trace auth/dataflow, check invariants).\n"
@@ -542,8 +556,11 @@ class Strategist:
             json_user = (
                 user
                 + "\n\nSTRICT OUTPUT: Return ONLY JSON with keys 'hypotheses' (list) and 'guidance' (list of strings).\n"
-                + "Each hypothesis must include: title,type,root_cause,attack_vector,node_ids (array),affected_code (array),severity,confidence (high|medium|low or 0.0-1.0),reasoning.\n"
-                + "Example: {\"hypotheses\":[{\"title\":\"...\",\"type\":\"...\",\"root_cause\":\"...\",\"attack_vector\":\"...\",\"node_ids\":[\"func_x\"],\"affected_code\":[\"path:func\"],\"severity\":\"high\",\"confidence\":\"medium\",\"reasoning\":\"...\"}],\"guidance\":[\"...\"]}"
+                + "Each hypothesis must include the direct Finding fields title,description,impact,vulnerable_code,mitigation, plus finding analysis fields type,root_cause,attack_vector,node_ids,affected_code,severity,confidence,reasoning.\n"
+                + "vulnerable_code must be an array of objects with file,contract,function and optional start_line/end_line (provide both line values or neither). Use exact locations from loaded code; use [] rather than guessing.\n"
+                + "impact must state a concrete consequence, not merely repeat severity. mitigation must be a concrete suggested remediation grounded in root cause; do not claim it is implemented or verified.\n"
+                + "description should explain the evidence-grounded flaw and exploit path.\n"
+                + "Example: {\"hypotheses\":[{\"title\":\"...\",\"description\":\"...\",\"impact\":\"...\",\"vulnerable_code\":[{\"file\":\"src/Pool.sol\",\"contract\":\"Pool\",\"function\":\"redeem\",\"start_line\":42,\"end_line\":48}],\"mitigation\":\"...\",\"type\":\"oracle\",\"root_cause\":\"...\",\"attack_vector\":\"...\",\"node_ids\":[\"func_x\"],\"affected_code\":[\"path:func\"],\"severity\":\"high\",\"confidence\":\"medium\",\"reasoning\":\"...\"}],\"guidance\":[\"...\"]}"
             )
             batch = self.llm.parse(system=system, user=json_user, schema=HypothesisBatchJSON, reasoning_effort=hyp_effort)
             self._log_usage('deep_think(json)', system, json_user)
@@ -592,16 +609,21 @@ class Strategist:
                     f"AFFECTED NODES: {', '.join(node_ids)}\n"
                     f"AFFECTED CODE: {', '.join(h.affected_code or [])}\n"
                     f"SEVERITY: {h.severity}\n"
-                    f"REASONING: {h.reasoning}"
+                    f"REASONING: {h.reasoning}\n"
+                    f"SUGGESTED MITIGATION: {h.mitigation}"
                 )
                 items.append({
                     'description': h.title,
+                    'finding_description': h.description or '\n'.join(part for part in (h.root_cause, h.attack_vector, h.reasoning) if part),
                     'details': details,
                     'vulnerability_type': h.type,
+                    'impact': h.impact or h.attack_vector or h.reasoning or '',
+                    'vulnerable_code': [code.model_dump(exclude_none=True) for code in h.vulnerable_code],
                     'severity': str(h.severity).lower() if h.severity else 'medium',
                     'confidence': conf,
                     'node_ids': node_ids,
                     'reasoning': h.reasoning or '',
+                    'mitigation': h.mitigation or '',
                 })
             json_used = True
         except Exception:
@@ -629,7 +651,8 @@ class Strategist:
             raw_text = str(resp)
         else:
             raw_text = str(self.last_raw or '')
-        # Group multi-line hypotheses: accumulate lines until we have at least 8 pipes (9 fields)
+        # Group multi-line hypotheses: accumulate lines until we have at least 9 pipes (10 fields).
+        # Legacy 9-field rows are recovered by the salvage path below and remain supported.
         grouped: list[str] = []
         invalid_groups: list[str] = []
         cur: list[str] = []
@@ -640,7 +663,7 @@ class Strategist:
                 # Blank line: flush current candidate
                 if cur:
                     joined = ' '.join(cur)
-                    if cur_pipes >= 8:
+                    if cur_pipes >= 9:
                         grouped.append(joined)
                     else:
                         invalid_groups.append(joined)
@@ -654,13 +677,13 @@ class Strategist:
             # Pipe line: add and update count
             cur.append(ln)
             cur_pipes = ' '.join(cur).count('|')
-            if cur_pipes >= 8:
+            if cur_pipes >= 9:
                 grouped.append(' '.join(cur))
                 cur, cur_pipes = [], 0
         # Flush tail (complete or incomplete)
         if cur:
             joined = ' '.join(cur)
-            if cur_pipes >= 8:
+            if cur_pipes >= 9:
                 grouped.append(joined)
             else:
                 invalid_groups.append(joined)
@@ -677,8 +700,8 @@ class Strategist:
             if '|' not in raw:
                 continue
             parts = [p.strip() for p in raw.split('|')]
-            # Pad to 9 fields
-            while len(parts) < 9:
+            # Pad to the current 10-field format; older 9-field rows remain valid.
+            while len(parts) < 10:
                 parts.append('')
             # Heuristic: if affected_nodes empty, try to extract node-like tokens
             if not parts[4]:
@@ -694,7 +717,7 @@ class Strategist:
                 parts[6] = 'medium'
             if not parts[7]:
                 parts[7] = 'medium'
-            salvaged.append(' | '.join(parts[:9]))
+            salvaged.append(' | '.join(parts[:10]))
 
         # Merge salvaged into lines (avoid dupes)
         for s in salvaged:
@@ -711,6 +734,7 @@ class Strategist:
             severity = parts[6].lower() if len(parts) > 6 else "medium"
             conf_word = parts[7].lower() if len(parts) > 7 else "medium"
             reasoning = parts[8] if len(parts) > 8 else ""
+            mitigation = parts[9] if len(parts) > 9 else ""
 
             confidence = 0.6
             if 'high' in conf_word:
@@ -763,17 +787,22 @@ class Strategist:
                 f"AFFECTED NODES: {', '.join(node_ids)}\n"
                 f"AFFECTED CODE: {affected_code}\n"
                 f"SEVERITY: {severity}\n"
-                f"REASONING: {reasoning}"
+                f"REASONING: {reasoning}\n"
+                f"SUGGESTED MITIGATION: {mitigation}"
             )
 
             items.append({
                 'description': title,
+                'finding_description': '\n'.join(part for part in (root_cause, attack_vector, reasoning) if part),
                 'details': details,
                 'vulnerability_type': vuln_type,
+                'impact': attack_vector or reasoning or '',
+                'vulnerable_code': [],
                 'severity': severity,
                 'confidence': confidence,
                 'node_ids': node_ids,
                 'reasoning': reasoning,
+                'mitigation': mitigation,
             })
         # Record invalid-format items (not enough fields)
         try:
@@ -808,6 +837,7 @@ class Strategist:
             confidence: float
             node_ids: list[str]
             reasoning: str
+            mitigation: str = Field(default="", description="Keep or refine the suggested mitigation using only supported evidence; do not imply it has been implemented or verified.")
             accept: bool = Field(description="Accept only if evidence in context clearly supports root cause and no strong mitigation exists.")
             reason: str = Field(description="Why accepted/rejected; cite mitigating checks if rejecting.")
 
@@ -817,18 +847,18 @@ class Strategist:
         review_instr = (
             "You previously proposed candidate hypotheses. Now act as a skeptical reviewer.\n"
             "Reject any item lacking explicit evidence of the ROOT CAUSE in the provided context, or where guards/permissions clearly mitigate it.\n"
-            "Prefer fewer, higher-quality items. Keep at most 3 accepted items. Return JSON.\n"
+            "Prefer fewer, higher-quality items. Keep at most 3 accepted items. Preserve or conservatively refine each candidate's suggested mitigation; do not imply it is implemented or verified. Return JSON.\n"
         )
 
         cand_lines = []
         for i, it in enumerate(items[:5], 1):
             cand_lines.append(
-                f"{i}. {it['description']} | type={it['vulnerability_type']} | sev={it['severity']} | conf={it['confidence']} | nodes={','.join(it.get('node_ids') or [])}"
+                f"{i}. {it['description']} | type={it['vulnerability_type']} | sev={it['severity']} | conf={it['confidence']} | nodes={','.join(it.get('node_ids') or [])} | suggested_mitigation={it.get('mitigation', '')}"
             )
         review_user = (
             "CONTEXT (same as above):\n" + context + "\n\n"
             "CANDIDATES:\n" + "\n".join(cand_lines) + "\n\n"
-            "Respond with JSON: {\"items\":[{...}]}, fields: description,vulnerability_type,severity,confidence,node_ids,reasoning,accept,reason."
+            "Respond with JSON: {\"items\":[{...}]}, fields: description,vulnerability_type,severity,confidence,node_ids,reasoning,mitigation,accept,reason."
         )
 
         try:

@@ -57,7 +57,8 @@ def test_deep_think_json_parsing_success():
                 affected_code=['contracts/Whitelist.sol:setPool'],
                 severity='high',
                 confidence='high',
-                reasoning='obvious'
+                reasoning='obvious',
+                mitigation='Validate the configured contract before accepting it.'
             ),
             HypothesisItemJSON(
                 title='No Events',
@@ -91,6 +92,8 @@ def test_deep_think_json_parsing_success():
     titles = [it['description'] for it in items]
     assert 'Missing Validation for Whitelist Contract Address' in titles
     assert 'No Events' in titles
+    assert items[0]['mitigation'] == 'Validate the configured contract before accepting it.'
+    assert items[1]['mitigation'] == ''
 
 
 def test_deep_think_legacy_text_parsing_with_wrapped_lines_and_salvage():
@@ -116,6 +119,22 @@ def test_deep_think_legacy_text_parsing_with_wrapped_lines_and_salvage():
     assert 'func_swap_execute' in items[0]['node_ids']
     # Second item should be salvaged (fallback node assigned)
     assert len(items[1]['node_ids']) >= 1
+
+
+def test_deep_think_pipe_format_parses_suggested_mitigation():
+    raw = (
+        'Unsafe spot price | oracle | trusts current reserves | attacker swaps to move reserves | '
+        'func_redeem | Pool.sol:redeem | high | high | direct price use | '
+        'Use a manipulation-resistant TWAP or validated independent oracle.\n'
+    )
+    config = {'models': {'agent': {'model': 'mock', 'provider': 'mock'}}}
+    st = Strategist(config=config, debug=False)
+    st.llm = _StubLLM(parse_obj=None, raw_text=raw, raise_on_parse=True)
+
+    items = st.deep_think(context=_context_with_nodes(['func_redeem']), phase='Saliency')
+
+    assert len(items) == 1
+    assert items[0]['mitigation'] == 'Use a manipulation-resistant TWAP or validated independent oracle.'
 
 
 def test_deep_think_invalid_group_padded_and_tokens_extracted():
