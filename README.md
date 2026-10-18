@@ -5,7 +5,8 @@
 兩個分支都支援模型產生 Finding 欄位及直接輸出 `PredictionCase`。
 
 - [Fork 的分支、改動與執行說明](docs/FORK_GUIDE_ZH.md)
-- [Private 整合實驗 repo（需權限）](https://github.com/Tang-Chieh/Hound_price_manipulation_experiments)：C/D 結果、LLM Judge、Ground Truth 與完整重現流程。
+- [C/D 實驗結果與完整評估報告](experiments/README.md)：兩個分支都保存最新 `gpt-5.6-luna` 的 C、D 結果。
+- [Private 整合實驗 repo（需權限）](https://github.com/Tang-Chieh/Hound_price_manipulation_experiments)：LLM Judge 程式、獨立 Ground Truth dataset 與完整重現流程。
 
 以下保留 upstream README。
 
