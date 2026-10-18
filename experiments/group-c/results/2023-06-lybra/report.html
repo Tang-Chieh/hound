@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2023-06-lybra</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Lybra Protocol</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2023-06-lybra<br>
+                <strong>Date:</strong> October 13, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the Lybra Protocol, reviewing its core collateralized stablecoin, governance, rewards, proxy, and cross-chain components.</p>
+<p>The assessment covered the system architecture, including interactions among protocol users, governance and timelock administration, proxy-managed configuration, collateral vaults, EUSD and PeUSD token flows, liquidation mechanisms, rewards modules, price oracles, external collateral tokens, and LayerZero-based cross-chain services.</p>
+<p>Our team identified several confirmed security issues affecting access control, reward accounting, oracle validation, staking incentives, and collateral accounting. The most significant risks include ineffective role enforcement in configurator protections, permanently unaccounted reward transfers when no users are staked, retroactive reward boosts, invalid LBR oracle acceptance, and stETH rebase-related insolvency exposure. These issues require remediation before the protocol can be considered robust against privileged-role compromise, malformed oracle data, adverse collateral behavior, and reward-accounting manipulation.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The Lybra Protocol is organized around LybraProxy and LybraProxyAdmin, with the proxy routing calls to LybraConfigurator and related implementation contracts. LybraConfigurator maintains protocol-wide addresses, vault activation, mint limits, collateral parameters, token configuration, and reward distribution settings. GovernanceTimelock and LybraGovernance are intended to control privileged operations, while vaults and reward modules consume configuration values during normal execution.</p>
+<p>Collateralized borrowing is implemented through LybraEUSDVaultBase and LybraPeUSDVaultBase. Concrete vaults, including LybraStETHDepositVault, LybraWstETHVault, LybraRETHVault, and LybraWBETHVault, accept collateral tokens, consult configured ETH or collateral price feeds, mint EUSD or PeUSD, and process withdrawals and liquidations. Liquidators repay stablecoin debt and receive collateral subject to collateral-ratio and liquidation limits. Our analysis also examined the effect of rebasing collateral: stETH positions are recorded using nominal token amounts rather than a rebasing-aware share representation, so an adverse rebase can reduce actual backing while recorded collateral and debt calculations remain unchanged.</p>
+<p>EUSD and PeUSD form the principal stablecoin flows. Vaults mint and burn these tokens against collateralized positions, while PeUSD additionally implements OFTCoreV2 functionality for cross-chain transfers. OFTCoreV2 uses LayerZero application and endpoint interfaces to serialize transfers, send messages through the LayerZero service, and deliver value to remote-chain OFT contracts. The reviewed cross-chain amount conversion includes a checked uint64 boundary, so oversized transfers revert atomically rather than silently truncating source or destination value.</p>
+<p>Rewards are distributed through EUSDMiningIncentives, ProtocolRewardsPool, StakingRewardsV2Pool, and esLBRBoost. EUSDMiningIncentives uses an LBR price oracle when users purchase other earnings, but the returned price is accepted without positivity, freshness, or round-completeness validation. ProtocolRewardsPool receives protocol distributions from LybraConfigurator, and our analysis revealed that transfers made while no esLBR is staked can remain stranded outside reward-per-token accounting. StakingRewardsV2Pool also applies the current boost across the full uncheckpointed reward interval, allowing a newly established esLBR lock to increase rewards accrued before the lock.</p>
+<p>Governance and administrative security are critical boundaries in this architecture. We discovered that the configurator's role-checking integration does not enforce the boolean result returned by GovernanceTimelock, allowing protected configuration functions to be called without the intended authorization. Additional operational risks include zero reward durations causing later scheduling failures and truncation of unscheduled reward remainders. Together, these findings demonstrate that governance enforcement, oracle validation, reward accounting, and rebasing-aware collateral valuation should be strengthened before deployment in a high-value environment.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">6</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">2</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">3</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">1</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 0,1 211.60,175.00 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L211.60,175.00 A100,100 0 0,1 38.40,75.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L38.40,75.00 A100,100 0 0,1 125.00,25.00 Z" 
+                      fill="#28a745" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">6</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">2</div>
+                    <div style="color: #64738c; font-size: 12px;">(33.3%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">3</div>
+                    <div style="color: #64738c; font-size: 12px;">(50.0%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #28a745;"></div>
+                    <div class="legend-text">Low</div>
+                    <div class="legend-count">1</div>
+                    <div style="color: #64738c; font-size: 12px;">(16.7%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Deployer retains direct DAO authority over critical configurator controls</h3>
+                <div class="vulnerability-description">
+                    <p>This access control vulnerability allows the deployment account to retain direct authority over critical DAO-only configurator functions. During construction, the governance timelock grants the DAO role to msg.sender, and the configurator's role checks only verify possession of that role; they do not require the caller to be the timelock contract or otherwise enforce governance execution through a delay.</p>
+<p>As a result, the deployer, or an attacker who compromises the deployment account, can invoke privileged configuration functions directly rather than submitting an operation through the timelock. This bypasses the intended governance review and delay, allowing immediate modification of critical protocol parameters and increasing the risk of unauthorized or malicious configuration changes.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the GovernanceTimelock contract, specifically its constructor; the LybraConfigurator contract, specifically DAO-authorized configuration functions and their role checks; and the governance DAO authorization flow</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the GovernanceTimelock constructor and Configurator access-control modifiers, I confirmed that the hypothesized privilege bypass exists, and the implementation contains an even broader flaw. GovernanceTimelock.sol grants DAO to both address(this) and msg.sender via _grantRole(DAO, ...), so the deployer receives DAO authority without any timelock delay. Configurator&#39;s onlyRole(DAO) modifier calls checkOnlyRole(DAO, msg.sender), which merely returns hasRole(role, _sender) and does not revert when false; the returned boolean is ignored. Consequently, initToken, setMintVault, setMintVaultMaxSupply, and setBadCollateralRatio are callable by any address, including the deployer directly, without governance execution or delay. The same issue affects the checkRole modifier and all TIMELOCK/ADMIN-protected functions because GovernanceTimelock.checkRole also returns a boolean without enforcing it, while Configurator ignores that result. Therefore, no effective guard prevents direct calls, and the deployer-specific hypothesis is confirmed, although the actual vulnerability is not limited to the deployment account and permits arbitrary callers to modify protected configuration.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Do not grant DAO to the deployment EOA, or revoke that grant after initialization. Ensure privileged configurator operations can only be executed by the timelock/governance executor and are subject to the intended delay.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/governance/GovernanceTimelock.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 25-28</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>25
+26
+27</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function checkRole(bytes32 role, address _sender) public view  returns(bool){
+    return hasRole(role, _sender) || hasRole(DAO, _sender);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The generic role check grants access when the caller has the requested role OR the DAO role. Because the deployer is granted DAO during construction, this allows the deployer to satisfy checks for TIMELOCK or ADMIN-protected configurator functions without calling through the timelock.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/configuration/LybraConfigurator.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 137-146</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>137
+138
+139
+140
+141
+142
+143
+144
+145
+146</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function setProtocolRewardsPool(address addr) external checkRole(TIMELOCK) {
+    lybraProtocolRewardsPool = IProtocolRewardsPool(addr);
+    emit ProtocolRewardsPoolChanged(addr, block.timestamp);
+}
+
+/**
+ * @notice Sets the address of the eUSDMiningIncentives pool.
+ * @param addr The new address of the eUSDMiningIncentives pool.
+ * @dev This function can only be called by accounts with TIMELOCK or higher privilege.
+ */</code></pre></div>
+            </div>
+            <div class="code-explanation">This critical configurator setter relies on checkRole(TIMELOCK). That modifier ultimately uses the permissive GovernanceTimelock.checkRole logic, allowing a caller with DAO—including the deployment account—to invoke the function directly without timelock execution or delay.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Boosted rewards can be applied retroactively</h3>
+                <div class="vulnerability-description">
+                    <p>This accounting error allows a newly acquired or increased reward boost to be applied retroactively to an earlier staking period. Reward accrual stores a single user checkpoint, while the boost multiplier is evaluated when the interval is later settled rather than being tied to the boost state throughout each portion of that interval.</p>
+<p>A user can create an uncheckpointed reward interval, obtain or increase an esLBR lock near the end of that interval, and then call getReward(), stake(), withdraw(), or another function that updates rewards. The calculation may apply the newly observed boost to rewards earned before the boost became active, resulting in excess reward payments and dilution of other stakers' rewards.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the stakerewardV2pool contract, specifically getBoost(), earned(), getReward(), and reward-update logic; and the esLBR boost and locking mechanism</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the updateReward modifier, getBoost, earned, and esLBRBoost.getUserBoost implementations, I confirmed that the accounting error is exploitable. updateReward records only one userUpdatedAt timestamp and earned() computes the entire uncheckpointed reward-per-token delta using the boost returned at claim or another update time. After a user stakes, the user can call esLBRBoost.setLockStatus near the end of the accrual period without any corresponding checkpoint in StakingRewardsV2. getBoost then passes the old userUpdatedAt to getUserBoost, which observes the newly created lock. While the lock remains active, getUserBoost returns the full miningBoost, causing earned() to multiply rewards accrued before the lock by the newly obtained boost. Calling getReward, stake, or withdraw then permanently checkpoints this inflated amount. There is no callback, access-control relationship, or synchronization mechanism forcing staking rewards to be checkpointed before setLockStatus, and the boost contract does not retain historical lock states. Therefore, the implementation permits retroactive application of a boost to previously accrued rewards.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Checkpoint staking rewards before any boost or lock status change, or calculate rewards over discrete intervals using historical boost state. Do not apply a newly observed boost to reward time preceding its activation.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/miner/stakerewardV2pool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 106-110</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>106
+107
+108
+109
+110</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function earned(address _account) public view returns (uint256) {
+    return ((balanceOf[_account] * getBoost(_account) * (rewardPerToken() - userRewardPerTokenPaid[_account])) / 1e38) + rewards[_account];
+}
+
+// Allows users to claim their earned rewards</code></pre></div>
+            </div>
+            <div class="code-explanation">The entire accumulated rewardPerToken delta since the user&#39;s checkpoint is multiplied by the boost returned for the user&#39;s current state, allowing a newly acquired boost to affect rewards earned before it was active.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/miner/esLBRBoost.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 57-71</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">    function getUserBoost(address user, uint256 userUpdatedAt, uint256 finishAt) external view returns (uint256) {
+        uint256 boostEndTime = userLockStatus[user].unlockTime;
+        uint256 maxBoost = userLockStatus[user].miningBoost;
+        if (userUpdatedAt &gt;= boostEndTime || userUpdatedAt &gt;= finishAt) {
+            return 0;
+        }
+        if (finishAt &lt;= boostEndTime || block.timestamp &lt;= boostEndTime) {
+            return maxBoost;
+        } else {
+            uint256 time = block.timestamp &gt; finishAt ? finishAt : block.timestamp;
+            return ((boostEndTime - userUpdatedAt) * maxBoost) / (time - userUpdatedAt);
+        }
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The boost is derived from the user&#39;s current lock status while using the historical userUpdatedAt only as an interval boundary, rather than preserving the boost state over each portion of the accrued interval.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Protocol reward distributions are permanently stranded when no esLBR holders are staked</h3>
+                <div class="vulnerability-description">
+                    <p>This accounting error can permanently strand protocol reward distributions when no esLBR holders are staked. The configurator transfers the reward amount to the protocol rewards pool before the pool verifies whether any tokens are staked. If totalStaked() is zero, notifyRewardAmount() returns without updating reward-per-token accounting or recording the transferred amount as pending rewards.</p>
+<p>An actor can trigger a reward distribution while the pool has no staked esLBR and the configurator holds the required reward balance. The transferred tokens then remain in the rewards pool without being allocated to future stakers, causing a permanent loss of protocol rewards unless an administrative recovery mechanism exists.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the LybraConfigurator contract, specifically distributeRewards(); the ProtocolRewardsPool contract, specifically notifyRewardAmount(); and the EUSD vault repayment flow that triggers reward distribution</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing Configurator.distributeRewards and ProtocolRewardsPool.notifyRewardAmount, I confirmed the accounting vulnerability exists. distributeRewards transfers the thresholded peUSD or eUSD balance to the rewards pool before invoking notifyRewardAmount, without checking whether esLBR.totalSupply() is nonzero and without validating that notification succeeded. In notifyRewardAmount, the require(msg.sender == address(configurator)) check passes, but the function immediately returns when totalStaked() == 0, leaving rewardPerTokenStored and any pending-reward accounting unchanged. Because the transfer has already occurred, the tokens remain in ProtocolRewardsPool but are not assigned to current or future stakers through the reward-per-token mechanism. distributeRewards is externally callable, so an actor can invoke it whenever the configurator holds a threshold balance while no esLBR is staked; any protocol path that invokes it has the same effect. The rewards pool has no visible recovery or pending-distribution mechanism, and later notifications account only for newly notified amounts. Thus, the funds are effectively stranded from the intended distribution accounting, although they remain held by the pool.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Check totalStaked before transferring, or record pending rewards when there are no stakers and distribute them on the next valid notification. Verify transfer amounts and maintain explicit liabilities for undistributed rewards.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/configuration/LybraConfigurator.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 289-306</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function distributeRewards() external {
+    uint256 peUSDBalance = peUSD.balanceOf(address(this));
+    if(peUSDBalance &gt;= 1e21) {
+        peUSD.transfer(address(lybraProtocolRewardsPool), peUSDBalance);
+        lybraProtocolRewardsPool.notifyRewardAmount(peUSDBalance, 2);
+    }
+    uint256 balance = EUSD.balanceOf(address(this));
+    if (balance &gt; 1e21) {
+        uint256 price = curvePool.get_dy_underlying(0, 2, 1e18);
+        if(!premiumTradingEnabled || price &lt;= 1005000) {
+            EUSD.transfer(address(lybraProtocolRewardsPool), balance);
+            lybraProtocolRewardsPool.notifyRewardAmount(balance, 0);
+        } else {
+            EUSD.approve(address(curvePool), balance);
+            uint256 amount = curvePool.exchange_underlying(0, 2, balance, balance * price * 998 / 1e21);
+            IEUSD(stableToken).transfer(address(lybraProtocolRewardsPool), amount);
+            lybraProtocolRewardsPool.notifyRewardAmount(amount, 1);
+        }</code></pre></div>
+            </div>
+            <div class="code-explanation">distributeRewards transfers tokens to the rewards pool before calling notifyRewardAmount, so a distribution can be transferred while no esLBR is staked.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/miner/ProtocolRewardsPool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 227-242</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">    function notifyRewardAmount(uint amount, uint tokenType) external {
+        require(msg.sender == address(configurator));
+        if (totalStaked() == 0) return;
+        require(amount &gt; 0, &quot;amount = 0&quot;);
+        if(tokenType == 0) {
+            uint256 share = IEUSD(configurator.getEUSDAddress()).getSharesByMintedEUSD(amount);
+            rewardPerTokenStored = rewardPerTokenStored + (share * 1e18) / totalStaked();
+        } else if(tokenType == 1) {
+            ERC20 token = ERC20(configurator.stableToken());
+            rewardPerTokenStored = rewardPerTokenStored + (amount * 1e36 / token.decimals()) / totalStaked();
+        } else {
+            rewardPerTokenStored = rewardPerTokenStored + (amount * 1e18) / totalStaked();
+        }
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">notifyRewardAmount immediately returns when totalStaked() is zero and records no pending reward, leaving tokens already transferred by the configurator stranded in the pool.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>LBR oracle result is used without zero, sign, or freshness validation during reward buyout</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle validation vulnerability allows an LBR price returned by the oracle to be used without verifying that it is positive, complete, fresh, and otherwise within an acceptable range. The reward buyout logic reads latestRoundData() but does not validate the round identifiers, updatedAt timestamp, answeredInRound value, or the signed price before casting it to uint256.</p>
+<p>If the feed returns zero, stale, incomplete, negative, or otherwise invalid data, an eligible user can invoke purchaseOtherEarnings(..., true). A zero or invalid price may allow rewards to be purchased for no EUSD fee, while a negative or malformed value may cause the transaction to revert or produce unsafe calculations. This can result in incorrect reward pricing and disruption of the buyout mechanism.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the EUSDMiningIncentives contract, specifically purchaseOtherEarnings(); the LBR price oracle; and the esLBR token and reward buyout flow</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the oracle-dependent functions in EUSDMiningIncentives.sol, I confirmed the reported oracle-validation weakness is exploitable. In purchaseOtherEarnings, the LBR feed result from latestRoundData() is destructured while roundId, updatedAt, answeredInRound, and validity of the signed answer are ignored. The code directly converts lbrPrice to uint256 and calculates the EUSD bidding fee without checking that the answer is positive, nonzero, complete, or fresh. A zero answer therefore reduces the fee to zero, allowing an otherwise eligible user to receive esLBR rewards without paying the intended EUSD cost. Negative answers can produce an invalid large unsigned value and commonly cause arithmetic overflow or transfer failure, creating a denial-of-service or reverted buyout path. Additionally, stakedLBRLpValue, used by isOtherEarningsClaimable, independently consumes the same unvalidated LBR oracle result, so zero or malformed data can also affect eligibility or revert. The isEUSDBuyoutAllowed flag only enables or disables the entire payment mode and does not validate oracle data.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require a positive answer, valid round metadata, and an acceptable updatedAt age before conversion. Define a bounded price sanity range and revert or disable the buyout when the feed is invalid.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/miner/EUSDMiningIncentives.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 202-219</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function purchaseOtherEarnings(address user, bool useEUSD) external updateReward(user) {
+    require(isOtherEarningsClaimable(user), &quot;The rewards of the user cannot be bought out&quot;);
+    if(useEUSD) {
+        require(isEUSDBuyoutAllowed, &quot;The purchase using EUSD is not permitted.&quot;);
+    }
+    uint256 reward = rewards[user];
+    if (reward &gt; 0) {
+        rewards[user] = 0;
+        uint256 biddingFee = (reward * biddingFeeRatio) / 10000;
+        if(useEUSD) {
+            (, int lbrPrice, , , ) = lbrPriceFeed.latestRoundData();
+            biddingFee = biddingFee * uint256(lbrPrice) / 1e8;
+            bool success = EUSD.transferFrom(msg.sender, address(configurator), biddingFee);
+            require(success, &quot;TF&quot;);
+            try configurator.distributeRewards() {} catch {}
+        } else {
+            IesLBR(LBR).burn(msg.sender, biddingFee);
+        }</code></pre></div>
+            </div>
+            <div class="code-explanation">The targeted purchaseOtherEarnings function reads the signed LBR price from latestRoundData() and immediately casts it to uint256 without validating the answer, round identifiers, updatedAt timestamp, or answeredInRound. A zero, stale, incomplete, or negative oracle result can therefore produce incorrect buyout pricing or revert during the cast.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>StETH rebasing can make recorded collateral exceed the vault’s actual collateral</h3>
+                <div class="vulnerability-description">
+                    <p>This collateral accounting error can cause the vault's recorded stETH collateral to exceed the amount of stETH it can actually redeem. If the vault tracks deposited token amounts without accounting for stETH's rebasing behavior, an adverse rebase can reduce the collateral's current redeemable value while the recorded balance remains unchanged.</p>
+<p>A borrower can deposit stETH and borrow up to the permitted limit before an adverse rebase, then withdraw or abandon the position. The vault may continue to treat the original collateral amount as available even though its actual backing has decreased, leaving liquidators unable to recover the outstanding debt and creating undercollateralized positions. The same rebasing-aware valuation must be used consistently for borrowing limits, collateral ratios, withdrawals, and liquidations.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the stETH vault, specifically deposit() and depositEtherToStETH(); the EUSD vault base collateral-ratio, withdrawal, and liquidation logic; and the collateral token accounting used by borrowers and liquidators</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing LybraStETHDepositVault and LybraEUSDVaultBase, I confirmed the accounting mismatch is present and can become exploitable after an adverse stETH rebase. In depositEtherToMint, the vault records msg.value in both totalDepositedAsset and depositedAsset[msg.sender], even though Lido returns sharesAmount and the vault’s actual stETH balance is subject to rebasing. Similarly, depositAssetToMint records the nominal token amount rather than a share-based entitlement. The collateral-ratio checks in _checkHealth, liquidation, superLiquidation, rigidRedemption, and _withdraw all use depositedAsset, while getAssetPrice returns only the ETH oracle price in the stETH vault. Consequently, a negative rebase reduces collateralAsset.balanceOf(address(this)) without reducing recorded collateral or debt capacity. Withdrawals and liquidation may then attempt to transfer more stETH than the vault possesses and revert, leaving undercollateralized debt effectively unrecoverable. The positive-rebase excessIncomeDistribution path does not correct negative rebases. This is therefore a genuine accounting and insolvency risk, although exploitation depends on an adverse rebase occurring.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Track stETH shares or compute each position’s current redeemable stETH amount using a rebasing-aware representation. Use the same current-value calculation for borrowing limits, collateral ratios, withdrawals, and liquidation, and add tests covering negative and positive rebases.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/pools/base/LybraEUSDVaultBase.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 72-86</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">function depositAssetToMint(uint256 assetAmount, uint256 mintAmount) external virtual {
+    require(assetAmount &gt;= 1 ether, &quot;Deposit should not be less than 1 stETH.&quot;);
+
+    bool success = collateralAsset.transferFrom(msg.sender, address(this), assetAmount);
+    require(success, &quot;TF&quot;);
+
+    totalDepositedAsset += assetAmount;
+    depositedAsset[msg.sender] += assetAmount;
+    depositedTime[msg.sender] = block.timestamp;
+
+    if (mintAmount &gt; 0) {
+        _mintEUSD(msg.sender, msg.sender, mintAmount, getAssetPrice());
+    }
+    emit DepositAsset(msg.sender, address(collateralAsset), assetAmount, block.timestamp);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The vault records the nominal deposited stETH amount in totalDepositedAsset and depositedAsset without reconciling those values with the collateral token&#39;s current balance. After an adverse rebase, these accounting values can exceed the vault&#39;s redeemable stETH.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/pools/base/LybraPeUSDVaultBase.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 125-142</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function liquidation(address provider, address onBehalfOf, uint256 assetAmount) external virtual {
+    uint256 assetPrice = getAssetPrice();
+    uint256 onBehalfOfCollateralRatio = (depositedAsset[onBehalfOf] * assetPrice * 100) / getBorrowedOf(onBehalfOf);
+    require(onBehalfOfCollateralRatio &lt; configurator.getBadCollateralRatio(address(this)), &quot;Borrowers collateral ratio should below badCollateralRatio&quot;);
+
+    require(assetAmount * 2 &lt;= depositedAsset[onBehalfOf], &quot;a max of 50% collateral can be liquidated&quot;);
+    require(PeUSD.allowance(provider, address(this)) &gt; 0, &quot;provider should authorize to provide liquidation EUSD&quot;);
+    uint256 peusdAmount = (assetAmount * assetPrice) / 1e18;
+
+    _repay(provider, onBehalfOf, peusdAmount);
+    uint256 reducedAsset = (assetAmount * 11) / 10;
+    depositedAsset[onBehalfOf] -= reducedAsset;
+    uint256 reward2keeper;
+    if (provider == msg.sender) {
+        collateralAsset.transfer(msg.sender, reducedAsset);
+    } else {
+        reward2keeper = (reducedAsset * configurator.vaultKeeperRatio(address(this))) / 110;
+        collateralAsset.transfer(provider, reducedAsset - reward2keeper);</code></pre></div>
+            </div>
+            <div class="code-explanation">Liquidation health checks and liquidation limits rely on the user&#39;s recorded depositedAsset amount. The liquidation then transfers collateral based on that recorded amount, so a rebasing loss can leave the recorded collateral overstated relative to the vault&#39;s actual token balance.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding low">
+                <span class="severity-badge severity-low">low</span>
+                <h3>Reward duration accepts zero and reward scheduling truncates emissions</h3>
+                <div class="vulnerability-description">
+                    <p>This staking-reward logic error permits the reward duration to be set to zero and uses integer division without handling remainders. Because notifyRewardAmount() divides the scheduled reward amount by the configured duration, a zero duration causes subsequent reward notifications to revert due to division by zero, disrupting reward scheduling.</p>
+<p>For non-divisible reward amounts, integer truncation also causes the calculated reward rate to be lower than the intended distribution. The residual rewards are not explicitly tracked or returned, leaving part of the scheduled allocation permanently undistributed. An owner or incorrectly configured governance executor could therefore cause a denial of service or repeated reward shortfalls.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the stakerewardV2pool contract, specifically setRewardsDuration() and notifyRewardAmount()</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the StakingRewardsV2 contract, I confirmed the reported issue in setRewardsDuration and notifyRewardAmount. setRewardsDuration accepts any uint256 value, including zero, and only checks that the prior reward period has ended; it does not enforce a positive or minimum duration. Once the owner sets duration to zero, a later notifyRewardAmount call reaches either _amount / duration or (_amount + remainingRewards) / duration, causing a Solidity division-by-zero panic before the reward-ratio validation and preventing new rewards from being scheduled. The onlyOwner modifier limits this to the owner or compromised/misconfigured governance, but it does not eliminate the operational denial-of-service risk. Additionally, both reward-rate calculations use integer division, so amounts that are not evenly divisible by duration are truncated. The resulting rewardRatio multiplied by duration can be less than the scheduled amount, with no remainder tracking or refund mechanism; sufficiently small amounts can produce rewardRatio == 0 and revert. Therefore, the hypothesis is supported by the implementation.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require duration &gt; 0 and enforce an appropriate minimum duration. Track and explicitly handle division remainders, or use fixed-point accounting so the full scheduled amount is either distributed or deliberately returned.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/miner/stakerewardV2pool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 121-126</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-10').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>121
+122
+123
+124
+125
+126</pre></div>
+                <div class="code-content"><pre id="code-block-10"><code class="language-solidity">function setRewardsDuration(uint256 _duration) external onlyOwner {
+    require(finishAt &lt; block.timestamp, &quot;reward duration not finished&quot;);
+    duration = _duration;
+}
+
+// Allows the owner to set the boost contract address</code></pre></div>
+            </div>
+            <div class="code-explanation">The owner can set the reward duration to zero because there is no validation that _duration is greater than zero.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/lybra/miner/stakerewardV2pool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 132-146</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-11').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145</pre></div>
+                <div class="code-content"><pre id="code-block-11"><code class="language-solidity">function notifyRewardAmount(uint256 _amount) external onlyOwner updateReward(address(0)) {
+    if (block.timestamp &gt;= finishAt) {
+        rewardRatio = _amount / duration;
+    } else {
+        uint256 remainingRewards = (finishAt - block.timestamp) * rewardRatio;
+        rewardRatio = (_amount + remainingRewards) / duration;
+    }
+
+    require(rewardRatio &gt; 0, &quot;reward ratio = 0&quot;);
+
+    finishAt = block.timestamp + duration;
+    updatedAt = block.timestamp;
+    emit NotifyRewardChanged(_amount, block.timestamp);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">notifyRewardAmount divides by duration without checking for zero, causing a division-by-zero revert after a zero duration is configured. Integer division also truncates non-divisible reward amounts and leaves residual rewards unaccounted for.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

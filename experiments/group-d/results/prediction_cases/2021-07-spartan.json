@@ -1,0 +1,124 @@
+{
+  "repo_id": "2021-07-spartan",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_625c83f3afc1",
+      "title": "Manipulable pool spot price overweights SynthVault deposits and rewards",
+      "description": "SynthVault records deposit and reward weights using Utils.calcSpotValueInBase, which reads the Pool's instantaneous baseAmount/tokenAmount ratio. An attacker can trade against a curated pool to temporarily inflate the underlying token's spot value, deposit synths during the distorted price window, and retain the inflated weight after the price is restored. The inflated weight increases the attacker's share of reserve-funded SynthVault emissions and can dilute legitimate depositors.",
+      "impact": "The attacker can obtain a disproportionate share of SPARTA emissions, transferring reserve value from legitimate SynthVault depositors and potentially draining emissions allocated to the affected vault over repeated attacks.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Utils.sol",
+          "contract": "Utils",
+          "function": "calcSpotValueInBase(address,uint256)"
+        },
+        {
+          "file": "contracts/Utils.sol",
+          "contract": "Utils",
+          "function": "calcSpotValueInBaseWithPool(address,uint256)"
+        },
+        {
+          "file": "contracts/SynthVault.sol",
+          "contract": "SynthVault",
+          "function": "_deposit"
+        },
+        {
+          "file": "contracts/SynthVault.sol",
+          "contract": "SynthVault",
+          "function": "harvestSingle"
+        },
+        {
+          "file": "contracts/SynthVault.sol",
+          "contract": "SynthVault",
+          "function": "calcReward"
+        }
+      ],
+      "mitigation": "Use a robust external or TWAP oracle with stale-price and deviation checks for vault valuation; alternatively defer weight calculation until a manipulation-resistant accounting window and cap per-user weight changes and reward accrual.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_b1ce20b5118f",
+      "title": "Spot-price manipulation can amplify reserve-funded curated-pool dividends",
+      "description": "Pool swap fees are converted into BASE using calcSpotValueInBase, which uses the pool's instantaneous reserve ratio. Router.addDividend then uses that converted fee to determine a reserve grant and synchronizes the pool. A trader can first skew the pool price so the token-denominated fee converts to an artificially large BASE fee, execute a qualifying trade, and cause an outsized reserve-funded dividend to the pool.",
+      "impact": "Reserve SPARTA can be transferred to a manipulated pool in excess of the economic trading fee, allowing attackers with pool exposure to extract reserve funds and diluting other pools and protocol participants.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Pool.sol",
+          "contract": "Pool",
+          "function": "_swapBaseToToken(uint256)"
+        },
+        {
+          "file": "contracts/Pool.sol",
+          "contract": "Pool",
+          "function": "_swapTokenToBase(uint256)"
+        },
+        {
+          "file": "contracts/Utils.sol",
+          "contract": "Utils",
+          "function": "calcSpotValueInBase(address,uint256)"
+        },
+        {
+          "file": "contracts/Utils.sol",
+          "contract": "Utils",
+          "function": "calcSpotValueInBaseWithPool(address,uint256)"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "getsDividend"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "addDividend"
+        }
+      ],
+      "mitigation": "Compute dividend eligibility from fee units and executed volume using a manipulation-resistant reference price, cap dividends per trade and per pool, and enforce pool-price deviation and minimum-liquidity limits before granting reserve funds.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_d6c44ada714c",
+      "title": "Router swaps and synth issuance lack user price protection against sandwich manipulation",
+      "description": "Router buyTo, sellTo, swapTo, and swapAssetToSynth accept user input amounts but expose no minimum output, maximum input, deadline, or price-limit parameter. The Pool calculates outputs from the current mutable reserves at execution time. An attacker can front-run a victim's transaction to move the pool price, force execution at the manipulated rate, and back-run to restore the price while capturing value.",
+      "impact": "Victims can receive materially fewer tokens or synths than expected, or receive materially less BASE when selling, with the difference captured by the sandwich attacker; the loss is especially severe in shallow pools and cross-pool routes.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "buyTo(uint256,address,address)"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "sellTo(uint256,address,address)"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "swapTo(uint256,address,address,address)"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "swapAssetToSynth(uint256,address,address)"
+        },
+        {
+          "file": "contracts/Pool.sol",
+          "contract": "Pool",
+          "function": "swapTo(address,address)"
+        },
+        {
+          "file": "contracts/Pool.sol",
+          "contract": "Pool",
+          "function": "mintSynth(address,address)"
+        }
+      ],
+      "mitigation": "Add minimum-output and maximum-input parameters, deadlines, and optional price limits to every swap and synth route; propagate those checks through both legs of cross-pool swaps and reject transactions outside the caller's tolerance.",
+      "severity": "medium"
+    }
+  ]
+}

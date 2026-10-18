@@ -1,0 +1,59 @@
+{
+  "repo_id": "2022-01-behodler",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_a1120d1cc270",
+      "title": "Mint Calculates Proxy Tokens From Total Reserve Instead of Deposit Amount",
+      "description": "mint transfers the caller's base tokens, then computes proxy as the entire post-deposit baseToken balance divided by the pre-transfer redeem rate. It should calculate only the proxy value of the newly deposited amount. After an initial deposit establishes supply, a subsequent attacker can deposit a small amount and receive proxy tokens representing approximately the entire existing supply, inflating total proxy supply and allowing redemption of reserves belonging to earlier holders.",
+      "impact": "Proxy token supply can be inflated and existing reserve backing can be drained, causing dilution and direct loss of base tokens for existing holders.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/TokenProxies/RebaseProxy.sol",
+          "contract": "RebaseProxy",
+          "function": "mint(address,uint256)"
+        }
+      ],
+      "mitigation": "Compute the proxy amount from the deposited amount using the pre-mint redeem rate, for example amount * ONE / _redeemRate, or otherwise calculate the change in reserve and update the rate and supply atomically. Add invariant and regression tests ensuring minted proxy value equals only the caller's deposit value.",
+      "severity": "critical"
+    },
+    {
+      "finding_id": "hyp_5c2fddc35d49",
+      "title": "Redeem Ignores ERC20 Transfer Failure",
+      "description": "redeem burns the caller's proxy tokens and invokes IERC20(baseToken).transfer(to, baseTokens) without checking the returned boolean or using a safe transfer wrapper. ERC20 implementations that return false instead of reverting can cause the proxy tokens to be burned while no base tokens are delivered.",
+      "impact": "Users can permanently lose proxy tokens without receiving base tokens, and integrations may treat the redemption as successful.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/TokenProxies/RebaseProxy.sol",
+          "contract": "RebaseProxy",
+          "function": "redeem(address,uint256)"
+        }
+      ],
+      "mitigation": "Use SafeERC20.safeTransfer, or require IERC20(baseToken).transfer(to, baseTokens) to return true, and ensure the payout failure reverts the entire transaction.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_56c43b7759fd",
+      "title": "Mint and Redeem Return Zero Despite Declared Return Values",
+      "description": "Both functions declare returns (uint256) but never assign or explicitly return a value. Solidity therefore returns the default value zero even when tokens were minted or redeemed, creating an incorrect success result for callers that rely on the returned amount.",
+      "impact": "Integrations can record zero assets for successful operations, mis-account balances, or fail to credit users after tokens have been transferred or burned.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/TokenProxies/RebaseProxy.sol",
+          "contract": "RebaseProxy",
+          "function": "mint(address,uint256)"
+        },
+        {
+          "file": "contracts/TokenProxies/RebaseProxy.sol",
+          "contract": "RebaseProxy",
+          "function": "redeem(address,uint256)"
+        }
+      ],
+      "mitigation": "Explicitly return the minted proxy amount from mint and the redeemed base-token amount from redeem, and verify all callers use the returned values consistently.",
+      "severity": "medium"
+    }
+  ]
+}

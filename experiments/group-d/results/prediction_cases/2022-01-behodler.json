@@ -1,0 +1,29 @@
+{
+  "repo_id": "2022-01-behodler",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_81d0059d67b9",
+      "title": "Spot-price sandwich attack against Limbo secondary-reward liquidation",
+      "description": "Limbo.claimSecondaryRewards transfers the entire token balance held by Limbo to AMMHelper.buyFlanAndBurn, which computes amountOut from the Uniswap pair's current token balances and executes the swap without a minimum-output bound, TWAP, oracle validation, or deadline. Because the function is publicly callable, an attacker can front-run it by trading against the pair to worsen the token-to-Flan price, allow Limbo to liquidate at the manipulated spot price, and back-run to reverse the trade. The victim's received Flan is reduced while the attacker captures sandwich value and the protocol burns fewer Flan tokens than expected.",
+      "impact": "An attacker can extract value from Limbo's token liquidation and cause materially less Flan to be purchased and burned, reducing protocol-owned value and potentially leaving Limbo exposed to severe execution loss for thin-liquidity pairs.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/UniswapHelper.sol",
+          "contract": "UniswapHelper",
+          "function": "buyFlanAndBurn"
+        },
+        {
+          "file": "contracts/Limbo.sol",
+          "contract": "Limbo",
+          "function": "claimSecondaryRewards"
+        }
+      ],
+      "mitigation": "Use a caller-supplied minimum amountOut and deadline, reject execution when the quoted output is below the bound, and derive the bound from a manipulation-resistant TWAP or independent oracle rather than the pair's instantaneous balances. Consider restricting liquidation to a keeper with bounded execution parameters and validating pair reserves before and after the swap.",
+      "severity": "high"
+    }
+  ]
+}

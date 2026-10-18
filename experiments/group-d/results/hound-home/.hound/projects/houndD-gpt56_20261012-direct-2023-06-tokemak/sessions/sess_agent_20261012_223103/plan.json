@@ -1,0 +1,475 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_4ebfa16d75fa": {
+      "frame_id": "frame_4ebfa16d75fa",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of CurveV1ConvexStatsCalculator",
+      "artifact_refs": [
+        "Determine whether Curve pool reserves, virtual price, LP supply, or snapshot statistics can be manipulated through temporary liquidity or swaps",
+        "Trace how snapshot timestamps and pool configuration affect the freshness and integrity of prices used by vaults or accounting",
+        "Check whether same-block observations, stale data, or externally controlled pool state can produce inflated asset valuations"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:31:09.141433",
+      "updated_at": "2026-10-12T22:31:38.164719",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:31:09.141635",
+          "status": "planned",
+          "rationale": "WHY NOW: This unvisited component supplies statistics derived from an external Curve pool and is directly relevant to valuation; its stored snapshot timestamp and externally configured pool state are potential price-manipulation surfaces. EXIT CRITERIA: Confirm the complete data flow from Curve pool state into consumer pricing, identify all freshness and manipulation-resistant checks, and determine whether an attacker can profitably alter reported values within a transaction or across snapshot periods.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:31:09.151134",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:31:38.164822",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_85db699e5ab7": {
+      "frame_id": "frame_85db699e5ab7",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of SwapRouter",
+      "artifact_refs": [
+        "Whether swap execution trusts manipulable pool quotes, spot prices, or caller-supplied amounts",
+        "Slippage, minimum-output, and maximum-input enforcement across routed swaps",
+        "Multi-hop/path validation and whether intermediate assets or pool selections enable oracle-independent price manipulation",
+        "Whether vault accounting or valuation relies on swap results that can be distorted within a transaction"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:31:46.253922",
+      "updated_at": "2026-10-12T22:32:23.887271",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:31:46.254445",
+          "status": "planned",
+          "rationale": "WHY NOW: SwapRouter is an unvisited major component at the boundary between vault operations and external AMMs, making it a high-priority location for price manipulation through stale or spot pricing, weak slippage constraints, or attacker-selected routes. EXIT CRITERIA: Trace every router entry point and route-construction path to each downstream swap adapter and caller; verify how expected amounts, bounds, pool selection, and returned assets are established; determine whether any attacker-controllable AMM state or route can cause materially manipulated execution or valuation. Record a price-manipulation hypothesis only if the code provides a concrete exploitable path; otherwise mark the component covered with no hypothesis.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:31:46.273738",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:32:23.887406",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_fce611ddc9eb": {
+      "frame_id": "frame_fce611ddc9eb",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of LMPVaultFactory",
+      "artifact_refs": [
+        "Vault deployment parameters affecting asset/share price calculations",
+        "Oracle, adapter, and strategy configuration propagated into newly created LMPVault instances",
+        "Initialization ordering and whether deployers can select manipulable pricing sources or pool parameters",
+        "Factory-controlled defaults, validation, and immutable references used for valuation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:32:33.310661",
+      "updated_at": "2026-10-12T22:33:15.369135",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:32:33.311153",
+          "status": "planned",
+          "rationale": "WHY NOW: LMPVaultFactory is the only explicitly identified unvisited major component and creates vaults whose pricing configuration may determine exposure to manipulable external AMM or oracle values. Factory-level validation and initialization are therefore a critical uncovered entry point for price manipulation. EXIT CRITERIA: Trace every factory deployment and initialization path, identify all pricing-related arguments and stored references, verify validation and trust assumptions for each oracle/adapter/pool, and determine whether any attacker-controlled or manipulable configuration can affect vault valuation; conclude with either a concrete price-manipulation attack path or documented evidence that all relevant parameters are constrained and safely initialized.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:32:33.331166",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:33:15.369299",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_f932a4d48822": {
+      "frame_id": "frame_f932a4d48822",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of External oracle providers",
+      "artifact_refs": [
+        "Signed price answer validation and freshness checks",
+        "Round ID, timestamp, and answered-in-round consistency",
+        "Handling of stale, incomplete, negative, or zero oracle prices",
+        "Denomination and decimal conversion affecting reported asset prices",
+        "Whether provider-controlled updates can be manipulated to influence vault pricing"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:33:22.638579",
+      "updated_at": "2026-10-12T22:34:35.798795",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:33:22.639111",
+          "status": "planned",
+          "rationale": "WHY NOW: This unvisited component is a direct source of asset prices and interacts with external oracle data, making it the highest-priority remaining target for price manipulation coverage. EXIT CRITERIA: Trace every external price-input path into consuming oracles and vault calculations; verify validation of answer bounds, timestamps, round completeness, decimals, and update authority; and document either a concrete manipulable pricing path with impact or evidence that all such inputs are robustly constrained.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:33:22.659095",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:34:35.798943",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_4bd53485e3e2": {
+      "frame_id": "frame_4bd53485e3e2",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of BalancerLPMetaStableEthOracle",
+      "artifact_refs": [
+        "Balancer pool state and spot-price derivation",
+        "Reliance on mutable pool balances, rates, and amplification parameters",
+        "Resistance to flash-loan or same-block liquidity manipulation",
+        "Oracle freshness, normalization, and deviation checks"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:34:42.139606",
+      "updated_at": "2026-10-12T22:34:48.221997",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:34:42.140086",
+          "status": "planned",
+          "rationale": "WHY NOW: This uncompleted oracle component directly prices Balancer LP tokens and reads mutable external pool state, making it a high-priority candidate for price manipulation through temporary liquidity or balance changes. EXIT CRITERIA: Trace the complete LP-price calculation and all external reads, determine whether an attacker can influence the result within a transaction or block, verify that freshness, rate, and deviation protections exist, and either document a concrete exploitable manipulation path with impact or establish that the inputs and safeguards prevent it.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:34:42.158653",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:34:48.222205",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_bd65704d97c6": {
+      "frame_id": "frame_bd65704d97c6",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of VelodromeStakingAdapter",
+      "artifact_refs": [
+        "Determine whether externally controlled gauge or LP-token balances influence asset valuation, share pricing, or collateral amounts",
+        "Trace deposit, withdrawal, and balance-delta accounting for manipulable pool-token states",
+        "Check whether staking and unstaking operations trust spot balances or external protocol responses without price-impact safeguards",
+        "Assess interactions with oracle-derived LP prices and whether temporary liquidity or reserve manipulation can distort them"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:34:56.389235",
+      "updated_at": "2026-10-12T22:35:35.934545",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:34:56.389708",
+          "status": "planned",
+          "rationale": "WHY NOW: This is an unvisited component that interacts with external gauges and LP tokens, whose balances may be observable inputs to vault valuation and therefore a plausible price-manipulation path. It also performs balance-delta accounting around external protocol calls, warranting coverage after oracle and swap-router review. EXIT CRITERIA: Trace every staking, withdrawal, and balance-read path into valuation or share-pricing logic; identify whether attacker-influenced balances or spot pool state can change a reported price; confirm the presence or absence of oracle validation, slippage bounds, and manipulation-resistant accounting; conclude with evidence for a concrete exploit path or document why no price-manipulation impact exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:34:56.410052",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:35:35.934692",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_2c1ebc713aad": {
+      "frame_id": "frame_2c1ebc713aad",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of LMPVault",
+      "artifact_refs": [
+        "Share-price and asset-value calculations using oracle-derived prices",
+        "Deposit, withdrawal, and redemption paths that may be affected by manipulated or stale prices",
+        "Interactions with swaps, external AMMs, and reward balances that influence reported vault value",
+        "Validation of oracle answers, decimals, timestamps, and zero or abnormal prices"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:35:43.231654",
+      "updated_at": "2026-10-12T22:35:52.476839",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:35:43.232051",
+          "status": "planned",
+          "rationale": "WHY NOW: LMPVault is a critical stateful component that likely converts externally sourced asset prices into vault share valuations and user settlement amounts. It has not been listed among completed investigations, and its pricing logic is a direct high-impact target for the active oracle_price_manipulation hypothesis. EXIT CRITERIA: Trace every vault valuation, share-minting, withdrawal, and redemption path to its price inputs; identify all oracle and balance assumptions; verify positivity, freshness, denomination, decimal normalization, and resistance to transient AMM or reward-balance manipulation; conclude whether any attacker-controlled price distortion can create mispriced shares or transfers, or document that no exploitable path remains.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:35:43.249329",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:35:52.477002",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_e8ac10031db7": {
+      "frame_id": "frame_e8ac10031db7",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of ChainlinkOracle",
+      "artifact_refs": [
+        "Validate positive, fresh, and complete Chainlink answers before denomination conversion",
+        "Check round completeness, timestamp freshness, and phase/round consistency",
+        "Assess whether feed decimals, token denomination, and fallback behavior can produce manipulable prices",
+        "Trace how oracle output is consumed by vault pricing and share or asset valuation"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:35:58.104894",
+      "updated_at": "2026-10-12T22:36:19.849733",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:35:58.105397",
+          "status": "planned",
+          "rationale": "WHY NOW: ChainlinkOracle is an uncompleted, critical price-oracle component, and the current hypothesis concerns missing enforcement that an oracle answer is greater than zero. Its denomination conversion and external feed handling may allow zero, negative, stale, incomplete, or malformed answers to propagate into downstream valuation. EXIT CRITERIA: Review the full oracle implementation and all price-consuming call paths, identify whether every accepted answer is validated for positivity, freshness, round completeness, and correct denomination, and determine whether any attacker-controlled or abnormal feed state can materially distort protocol prices; conclude with either a concrete price-manipulation exploit path or documented evidence that these risks are prevented.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:35:58.124700",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:36:19.849917",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_0ef1df2458d4": {
+      "frame_id": "frame_0ef1df2458d4",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of WstETHEthOracle",
+      "artifact_refs": [
+        "Verify delegated stETH pricing cannot be manipulated through stale, zero, negative, or improperly denominated oracle answers",
+        "Check wstETH-to-stETH conversion and exchange-rate handling for exploitable precision or consistency gaps",
+        "Trace whether attacker-controlled token or oracle state can influence reported ETH prices"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:36:25.849550",
+      "updated_at": "2026-10-12T22:36:58.765338",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:36:25.850084",
+          "status": "planned",
+          "rationale": "WHY NOW: This oracle directly feeds ETH-denominated pricing and combines an external stETH price with a token conversion rate, making it a high-value uncompleted component for the price-manipulation sweep. EXIT CRITERIA: Confirm all price inputs, conversions, freshness/round constraints, and answer-domain checks are enforced, or document a concrete manipulation path with affected consumers and realistic impact.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:36:25.870197",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:36:58.765470",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_6035eba11b8f": {
+      "frame_id": "frame_6035eba11b8f",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of EthPeggedOracle",
+      "artifact_refs": [
+        "Trace ETH/USD and pegged-asset price derivation and denomination conversions",
+        "Check whether fallback, stale, zero, negative, or delayed oracle values can influence returned prices",
+        "Assess whether peg assumptions permit manipulation through depegging or inconsistent reference assets",
+        "Review decimal scaling and rounding paths for attacker-controlled or economically exploitable outputs"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:37:07.995303",
+      "updated_at": "2026-10-12T22:37:49.089275",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:37:07.995777",
+          "status": "planned",
+          "rationale": "WHY NOW: This oracle remains unanalyzed and directly supplies price data in a system whose active hypothesis concerns missing positivity enforcement. Its ETH-pegged assumptions and conversion logic may create a distinct price-manipulation path, especially during depeg conditions or when upstream values are invalid. EXIT CRITERIA: Review the complete contract/module implementation and all callers, identify every external or mutable input affecting the returned price, and either document a concrete exploitable manipulation path with affected flows or conclude that validity checks, reference pricing, and scaling prevent such manipulation.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:37:08.016058",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:37:49.089371",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_af9dd78efa11": {
+      "frame_id": "frame_af9dd78efa11",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of DestinationVault",
+      "artifact_refs": [
+        "Trace all asset valuation and share-pricing paths",
+        "Determine whether deposits, withdrawals, accounting, or strategy interactions consume manipulable spot prices",
+        "Check reliance on external AMM balances, oracle responses, or transient pool state without freshness, deviation, or liquidity protections",
+        "Assess whether an attacker can profitably alter reported vault value through flash liquidity or temporary reserve manipulation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:37:55.164215",
+      "updated_at": "2026-10-12T22:37:59.590227",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:37:55.164563",
+          "status": "planned",
+          "rationale": "WHY NOW: DestinationVault is a major uncompleted vault component that likely feeds critical asset accounting and user share conversions, while the audit scope is specifically price manipulation and several external AMM/oracle integrations are present in the architecture. EXIT CRITERIA: Review the complete component and its directly invoked pricing/accounting dependencies; identify every externally influenced price input and manipulation precondition; conclude whether a feasible price-manipulation exploit exists or document why relevant inputs are adequately constrained, without expanding into unrelated vulnerability classes.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:37:55.180699",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:37:59.590339",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_b940acffbf44": {
+      "frame_id": "frame_b940acffbf44",
+      "session_id": "sess_agent_20261012_223103",
+      "question": "Vulnerability analysis of StatsCalculatorFactory",
+      "artifact_refs": [
+        "Trace creation and configuration of statistics calculators used for asset pricing",
+        "Check whether pool, oracle, snapshot, and token parameters can be attacker-controlled or altered after deployment",
+        "Assess validation of calculator implementations and protection against stale, manipulable, or inconsistent price inputs"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:38:07.714152",
+      "updated_at": "2026-10-12T22:38:13.340097",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:38:07.714622",
+          "status": "planned",
+          "rationale": "WHY NOW: StatsCalculatorFactory is an unanalyzed pricing-related component that may determine which statistics calculator and market configuration downstream vaults trust. Factory-controlled parameters or weak implementation validation could create a price-manipulation path without requiring direct oracle compromise. EXIT CRITERIA: Identify every calculator creation and configuration path, map all caller and parameter trust boundaries, verify immutable or authorized binding of pricing sources and pool metadata, and determine whether any attacker can cause a deployed vault to consume manipulable or invalid price statistics; conclude with no finding if these invariants are enforced.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:38:07.734013",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:38:13.340266",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 12,
+    "last_modified": "2026-10-12T22:38:13.340433"
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "repo_id": "2021-08-notional",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_8bd4b6bef412",
+      "title": "Stale Chainlink prices are accepted during collateral checks and trade settlement",
+      "description": "ExchangeRate.buildExchangeRate reads latestRoundData and checks only that the returned rate is positive. It does not validate updatedAt, answeredInRound, or round completeness. If the oracle is stale during an outage or delayed update, TradingAction's free-collateral and debt checks can use obsolete collateral valuations.",
+      "impact": "Accounts may incur undercollateralized debt, or liquidators and users may receive materially incorrect settlement and liquidation prices, causing protocol losses.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/internal/valuation/ExchangeRate.sol",
+          "contract": "ExchangeRate",
+          "function": "buildExchangeRate"
+        }
+      ],
+      "mitigation": "Require a nonzero updatedAt, enforce an acceptable maximum oracle age, validate answeredInRound against roundId where applicable, and reject incomplete or otherwise invalid rounds before using the price.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_c45f684136d9",
+      "title": "Currency rate view returns the asset token as the underlying token",
+      "description": "Views.getCurrencyAndRates calls TokenHandler.getToken(currencyId, false) for both assetToken and underlyingToken. The second call should use the underlying=true selector, so callers receive the asset address in both fields.",
+      "impact": "Integrations can approve or transfer the wrong token, causing failed operations or funds to be sent to an unintended token contract; systems that use the response for valuation can also mis-account collateral.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/external/Views.sol",
+          "contract": "Views",
+          "function": "getCurrencyAndRates"
+        }
+      ],
+      "mitigation": "Load underlyingToken with TokenHandler.getToken(currencyId, true), and add regression tests asserting distinct configured asset and underlying addresses for currencies that have both.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_b2e187e0ebd6",
+      "title": "Annualized supply-rate validation is ineffective and permits unbounded oracle output",
+      "description": "AssetRate.getSupplyRate obtains a uint256 from the external AssetRateAdapter and then checks require(rate >= 0), which is always true for uint256. No upper bound or sanity range is applied before the value is used in rate calculations for idiosyncratic maturities.",
+      "impact": "The protocol can calculate incorrect trade prices or become unable to execute trades, settle assets, or value positions for the affected currency; extreme values can also create denial of service through arithmetic failure.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/internal/markets/AssetRate.sol",
+          "contract": "AssetRate",
+          "function": "getSupplyRate"
+        }
+      ],
+      "mitigation": "Define and enforce a governance-approved maximum annualized supply rate, reject values outside the supported protocol range, and validate adapter identity and returned rates before using them in market calculations.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_9d4ec98d0d6b",
+      "title": "Transfer event is emitted even when delegated transfer fails",
+      "description": "transferFrom emits Transfer(from, to, amount) unconditionally after nTokenTransferFrom returns, without checking success. Because the interface explicitly returns a boolean, the backing proxy can report failure without reverting, while the adapter still publishes a successful-looking Transfer event.",
+      "impact": "Off-chain accounting, payment processors, bridges, or monitoring systems that trust Transfer logs can credit recipients or record settlement for transfers that never occurred, causing accounting discrepancies or potentially financial loss.",
+      "vulnerable_code": [],
+      "mitigation": "Only emit Transfer after confirming success; alternatively revert whenever the delegated call reports false. Ensure all callers and wrappers consistently treat unsuccessful delegated transfers as failed operations.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_eb675ae7f347",
+      "title": "Approval event uses reversed owner and spender fields",
+      "description": "After transferFrom, the adapter emits Approval(msg.sender, from, newAllowance). The delegated allowance operation is for owner=from and spender=msg.sender, so the ERC20 Approval event arguments are reversed. This produces logs that do not describe the actual allowance state and can also be emitted for failed transfers.",
+      "impact": "Wallets, routers, compliance systems, and indexers that rely on Approval logs can track the wrong allowance relationship, potentially approve or reject transfers incorrectly and create exploitable off-chain accounting or authorization decisions.",
+      "vulnerable_code": [],
+      "mitigation": "Emit Approval(from, msg.sender, newAllowance) only when the delegated allowance mutation succeeds, and ensure event consumers use on-chain allowance state where correctness is security-critical.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_3bdd69409b9a",
+      "title": "ExchangeRate may fail to normalize oracle decimals before collateral valuation",
+      "description": "ExchangeRate consumes the oracle price while the available evidence does not show any use of the feed's decimals metadata or an explicit fixed-point normalization. If a configured feed uses a decimal precision different from the valuation convention, the raw answer is interpreted at the wrong scale.",
+      "impact": "Collateral can be overvalued or undervalued by orders of magnitude, allowing excessive borrowing and insolvency or causing legitimate positions to be liquidated incorrectly.",
+      "vulnerable_code": [],
+      "mitigation": "Define the required exchange-rate scale, read and validate the oracle's decimals or adapter metadata, normalize answers explicitly with checked arithmetic, and reject feeds whose precision or scale is incompatible with the valuation formula.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_ff2e0ce3c398",
+      "title": "Nominal ERC20 transfer amounts may be credited without validating actual tokens received",
+      "description": "TokenHandler is the shared transfer primitive for balances, settlement, incentives, and token actions. If inbound accounting records the requested amount after transferFrom rather than measuring the recipient balance delta, fee-on-transfer, deflationary, or malicious ERC20 tokens can cause the protocol to credit more assets than it received.",
+      "impact": "The protocol can become undercollateralized and attackers may withdraw assets or borrow against balances that were never received, creating direct losses for the protocol or depositors.",
+      "vulnerable_code": [],
+      "mitigation": "For inbound transfers, measure the recipient balance before and after transferFrom and credit only the actual received amount, or explicitly restrict currency listings to tokens with exact-transfer behavior and enforce that invariant during governance configuration.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_58d15d9adeda",
+      "title": "AssetRate accepts economically implausible positive exchange rates",
+      "description": "AssetRate validation is described as checking only that the externally returned exchange rate is positive. There is no visible upper bound, deviation check, or sanity validation before the rate is used by settlement and collateral valuation. A manipulated or malfunctioning AssetRateAdapter or external cash market can therefore return an extreme but positive rate that the protocol accepts.",
+      "impact": "An inflated rate can overvalue collateral or settled assets and allow undercollateralized borrowing or excessive redemption; a severely deflated or extreme rate can misvalue user positions, trigger unjustified liquidations, or cause arithmetic reverts that disrupt settlement.",
+      "vulnerable_code": [],
+      "mitigation": "Validate the returned rate against configured bounds, expected decimal scale, prior-rate deviation limits, and any available underlying-market invariants. Reject abnormal values and pause or fall back safely when the rate exceeds those limits; ensure downstream arithmetic cannot overflow on accepted rates.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_0018c5295d46",
+      "title": "Previous token approvals remain active after Compound adapter approval changes",
+      "description": "The CompoundToNotionalV2 integration exposes owner-only token approval functionality, but the architecture provides no evidence that changing or removing an approval first revokes allowances granted to prior spenders. If an old spender is compromised, deprecated, or misconfigured, it may retain permission to transfer tokens subsequently held by the adapter.",
+      "impact": "A former or compromised spender can drain ERC20 assets held by CompoundToNotionalV2, including tokens received during later operations, causing direct protocol or user fund loss.",
+      "vulnerable_code": [],
+      "mitigation": "When changing an approved spender, first set the previous spender's allowance to zero and verify the operation before granting the new allowance. Prefer immutable, allowlisted spenders, exact per-operation approvals, and explicit revoke functions; use safe-approval handling for tokens that require zero-before-nonzero updates.",
+      "severity": "high"
+    }
+  ]
+}

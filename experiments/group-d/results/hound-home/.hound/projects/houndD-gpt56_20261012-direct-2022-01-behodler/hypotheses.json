@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_81d0059d67b9": {
+      "title": "Spot-price sandwich attack against Limbo secondary-reward liquidation",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: Financially sensitive liquidation relies on instantaneous Uniswap pair balances and performs a swap with no slippage, oracle, or deadline protection.\nATTACK VECTOR: An attacker front-runs the public claimSecondaryRewards transaction with a large trade that worsens the pair price, lets the Limbo swap execute at that price, then back-runs with the opposite trade to recover inventory and retain the extracted value.\nAFFECTED NODES: func_limbo_secondary, contract_amm_helper, func_buy_burn_flan, external_uniswap\nAFFECTED CODE: contracts/Limbo.sol:claimSecondaryRewards, contracts/UniswapHelper.sol:buyFlanAndBurn\nSEVERITY: high\nREASONING: The loaded implementation explicitly reads pair balances, calculates amountOut, transfers input, and calls swap without any minimum-output or time-bound protection. The caller-facing Limbo function supplies the entire Limbo-held balance, making the swap a predictable, potentially large sandwich target.\nSUGGESTED MITIGATION: Use a caller-supplied minimum amountOut and deadline, reject execution when the quoted output is below the bound, and derive the bound from a manipulation-resistant TWAP or independent oracle rather than the pair's instantaneous balances. Consider restricting liquidation to a keeper with bounded execution parameters and validating pair reserves before and after the swap.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "func_limbo_secondary",
+        "contract_amm_helper",
+        "func_buy_burn_flan",
+        "external_uniswap"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation explicitly reads pair balances, calculates amountOut, transfers input, and calls swap without any minimum-output or time-bound protection. The caller-facing Limbo function supplies the entire Limbo-held balance, making the swap a predictable, potentially large sandwich target.",
+      "mitigation": "Use a caller-supplied minimum amountOut and deadline, reject execution when the quoted output is below the bound, and derive the bound from a manipulation-resistant TWAP or independent oracle rather than the pair's instantaneous balances. Consider restricting liquidation to a keeper with bounded execution parameters and validating pair reserves before and after the swap.",
+      "finding_description": "Limbo.claimSecondaryRewards transfers the entire token balance held by Limbo to AMMHelper.buyFlanAndBurn, which computes amountOut from the Uniswap pair's current token balances and executes the swap without a minimum-output bound, TWAP, oracle validation, or deadline. Because the function is publicly callable, an attacker can front-run it by trading against the pair to worsen the token-to-Flan price, allow Limbo to liquidate at the manipulated spot price, and back-run to reverse the trade. The victim's received Flan is reduced while the attacker captures sandwich value and the protocol burns fewer Flan tokens than expected.",
+      "impact": "An attacker can extract value from Limbo's token liquidation and cause materially less Flan to be purchased and burned, reducing protocol-owned value and potentially leaving Limbo exposed to severe execution loss for thin-liquidity pairs.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/UniswapHelper.sol",
+          "contract": "UniswapHelper",
+          "function": "buyFlanAndBurn"
+        },
+        {
+          "file": "contracts/Limbo.sol",
+          "contract": "Limbo",
+          "function": "claimSecondaryRewards"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/Limbo.sol",
+          "contracts/testing/realUniswap/RealUniswapV2Pair.sol",
+          "contracts/UniswapHelper.sol",
+          "contracts/testing/realUniswap/RealUniswapV2Factory.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203435",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:36:39.041233",
+      "id": "hyp_81d0059d67b9",
+      "qa_comment": "Upon reviewing Limbo.claimSecondaryRewards and UniswapHelper.buyFlanAndBurn, I confirmed that the alleged spot-price sandwich vulnerability is exploitable. claimSecondaryRewards is publicly callable, accepts tokens in calibration or crossedOver state, transfers the entire Limbo-held balance to the AMM helper, and invokes buyFlanAndBurn without any caller-supplied minimum output, deadline, or price bound. The helper obtains the pair through the configured factory, reads the pair's current token balances as reserves, computes amountOut using the instantaneous constant-product formula, transfers the input to the pair, and calls swap. An attacker can front-run this transaction with a large input-token sale, moving the pair price against Limbo; the Limbo transaction then executes at the manipulated rate, after which the attacker can back-run with the reverse trade. The Uniswap pair lock only prevents reentrancy within one transaction and does not prevent transaction ordering or cross-transaction sandwiching. Although the helper's migration path has separate quote-stability checks, those checks do not apply to buyFlanAndBurn. Consequently, the implementation provides no effective protection against extractable value from Limbo's balance."
+    }
+  },
+  "metadata": {
+    "total": 1,
+    "confirmed": 1,
+    "last_modified": "2026-10-12T20:36:39.043200"
+  }
+}

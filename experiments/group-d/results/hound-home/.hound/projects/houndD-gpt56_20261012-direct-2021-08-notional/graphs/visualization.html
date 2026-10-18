@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Knowledge Graphs Visualization</title>
+    <meta charset="utf-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e6edf3;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #1c2128 0%, #2d333b 100%);
+            color: #e6edf3;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #30a14e33;
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #30a14e;
+        }
+        
+        #controls {
+            background: #161b22;
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .control-group label {
+            font-size: 11px;
+            color: #7d8590;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        select, button {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        select:hover, button:hover {
+            background: #30363d;
+            border-color: #30a14e;
+        }
+        
+        select:focus, button:focus {
+            outline: none;
+            border-color: #30a14e;
+            box-shadow: 0 0 0 2px #30a14e22;
+        }
+        
+        #main-container {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+        
+        #graph-container {
+            flex: 1;
+            background: #0d1117;
+            position: relative;
+        }
+        
+        #sidebar {
+            width: 380px;
+            background: #161b22;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #30363d;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-section h3 {
+            color: #e6edf3;
+            margin-bottom: 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        #node-info {
+            background: #21262d;
+            padding: 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #30363d;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .observation {
+            background: #21262d;
+            padding: 10px;
+            border-left: 3px solid #30a14e;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #30363d;
+            font-size: 13px;
+        }
+        
+        .stat-value {
+            color: #30a14e;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #tooltip {
+            position: absolute;
+            padding: 12px;
+            background: rgba(22, 27, 34, 0.95);
+            color: #e6edf3;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            font-size: 12px;
+            max-width: 300px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle {
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+        
+        .node:hover circle {
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+        
+        .link {
+            stroke-opacity: 0.4;
+            transition: stroke-opacity 0.3s;
+        }
+        
+        .link:hover {
+            stroke-opacity: 0.8;
+        }
+        
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 27, 34, 0.95);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            max-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        #legend h4 {
+            margin: 0 0 12px 0;
+            color: #e6edf3;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        .legend-section {
+            margin-bottom: 15px;
+        }
+        
+        .legend-section-title {
+            color: #7d8590;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .legend-item {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #8b949e;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .legend-line {
+            width: 18px;
+            height: 2px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔍 Hound3 Knowledge Graph</h1>
+        <div style="margin-top: 8px; opacity: 0.8; font-size: 13px; color: #8b949e;">
+            Dynamic Security Analysis Visualization
+        </div>
+    </div>
+    
+    <div id="controls">
+        <div class="control-group">
+            <label>Graph</label>
+            <select id="graph-selector">
+                <option value="SystemArchitecture">SystemArchitecture</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Node Type Filter</label>
+            <select id="type-filter">
+                <option value="all">All Types</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Layout</label>
+            <select id="layout-selector">
+                <option value="force">Force Directed</option>
+                <option value="hierarchical">Hierarchical</option>
+                <option value="circular">Circular</option>
+            </select>
+        </div>
+        
+        <button id="reset-view">Reset View</button>
+    </div>
+    
+    <div id="main-container">
+        <div id="graph-container">
+            <div id="legend"></div>
+        </div>
+        
+        <div id="sidebar">
+            <div class="sidebar-section">
+                <h3>Graph Statistics</h3>
+                <div id="stats"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Selected Node</h3>
+                <div id="node-info">
+                    <em style="color: #888;">Click a node to see details</em>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Source Cards</h3>
+                <div id="card-viewer" style="display: none;">
+                    <div style="margin-bottom: 10px;">
+                        <select id="card-selector" style="width: 100%;">
+                            <option value="">Select a card to view code</option>
+                        </select>
+                    </div>
+                    <div id="card-content" style="background: #0f3460; padding: 10px; border-radius: 6px; max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; white-space: pre-wrap;">
+                        <em style="color: #888;">Select a card above to view its content</em>
+                    </div>
+                </div>
+                <div id="no-cards" style="color: #888; font-style: italic;">
+                    No source cards for this node
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Agent Observations</h3>
+                <div id="observations"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tooltip"></div>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // All graph data
+        const allGraphs = {"SystemArchitecture": {"name": "SystemArchitecture", "internal_name": "SystemArchitecture", "focus": "High-level Notional lending protocol architecture and end-to-end flows: external users and integrations enter through ERC1967/UUPS proxies and action/router contracts; governance and pause controls manage the implementation and configuration; trading, settlement, valuation, and liquidation modules operate on account balances, portfolios, markets, and nTokens; oracle and token interfaces define external trust boundaries; show control and data flow across these system boundaries.", "nodes": [{"id": "proxy_nProxy", "type": "proxy", "label": "nProxy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_064c4d72666d"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proxy_ERC1967Proxy", "type": "proxy", "label": "ERC1967Proxy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_aa1cdfe5a06d"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proxy_Proxy", "type": "proxy", "label": "Proxy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_96a711767acc"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proxy_ERC1967Upgrade", "type": "proxy", "label": "ERC1967Upgrade", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_1527d378206a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "implementation_UUPSUpgradeable", "type": "implementation", "label": "UUPSUpgradeable", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_efc99917c101"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "storage_StorageLayoutV1", "type": "storage_layout", "label": "StorageLayoutV1", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c50a5bc3284e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "router_Router", "type": "router", "label": "Router", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_54b3b0e3d65a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "router_PausedRouter", "type": "router", "label": "PausedRouter", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e028fc23248f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "governance_GovernorAlpha", "type": "governance_contract", "label": "GovernorAlpha", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_caebaf0f7d65"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_GovernanceAction", "type": "action_module", "label": "GovernanceAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_ba68699ecd69", "card_f135f63c6998"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_AccountAction", "type": "action_module", "label": "AccountAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_16466d912ca9"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_BatchAction", "type": "action_module", "label": "BatchAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4539bd58a223", "card_5c1df1b9487f", "card_294e0298312d"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_TradingAction", "type": "action_module", "label": "TradingAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e9b6786261e2", "card_e73aac5f9e1b", "card_1e5de886bec3"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_LiquidateCurrencyAction", "type": "action_module", "label": "LiquidateCurrencyAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_1f8de14b0b41"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_LiquidatefCashAction", "type": "action_module", "label": "LiquidatefCashAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c6dbf1b0dd7f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_ERC1155Action", "type": "action_module", "label": "ERC1155Action", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_ed0439ed3160", "card_bffe2b491d53", "card_2d3bec9a796b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_nTokenAction", "type": "action_module", "label": "nTokenAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b936fb767acc"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_InitializeMarketsAction", "type": "action_module", "label": "InitializeMarketsAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_80ec3efbd364"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_nTokenMintAction", "type": "action_module", "label": "nTokenMintAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_2902d1d21a99"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_nTokenRedeemAction", "type": "action_module", "label": "nTokenRedeemAction", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_258b955e3ab2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_Views", "type": "action_module", "label": "Views", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_61fd1f7241d6", "card_d88f23ade1d4", "card_1217d000b86f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "action_SettleAssetsExternal", "type": "action_module", "label": "SettleAssetsExternal", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d8947bd273d8"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_BalanceHandler", "type": "internal_library", "label": "BalanceHandler", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_3039c9efcc5e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_TokenHandler", "type": "internal_library", "label": "TokenHandler", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_8cc058f495fa"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_PortfolioHandler", "type": "internal_library", "label": "PortfolioHandler", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_6958b2c65f78", "card_7be07cd79426"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_TransferAssets", "type": "internal_library", "label": "TransferAssets", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_17a09bc3c0d2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_FreeCollateral", "type": "internal_library", "label": "FreeCollateral", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_ca61f44a0a3c"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_FreeCollateralExternal", "type": "internal_library", "label": "FreeCollateralExternal", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c0aec7689d6f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_AssetRate", "type": "internal_library", "label": "AssetRate", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b4dbb71911a6", "card_255aa6b0c001"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_ExchangeRate", "type": "internal_library", "label": "ExchangeRate", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0cfe07f64a8a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_Market", "type": "internal_library", "label": "Market", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e60f1bc2ffbf", "card_e933c370268e", "card_f6394f0869c5"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_CashGroup", "type": "internal_library", "label": "CashGroup", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_26c6d7a1d5d3"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_AccountContextHandler", "type": "internal_library", "label": "AccountContextHandler", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9d0371469a47"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_nTokenHandler", "type": "internal_library", "label": "nTokenHandler", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_1e5c09bd0663"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_Incentives", "type": "internal_library", "label": "Incentives", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_11dc6195707e", "card_7c9bbdbe9dfc"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_LiquidationHelpers", "type": "internal_library", "label": "LiquidationHelpers", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_5ace73b53284", "card_d8848a2d84da"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_LiquidateCurrency", "type": "internal_library", "label": "LiquidateCurrency", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e6aa5b743bf2", "card_a2a1c28a7223", "card_645258b24a48"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_LiquidatefCash", "type": "internal_library", "label": "LiquidatefCash", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_3b348a3b5dbb", "card_f32f752e7a3d"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_SettleBitmapAssets", "type": "internal_library", "label": "SettleBitmapAssets", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_ac3bed0c581f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_SettlePortfolioAssets", "type": "internal_library", "label": "SettlePortfolioAssets", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_de501a7c44b9"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "state_AccountContext", "type": "account_state", "label": "AccountContext", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4cd94bbecad2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "state_AccountBalances", "type": "account_state", "label": "Account balances and cash/nToken storage", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_3039c9efcc5e", "card_1217d000b86f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "portfolio_AccountPortfolio", "type": "portfolio", "label": "Account portfolio and bitmap assets", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_6958b2c65f78", "card_b157d51e921a", "card_1217d000b86f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "market_MarketParameters", "type": "market", "label": "Market parameters and market storage", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e60f1bc2ffbf", "card_e933bfe816b2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "token_TokenHandlerTokens", "type": "token", "label": "Currency asset and underlying tokens", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_8cc058f495fa", "card_d88f23ade1d4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "token_nTokenERC20", "type": "token", "label": "nToken ERC20 interface and balances", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4e3fdc653b5f", "card_b936fbf767acc"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "oracle_AggregatorV2V3Interface", "type": "oracle_interface", "label": "AggregatorV2V3Interface", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_404cc7e7bdac", "card_0cfe07f64a8a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "oracle_AssetRateAdapter", "type": "oracle_interface", "label": "AssetRateAdapter", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_97653836bf5b", "card_b4dbb71911a6"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "external_CashMarketInterface", "type": "external_protocol", "label": "CashMarketInterface", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c95af83de404"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "external_CompoundToNotionalV2", "type": "external_protocol", "label": "CompoundToNotionalV2 integration", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_ec1fa6f2b40f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "adapter_nTokenERC20Proxy", "type": "proxy", "label": "nTokenERC20Proxy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_43dd54afa0fb"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}], "edges": [{"id": "edge_28eebda1", "type": "delegates_to", "source_id": "proxy_nProxy", "target_id": "proxy_ERC1967Proxy", "properties": {}, "label": "delegates_to", "confidence": 1.0, "evidence": ["card_064c4d72666d"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9cb4f4e8", "type": "delegates_to", "source_id": "proxy_ERC1967Proxy", "target_id": "proxy_Proxy", "properties": {}, "label": "delegates_to", "confidence": 1.0, "evidence": ["card_aa1cdfe5a06d", "card_96a711767acc"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5732d045", "type": "delegates_to", "source_id": "proxy_Proxy", "target_id": "implementation_UUPSUpgradeable", "properties": {}, "label": "delegates_to", "confidence": 1.0, "evidence": ["card_96a711767acc", "card_efc99917c101"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d553e5e9", "type": "upgrades", "source_id": "implementation_UUPSUpgradeable", "target_id": "proxy_ERC1967Upgrade", "properties": {}, "label": "upgrades", "confidence": 1.0, "evidence": ["card_efc99917c101", "card_1527d378206a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_79487eaa", "type": "initializes", "source_id": "proxy_ERC1967Proxy", "target_id": "implementation_UUPSUpgradeable", "properties": {}, "label": "initializes", "confidence": 1.0, "evidence": ["card_aa1cdfe5a06d"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_06129842", "type": "writes", "source_id": "proxy_ERC1967Upgrade", "target_id": "storage_StorageLayoutV1", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_1527d378206a", "card_c50a5bc3284e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d06b029c", "type": "routes_to", "source_id": "router_Router", "target_id": "action_TradingAction", "properties": {}, "label": "routes_to", "confidence": 1.0, "evidence": ["card_54b3b0e3d65a", "card_e9b6786261e2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_74383a8d", "type": "routes_to", "source_id": "router_PausedRouter", "target_id": "action_GovernanceAction", "properties": {}, "label": "routes_to", "confidence": 1.0, "evidence": ["card_e028fc23248f", "card_f135f63c6998"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e6a79b9b", "type": "authorizes", "source_id": "governance_GovernorAlpha", "target_id": "action_GovernanceAction", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_caebaf0f7d65", "card_f135f63c6998"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c7fd0635", "type": "writes", "source_id": "action_GovernanceAction", "target_id": "storage_StorageLayoutV1", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_f135f63c6998", "card_c50a5bc3284e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_523d2937", "type": "calls", "source_id": "action_AccountAction", "target_id": "library_AccountContextHandler", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_16466d912ca9", "card_9d0371469a47"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6bdc3600", "type": "calls", "source_id": "action_AccountAction", "target_id": "action_SettleAssetsExternal", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_16466d912ca9", "card_d8947bd273d8"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0c8dc61d", "type": "calls", "source_id": "action_BatchAction", "target_id": "action_SettleAssetsExternal", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_4539c9efcc5e", "card_d8947bd273d8"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d843a636", "type": "calls", "source_id": "action_BatchAction", "target_id": "action_TradingAction", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_294e0298312d", "card_e9b6786261e2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b8037dff", "type": "calls", "source_id": "action_BatchAction", "target_id": "library_BalanceHandler", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_5c1df1b9487f", "card_3039c9efcc5e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7e314b24", "type": "calls", "source_id": "action_BatchAction", "target_id": "library_FreeCollateralExternal", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_4539bd58a223", "card_5c1df1b9487f"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_aa79f7dc", "type": "calls", "source_id": "action_TradingAction", "target_id": "library_Market", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_e9b6786261e2", "card_e73aac5f9e1b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_473ce8a8", "type": "calls", "source_id": "action_TradingAction", "target_id": "library_PortfolioHandler", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_e9b6786261e2", "card_6958b2c65f78"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_48483d56", "type": "calls", "source_id": "action_TradingAction", "target_id": "library_nTokenHandler", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_1e5de886bec3", "card_1e5c09bd0663"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b14b9f69", "type": "calls", "source_id": "action_LiquidateCurrencyAction", "target_id": "library_LiquidateCurrency", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_1f8de14b0b41", "card_e6aa7b743bf2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e827ca84", "type": "calls", "source_id": "action_LiquidateCurrencyAction", "target_id": "library_LiquidationHelpers", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_1f8de14b0b41", "card_5ace73b53284"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3c1d7889", "type": "calls", "source_id": "action_LiquidatefCashAction", "target_id": "library_LiquidatefCash", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_c6dbf1b0dd7f", "card_3b348a3b5dbb"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a472fcad", "type": "calls", "source_id": "library_LiquidatefCash", "target_id": "library_LiquidationHelpers", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_f32f752e7a3d", "card_d8848a2d84da"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_437fe9e0", "type": "calls", "source_id": "action_ERC1155Action", "target_id": "library_TransferAssets", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_bffe2b491d53", "card_17a09bc3c0d2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e4950c0b", "type": "writes", "source_id": "library_TransferAssets", "target_id": "portfolio_AccountPortfolio", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_17a09bc3c0d2", "card_bffe2b491d53"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9a9825d7", "type": "writes", "source_id": "library_TransferAssets", "target_id": "state_AccountContext", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_bffe2b491d53", "card_17a09bc3c0d2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6fb5944d", "type": "calls", "source_id": "action_InitializeMarketsAction", "target_id": "library_Market", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_80ec3efbd364", "card_e933bfe816b2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6352e29b", "type": "calls", "source_id": "action_nTokenMintAction", "target_id": "library_Market", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_2902d1d21a99", "card_f6394f0869c5"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_48045c55", "type": "calls", "source_id": "action_nTokenRedeemAction", "target_id": "library_BalanceHandler", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_258b955e3ab2", "card_3039c9efcc5e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_122d4b10", "type": "reads", "source_id": "action_nTokenAction", "target_id": "state_AccountBalances", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_b936fb767acc", "card_3039c9efcc5e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_08da7aad", "type": "calls", "source_id": "action_Views", "target_id": "library_FreeCollateralExternal", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_61fd1f7241d6", "card_c0aec7689d6f"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_51bddf4e", "type": "reads", "source_id": "action_Views", "target_id": "state_AccountBalances", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_1217d000b86f", "card_3039c9efcc5e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5faa488d", "type": "reads", "source_id": "action_Views", "target_id": "portfolio_AccountPortfolio", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_1217d000b86f", "card_6958b2c65f78"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ccbfcdd2", "type": "calls", "source_id": "action_SettleAssetsExternal", "target_id": "library_SettlePortfolioAssets", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_d8947bd273d8", "card_de501a7c44b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3dae732a", "type": "calls", "source_id": "action_SettleAssetsExternal", "target_id": "library_SettleBitmapAssets", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_d8947bd273d8", "card_ac3bed0c581f"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_79ac97c8", "type": "writes", "source_id": "action_SettleAssetsExternal", "target_id": "state_AccountBalances", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_d8947bd273d8", "card_3039c9efcc5e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_35b39157", "type": "writes", "source_id": "action_SettleAssetsExternal", "target_id": "portfolio_AccountPortfolio", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_d8947bd273d8", "card_7be07cd79426"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_cc450ac1", "type": "reads", "source_id": "library_BalanceHandler", "target_id": "state_AccountContext", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_3039c9efcc5e", "card_4cd94bbecad2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c34b1f15", "type": "writes", "source_id": "library_BalanceHandler", "target_id": "state_AccountBalances", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_3039c9efcc5e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3a2381d0", "type": "transfers", "source_id": "library_TokenHandler", "target_id": "token_TokenHandlerTokens", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_8cc058f495fa", "card_11dc6195707e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2b8f7a2b", "type": "computes", "source_id": "library_FreeCollateral", "target_id": "portfolio_AccountPortfolio", "properties": {}, "label": "computes", "confidence": 1.0, "evidence": ["card_ca61f44a0a3c", "card_7965dbb7e060"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2aacf198", "type": "computes", "source_id": "library_FreeCollateral", "target_id": "library_ExchangeRate", "properties": {}, "label": "computes", "confidence": 1.0, "evidence": ["card_ca61f44a0a3c", "card_0cfe07f64a8a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_174e9042", "type": "reads_from", "source_id": "library_ExchangeRate", "target_id": "oracle_AggregatorV2V3Interface", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_0cfe07f64a8a", "card_404cc7e7bdac"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_232cd161", "type": "reads_from", "source_id": "library_AssetRate", "target_id": "oracle_AssetRateAdapter", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_b4dbb71911a6", "card_255aa6b0c001", "card_97653836bf5b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e832226d", "type": "computes", "source_id": "library_Market", "target_id": "market_MarketParameters", "properties": {}, "label": "computes", "confidence": 1.0, "evidence": ["card_e933bfe816b2", "card_f6394f0869c5"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0d1312d7", "type": "reads", "source_id": "library_CashGroup", "target_id": "market_MarketParameters", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_26c6d7a1d5d3", "card_e60f1bc2ffbf"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c8bf1738", "type": "writes", "source_id": "library_PortfolioHandler", "target_id": "portfolio_AccountPortfolio", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_7be07cd79426", "card_6958b2c65f78"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7e33aa6f", "type": "writes", "source_id": "library_AccountContextHandler", "target_id": "state_AccountContext", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_9d0371469a47", "card_4cd94bbecad2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6a6f32a9", "type": "writes", "source_id": "library_nTokenHandler", "target_id": "token_nTokenERC20", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_1e5c09bd0663", "card_4e3fdc653b5f"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_df0872a1", "type": "calls", "source_id": "library_Incentives", "target_id": "library_TokenHandler", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_11dc6195707e", "card_8cc058f495fa"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_1ce15684", "type": "computes", "source_id": "library_LiquidateCurrency", "target_id": "market_MarketParameters", "properties": {}, "label": "computes", "confidence": 1.0, "evidence": ["card_e6aa7b743bf2", "card_e60f1bc2ffbf"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_fdaad256", "type": "writes", "source_id": "library_LiquidateCurrency", "target_id": "portfolio_AccountPortfolio", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_645258b24a48", "card_e6aa7b743bf2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_83a2ae46", "type": "calls", "source_id": "adapter_nTokenERC20Proxy", "target_id": "action_nTokenAction", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_43dd54afa0fb", "card_b936fb767acc"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_04fd1288", "type": "transfers", "source_id": "adapter_nTokenERC20Proxy", "target_id": "token_nTokenERC20", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_43dd54afa0fb", "card_4e3fdc653b5f"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c061495f", "type": "calls", "source_id": "external_CompoundToNotionalV2", "target_id": "action_BatchAction", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_ec1fa6f2b40f", "card_294e0298312d"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e78156df", "type": "calls", "source_id": "library_AssetRate", "target_id": "external_CashMarketInterface", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_255aa6b0c001", "card_c95af83de404"], "created_by": "iteration_0", "iteration": 0}], "metadata": {"created_at": 1791135461.3021922, "display_name": "SystemArchitecture"}, "stats": {"num_nodes": 51, "num_edges": 56, "node_types": ["action_module", "market", "storage_layout", "router", "implementation", "governance_contract", "oracle_interface", "internal_library", "token", "external_protocol", "proxy", "account_state", "portfolio"], "edge_types": ["writes", "calls", "reads_from", "authorizes", "reads", "initializes", "computes", "delegates_to", "routes_to", "transfers", "upgrades"]}}};
+        const observations = [];
+        const cardStore = {"card_c0aec7689d6f": {"id": "card_c0aec7689d6f", "relpath": "contracts/external/FreeCollateralExternal.sol", "char_start": 0, "char_end": 1215, "peek_head": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\n", "peek_tail": "t);\n        return FreeCollateral.getFreeCollateralView(account, accountContext, blockTime);\n    }\n\n", "shingle_hash": "61074725c65d8acf", "top_tokens": ["account", "free", "collateral", "the", "for", "accountcontext", "accountcontexthandler", "sol", "return", "pragma"], "content": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\nimport \"../internal/AccountContextHandler.sol\";\nimport \"../internal/valuation/FreeCollateral.sol\";\n\n/// @title Externally deployed library for free collateral calculations\nlibrary FreeCollateralExternal {\n    using AccountContextHandler for AccountContext;\n\n    /// @notice Returns the ETH denominated free collateral of an account, represents the amount of\n    /// debt that the account can incur before liquidation.\n    /// @dev Called via the Views.sol method to return an account's free collateral. Does not work\n    /// for the nToken\n    /// @param account account to calculate free collateral for\n    /// @return\n    ///     - total free collateral in ETH w/ 8 decimal places\n    ///     - array of net local values in asset values ordered\n    function getFreeCollateralView(address account)\n        external\n        view\n        returns (int256, int256[] memory)\n    {\n        uint256 blockTime = block.timestamp;\n        AccountContext memory accountContext = AccountContextHandler.getAccountContext(account);\n        return FreeCollateral.getFreeCollateralView(account, accountContext, blockTime);\n    }\n\n"}, "card_9d0371469a47": {"id": "card_9d0371469a47", "relpath": "contracts/internal/AccountContextHandler.sol", "char_start": 4430, "char_end": 5534, "peek_head": "            if (cid == currencyId && isActive) return true;\n            currencies = currencies << 1", "peek_tail": "ll do it elsewhere.\n        if (isActive && accountContext.bitmapCurrencyId == currencyId) return;\n\n", "shingle_hash": "91503bec84fd8e7d", "top_tokens": ["the", "currency", "currencyid", "currencies", "return", "active", "that", "isactive", "accountcontext", "list"], "content": "            if (cid == currencyId && isActive) return true;\n            currencies = currencies << 16;\n        }\n\n        return false;\n    }\n\n    /// @notice Iterates through the active currency list and removes, inserts or does nothing\n    /// to ensure that the active currency list is an ordered byte array of uint16 currency ids\n    /// that refer to the currencies that an account is active in.\n    ///\n    /// This is called to ensure that currencies are active when the account has a non zero cash balance,\n    /// a non zero nToken balance or a portfolio asset.\n    function setActiveCurrency(\n        AccountContext memory accountContext,\n        uint256 currencyId,\n        bool isActive,\n        bytes2 flags\n    ) internal pure {\n        require(currencyId != 0 && currencyId <= Constants.MAX_CURRENCIES); // dev: invalid currency id\n\n        // If the bitmapped currency is already set then return here. Turning off the bitmap currency\n        // id requires other logical handling so we will do it elsewhere.\n        if (isActive && accountContext.bitmapCurrencyId == currencyId) return;\n\n"}, "card_61fd1f7241d6": {"id": "card_61fd1f7241d6", "relpath": "contracts/external/Views.sol", "char_start": 0, "char_end": 1007, "peek_head": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\n", "peek_tail": " for uint256;\n    using BalanceHandler for BalanceState;\n\n    /** Governance Parameter Getters **/\n\n", "shingle_hash": "05fed1cc2f8c90cb", "top_tokens": ["import", "sol", "using", "for", "internal", "pragma", "markets", "cashgroup", "assetrate", "tokenhandler"], "content": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\nimport \"../external/FreeCollateralExternal.sol\";\nimport \"./actions/nTokenMintAction.sol\";\nimport \"../internal/valuation/ExchangeRate.sol\";\nimport \"../internal/markets/CashGroup.sol\";\nimport \"../internal/markets/AssetRate.sol\";\nimport \"../internal/nTokenHandler.sol\";\nimport \"../internal/balances/TokenHandler.sol\";\nimport \"../global/StorageLayoutV1.sol\";\nimport \"../math/SafeInt256.sol\";\nimport \"@openzeppelin/contracts/utils/SafeCast.sol\";\nimport \"interfaces/notional/NotionalViews.sol\";\nimport \"@openzeppelin/contracts/math/SafeMath.sol\";\n\ncontract Views is StorageLayoutV1, NotionalViews {\n    using CashGroup for CashGroupParameters;\n    using TokenHandler for Token;\n    using Market for MarketParameters;\n    using AssetRate for AssetRateParameters;\n    using SafeInt256 for int256;\n    using SafeMath for uint256;\n    using BalanceHandler for BalanceState;\n\n    /** Governance Parameter Getters **/\n\n"}, "card_3039c9efcc5e": {"id": "card_3039c9efcc5e", "relpath": "contracts/internal/balances/BalanceHandler.sol", "char_start": 14649, "char_end": 16038, "peek_head": "            if (cashBalance < 0) {\n                accountContext.hasDebt = accountContext.hasDebt |", "peek_tail": ".add(fee);\n        _setBalanceStorage(Constants.RESERVE, currencyId, totalReserve, 0, 0, 0);\n    }\n\n", "shingle_hash": "83500076a41804b5", "top_tokens": ["currencyid", "cashbalance", "fee", "totalreserve", "constants", "settleamounts", "setbalancestorage", "int256", "reserve", "accountcontext"], "content": "            if (cashBalance < 0) {\n                accountContext.hasDebt = accountContext.hasDebt | Constants.HAS_CASH_DEBT;\n            }\n\n            emit CashBalanceChange(\n                account,\n                uint16(settleAmounts[i].currencyId),\n                settleAmounts[i].netCashChange\n            );\n\n            _setBalanceStorage(\n                account,\n                settleAmounts[i].currencyId,\n                cashBalance,\n                nTokenBalance,\n                lastClaimTime,\n                lastClaimIntegralSupply\n            );\n        }\n    }\n\n    /// @notice Special method for setting balance storage for nToken\n    function setBalanceStorageForNToken(\n        address nTokenAddress,\n        uint256 currencyId,\n        int256 cashBalance\n    ) internal {\n        require(cashBalance >= 0); // dev: invalid nToken cash balance\n        _setBalanceStorage(nTokenAddress, currencyId, cashBalance, 0, 0, 0);\n    }\n\n    /// @notice increments fees to the reserve\n    function incrementFeeToReserve(uint256 currencyId, int256 fee) internal {\n        require(fee >= 0); // dev: invalid fee\n        // prettier-ignore\n        (int256 totalReserve, /* */, /* */, /* */) = getBalanceStorage(Constants.RESERVE, currencyId);\n        totalReserve = totalReserve.add(fee);\n        _setBalanceStorage(Constants.RESERVE, currencyId, totalReserve, 0, 0, 0);\n    }\n\n"}, "card_ed0439ed3160": {"id": "card_ed0439ed3160", "relpath": "contracts/external/actions/ERC1155Action.sol", "char_start": 7812, "char_end": 9250, "peek_head": "        (PortfolioAsset[] memory assets, bool toTransferNegative) = _decodeToAssets(ids, amounts);\n ", "peek_tail": "rtfolioAsset[] memory assets, /* */) = _decodeToAssets(ids, amounts);\n        return assets;\n    }\n\n", "shingle_hash": "022232caf4e962ec", "top_tokens": ["ids", "amounts", "from", "memory", "msg", "sender", "portfolioasset", "assets", "transfer", "address"], "content": "        (PortfolioAsset[] memory assets, bool toTransferNegative) = _decodeToAssets(ids, amounts);\n        // When doing a bidirectional transfer must ensure that the `to` account has given approval\n        // to msg.sender as well.\n        if (toTransferNegative) require(isApprovedForAll(to, msg.sender), \"Unauthorized\");\n\n        (AccountContext memory fromContext, AccountContext memory toContext) = _transfer(\n            from,\n            to,\n            assets\n        );\n\n        _checkPostTransferEvent(from, to, fromContext, toContext, data, toTransferNegative);\n\n        emit TransferBatch(msg.sender, from, to, ids, amounts);\n    }\n\n    /// @dev Validates accounts on transfer\n    function _validateAccounts(address from, address to) private view {\n        require(from != to && to != address(0), \"Invalid address\");\n        require(msg.sender == from || isApprovedForAll(from, msg.sender), \"Unauthorized\");\n    }\n\n    /// @notice Decodes ids and amounts to PortfolioAsset objects\n    /// @param ids array of ERC1155 ids\n    /// @param amounts amounts to transfer\n    /// @return array of portfolio asset objects\n    function decodeToAssets(uint256[] calldata ids, uint256[] calldata amounts)\n        external\n        view\n        override\n        returns (PortfolioAsset[] memory)\n    {\n        // prettier-ignore\n        (PortfolioAsset[] memory assets, /* */) = _decodeToAssets(ids, amounts);\n        return assets;\n    }\n\n"}, "card_b4dbb71911a6": {"id": "card_b4dbb71911a6", "relpath": "contracts/internal/markets/AssetRate.sol", "char_start": 3220, "char_end": 4532, "peek_head": "    /// @notice Gets an asset rate using a view function, does not accrue interest so the\n    /// ex", "peek_tail": " {\n        (address rateOracle, uint8 underlyingDecimalPlaces) = _getAssetRateStorage(currencyId);\n\n", "shingle_hash": "c361980f4f057706", "top_tokens": ["rate", "address", "rateoracle", "function", "the", "currencyid", "uint8", "underlyingdecimalplaces", "asset", "exchange"], "content": "    /// @notice Gets an asset rate using a view function, does not accrue interest so the\n    /// exchange rate will not be up to date. Should only be used for non-stateful methods\n    function _getAssetRateView(uint256 currencyId)\n        private\n        view\n        returns (\n            int256,\n            address,\n            uint8\n        )\n    {\n        (address rateOracle, uint8 underlyingDecimalPlaces) = _getAssetRateStorage(currencyId);\n\n        int256 rate;\n        if (rateOracle == address(0)) {\n            // If no rate oracle is set, then set this to the identity\n            rate = ASSET_RATE_DECIMAL_DIFFERENCE;\n            underlyingDecimalPlaces = 0;\n        } else {\n            rate = AssetRateAdapter(rateOracle).getExchangeRateView();\n            require(rate > 0); // dev: invalid exchange rate\n        }\n\n        return (rate, rateOracle, underlyingDecimalPlaces);\n    }\n\n    /// @notice Gets an asset rate using a stateful function, accrues interest so the\n    /// exchange rate will be up to date for the current block.\n    function _getAssetRateStateful(uint256 currencyId)\n        private\n        returns (\n            int256,\n            address,\n            uint8\n        )\n    {\n        (address rateOracle, uint8 underlyingDecimalPlaces) = _getAssetRateStorage(currencyId);\n\n"}, "card_b157d51e921a": {"id": "card_b157d51e921a", "relpath": "contracts/internal/portfolio/BitmapAssetsHandler.sol", "char_start": 4593, "char_end": 5890, "peek_head": "            require(existingNotional >= type(int128).min && existingNotional <= type(int128).max); /", "peek_tail": "iew returns (int256) {\n        int256 notional = getifCashNotional(account, currencyId, maturity);\n\n", "shingle_hash": "c4df0154fba7e533", "top_tokens": ["notional", "assetsbitmap", "existingnotional", "type", "int128", "the", "uint256", "require", "min", "max"], "content": "            require(existingNotional >= type(int128).min && existingNotional <= type(int128).max); // dev: bitmap notional overflow\n            assembly {\n                sstore(fCashSlot, existingNotional)\n            }\n\n            // If the new notional is zero then turn off the bit\n            if (existingNotional == 0) {\n                assetsBitmap = assetsBitmap.setBit(bitNum, false);\n            }\n\n            return (assetsBitmap, existingNotional);\n        }\n\n        if (notional != 0) {\n            // Bit is not set so we turn it on and update the mapping directly, no read required.\n            require(notional >= type(int128).min && notional <= type(int128).max); // dev: bitmap notional overflow\n            assembly {\n                sstore(fCashSlot, notional)\n            }\n            assetsBitmap = assetsBitmap.setBit(bitNum, true);\n        }\n\n        return (assetsBitmap, notional);\n    }\n\n    /// @notice Returns the present value of an asset\n    function getPresentValue(\n        address account,\n        uint256 currencyId,\n        uint256 maturity,\n        uint256 blockTime,\n        CashGroupParameters memory cashGroup,\n        bool riskAdjusted\n    ) internal view returns (int256) {\n        int256 notional = getifCashNotional(account, currencyId, maturity);\n\n"}, "card_97653836bf5b": {"id": "card_97653836bf5b", "relpath": "interfaces/notional/AssetRateAdapter.sol", "char_start": 0, "char_end": 784, "peek_head": "// SPDX-License-Identifier: GPL-v3\npragma solidity >=0.7.0;\n\n/// @notice Used as a wrapper for token", "peek_tail": " view returns (int256);\n\n    function getAnnualizedSupplyRate() external view returns (uint256);\n}\n\n", "shingle_hash": "10608c48aef964c2", "top_tokens": ["function", "external", "returns", "view", "for", "tokens", "interest", "bearing", "underlying", "token"], "content": "// SPDX-License-Identifier: GPL-v3\npragma solidity >=0.7.0;\n\n/// @notice Used as a wrapper for tokens that are interest bearing for an\n/// underlying token. Follows the cToken interface, however, can be adapted\n/// for other interest bearing tokens.\ninterface AssetRateAdapter {\n    function token() external view returns (address);\n\n    function decimals() external view returns (uint8);\n\n    function description() external view returns (string memory);\n\n    function version() external view returns (uint256);\n\n    function underlying() external view returns (address);\n\n    function getExchangeRateStateful() external returns (int256);\n\n    function getExchangeRateView() external view returns (int256);\n\n    function getAnnualizedSupplyRate() external view returns (uint256);\n}\n"}, "card_255aa6b0c001": {"id": "card_255aa6b0c001", "relpath": "contracts/internal/markets/AssetRate.sol", "char_start": 2139, "char_end": 3220, "peek_head": "        return assetBalance;\n    }\n\n    /// @notice Returns the current per block supply rate, is us", "peek_tail": "address(bytes20(data << 96));\n        underlyingDecimalPlaces = uint8(uint256(data >> 160));\n    }\n\n", "shingle_hash": "354ba9736369a6fa", "top_tokens": ["rate", "the", "uint256", "rateoracle", "data", "return", "returns", "oracle", "address", "slot"], "content": "        return assetBalance;\n    }\n\n    /// @notice Returns the current per block supply rate, is used when calculating oracle rates\n    /// for idiosyncratic fCash with a shorter duration than the 3 month maturity.\n    function getSupplyRate(AssetRateParameters memory ar) internal view returns (uint256) {\n        // If the rate oracle is not set, the asset is not interest bearing and has an oracle rate of zero.\n        if (ar.rateOracle == address(0)) return 0;\n\n        uint256 rate = AssetRateAdapter(ar.rateOracle).getAnnualizedSupplyRate();\n        require(rate >= 0); // dev: invalid supply rate\n\n        return rate;\n    }\n\n    function _getAssetRateStorage(uint256 currencyId)\n        private\n        view\n        returns (address rateOracle, uint8 underlyingDecimalPlaces)\n    {\n        bytes32 slot = keccak256(abi.encode(currencyId, ASSET_RATE_STORAGE_SLOT));\n        bytes32 data;\n\n        assembly {\n            data := sload(slot)\n        }\n\n        rateOracle = address(bytes20(data << 96));\n        underlyingDecimalPlaces = uint8(uint256(data >> 160));\n    }\n\n"}, "card_4539bd58a223": {"id": "card_4539bd58a223", "relpath": "contracts/external/actions/BatchAction.sol", "char_start": 4170, "char_end": 5218, "peek_head": "        if (accountContext.hasDebt != 0x00) {\n            FreeCollateralExternal.checkFreeCollateral", "peek_tail": "        settleAmounts,\n                balanceState,\n                accountContext\n            );\n\n", "shingle_hash": "9c2db25e1ade3a9a", "top_tokens": ["actions", "accountcontext", "memory", "account", "settleamountindex", "balancestate", "currencyid", "settleamounts", "portfoliostate", "uint256"], "content": "        if (accountContext.hasDebt != 0x00) {\n            FreeCollateralExternal.checkFreeCollateralAndRevert(account);\n        }\n    }\n\n    function _batchBalanceAndTradeAction(\n        address account,\n        BalanceActionWithTrades[] calldata actions\n    ) internal returns (AccountContext memory) {\n        (\n            AccountContext memory accountContext,\n            SettleAmount[] memory settleAmounts,\n            PortfolioState memory portfolioState\n        ) = _settleAccountIfRequiredAndReturnPortfolio(account);\n\n        uint256 settleAmountIndex;\n        BalanceState memory balanceState;\n        for (uint256 i; i < actions.length; i++) {\n            if (i > 0) {\n                require(actions[i].currencyId > actions[i - 1].currencyId, \"Unsorted actions\");\n            }\n            settleAmountIndex = _preTradeActions(\n                account,\n                settleAmountIndex,\n                actions[i].currencyId,\n                settleAmounts,\n                balanceState,\n                accountContext\n            );\n\n"}, "card_bffe2b491d53": {"id": "card_bffe2b491d53", "relpath": "contracts/external/actions/ERC1155Action.sol", "char_start": 11905, "char_end": 13069, "peek_head": "        toContext = TransferAssets.placeAssetsInAccount(to, toContext, assets);\n        TransferAsse", "peek_tail": "ta\n            bytes32 tmp = abi.decode(data, (bytes32));\n            sig = bytes4(tmp);\n        }\n\n", "shingle_hash": "a049d8a0e8bce39c", "top_tokens": ["tocontext", "fromcontext", "the", "transferassets", "assets", "from", "address", "bytes", "data", "bytes32"], "content": "        toContext = TransferAssets.placeAssetsInAccount(to, toContext, assets);\n        TransferAssets.invertNotionalAmountsInPlace(assets);\n        fromContext = TransferAssets.placeAssetsInAccount(from, fromContext, assets);\n\n        toContext.setAccountContext(to);\n        fromContext.setAccountContext(from);\n\n        return (fromContext, toContext);\n    }\n\n    /// @dev Checks post transfer events which will either be initiating one of the batch trading events or a free collateral\n    /// check if required.\n    function _checkPostTransferEvent(\n        address from,\n        address to,\n        AccountContext memory fromContext,\n        AccountContext memory toContext,\n        bytes calldata data,\n        bool toTransferNegative\n    ) internal {\n        bytes4 sig;\n        address transactedAccount;\n        if (data.length >= 32) {\n            // Method signature is not abi encoded so decode to bytes32 first and take the first 4 bytes. This works\n            // because all the methods we want to call below require more than 32 bytes in the calldata\n            bytes32 tmp = abi.decode(data, (bytes32));\n            sig = bytes4(tmp);\n        }\n\n"}, "card_e028fc23248f": {"id": "card_e028fc23248f", "relpath": "contracts/external/PausedRouter.sol", "char_start": 1140, "char_end": 2290, "peek_head": "    /// @dev Delegates the current call to `implementation`.\n    /// This function does not return t", "peek_tail": "       default {\n                    return(0, returndatasize())\n                }\n        }\n    }\n\n", "shingle_hash": "420dd39aa558588a", "top_tokens": ["the", "implementation", "return", "call", "assembly", "returndatasize", "this", "function", "not", "will"], "content": "    /// @dev Delegates the current call to `implementation`.\n    /// This function does not return to its internal call site, it will return directly to the external caller.\n    function _delegate(address implementation) private {\n        // solhint-disable-next-line no-inline-assembly\n        assembly {\n            // Copy msg.data. We take full control of memory in this inline assembly\n            // block because it will not return to Solidity code. We overwrite the\n            // Solidity scratch pad at memory position 0.\n            calldatacopy(0, 0, calldatasize())\n\n            // Call the implementation.\n            // out and outsize are 0 because we don't know the size yet.\n            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)\n\n            // Copy the returned data.\n            returndatacopy(0, 0, returndatasize())\n\n            switch result\n                // delegatecall returns 0 on error.\n                case 0 {\n                    revert(0, returndatasize())\n                }\n                default {\n                    return(0, returndatasize())\n                }\n        }\n    }\n\n"}, "card_064c4d72666d": {"id": "card_064c4d72666d", "relpath": "contracts/proxy/nProxy.sol", "char_start": 0, "char_end": 392, "peek_head": "// SPDX-License-Identifier: MIT\n\npragma solidity ^0.7.0;\n\nimport \"./ERC1967/ERC1967Proxy.sol\";\n\ncont", "peek_tail": " getImplementation() external view returns (address) {\n        return _getImplementation();\n    }\n}\n", "shingle_hash": "11dc367b140a1b44", "top_tokens": ["erc1967proxy", "address", "logic", "data", "external", "getimplementation", "spdx", "license", "identifier", "mit"], "content": "// SPDX-License-Identifier: MIT\n\npragma solidity ^0.7.0;\n\nimport \"./ERC1967/ERC1967Proxy.sol\";\n\ncontract nProxy is ERC1967Proxy {\n    constructor(\n        address _logic,\n        bytes memory _data\n    ) ERC1967Proxy(_logic, _data) {}\n\n    receive() external payable override {}\n\n    function getImplementation() external view returns (address) {\n        return _getImplementation();\n    }\n}"}, "card_54b3b0e3d65a": {"id": "card_54b3b0e3d65a", "relpath": "contracts/external/Router.sol", "char_start": 9371, "char_end": 9833, "peek_head": "            switch result\n                // delegatecall returns 0 on error.\n                case 0", "peek_tail": ");\n    }\n\n    // NOTE: receive() is overridden in \"nProxy\" to allow for eth transfers to succeed\n}\n\n", "shingle_hash": "3ed54cae391edd7f", "top_tokens": ["returndatasize", "switch", "result", "delegatecall", "returns", "error", "case", "revert", "default", "return"], "content": "            switch result\n                // delegatecall returns 0 on error.\n                case 0 {\n                    revert(0, returndatasize())\n                }\n                default {\n                    return(0, returndatasize())\n                }\n        }\n    }\n\n    fallback() external payable {\n        _delegate(getRouterImplementation(msg.sig));\n    }\n\n    // NOTE: receive() is overridden in \"nProxy\" to allow for eth transfers to succeed\n}\n"}, "card_f6394f0869c5": {"id": "card_f6394f0869c5", "relpath": "contracts/internal/markets/Market.sol", "char_start": 1476, "char_end": 2521, "peek_head": "        int256 liquidityTokens = market.totalLiquidity.mul(assetCash).div(market.totalAssetCash);\n  ", "peek_tail": "Remove == 0) return (0, 0);\n        require(tokensToRemove > 0); // dev: negative tokens to remove\n\n", "shingle_hash": "23f92e42a69b522d", "top_tokens": ["market", "int256", "totalassetcash", "assetcash", "fcash", "return", "liquiditytokens", "totalliquidity", "totalfcash", "add"], "content": "        int256 liquidityTokens = market.totalLiquidity.mul(assetCash).div(market.totalAssetCash);\n        // No need to convert this to underlying, assetCash / totalAssetCash is a unitless proportion.\n        int256 fCash = market.totalfCash.mul(assetCash).div(market.totalAssetCash);\n\n        market.totalLiquidity = market.totalLiquidity.add(liquidityTokens);\n        market.totalfCash = market.totalfCash.add(fCash);\n        market.totalAssetCash = market.totalAssetCash.add(assetCash);\n        market.storageState = market.storageState | STORAGE_STATE_UPDATE_LIQUIDITY;\n\n        return (liquidityTokens, fCash.neg());\n    }\n\n    /// @notice Remove liquidity from a market, assuming that it is initialized.\n    /// @return asset cash and positive fCash claim to return\n    function removeLiquidity(MarketParameters memory market, int256 tokensToRemove)\n        internal\n        pure\n        returns (int256, int256)\n    {\n        if (tokensToRemove == 0) return (0, 0);\n        require(tokensToRemove > 0); // dev: negative tokens to remove\n\n"}, "card_ac3bed0c581f": {"id": "card_ac3bed0c581f", "relpath": "contracts/internal/settlement/SettleBitmapAssets.sol", "char_start": 2409, "char_end": 3540, "peek_head": "        // Returns the next bit that is set in the bitmap using a binary search for the MSB.\n       ", "peek_tail": "// Turn the bit off now that it is remapped\n            bitmap = bitmap.setBit(nextBitNum, false);\n\n", "shingle_hash": "8304049339c03b71", "top_tokens": ["nextbitnum", "bitmap", "the", "bit", "uint256", "maturity", "that", "datetime", "setbit", "newbitmap"], "content": "        // Returns the next bit that is set in the bitmap using a binary search for the MSB.\n        uint256 nextBitNum = bitmap.getNextBitNum();\n        while (nextBitNum != 0 && nextBitNum <= lastSettleBit) {\n            uint256 maturity = DateTime.getMaturityFromBitNum(oldSettleTime, nextBitNum);\n            totalAssetCash = totalAssetCash.add(\n                _settlefCashAsset(account, currencyId, maturity, blockTime)\n            );\n            // Turn the bit off now that it is settled\n            bitmap = bitmap.setBit(nextBitNum, false);\n\n            // Continue the loop\n            nextBitNum = bitmap.getNextBitNum();\n        }\n\n        bytes32 newBitmap;\n        while (nextBitNum != 0) {\n            uint256 maturity = DateTime.getMaturityFromBitNum(oldSettleTime, nextBitNum);\n            (uint256 newBitNum, bool isValid) = DateTime.getBitNumFromMaturity(newSettleTime, maturity);\n            require(isValid); // dev: invalid new bit num\n\n            newBitmap = newBitmap.setBit(newBitNum, true);\n            // Turn the bit off now that it is remapped\n            bitmap = bitmap.setBit(nextBitNum, false);\n\n"}, "card_6958b2c65f78": {"id": "card_6958b2c65f78", "relpath": "contracts/internal/portfolio/PortfolioHandler.sol", "char_start": 14376, "char_end": 15486, "peek_head": "    function _quickSortInPlace(\n        PortfolioAsset[] memory assets,\n        int256 left,\n       ", "peek_tail": "t =\n            uint256(keccak256(abi.encode(account, Constants.PORTFOLIO_ARRAY_STORAGE_OFFSET)));\n\n", "shingle_hash": "86f65f385a702283", "top_tokens": ["assets", "uint256", "left", "right", "portfolioasset", "int256", "quicksortinplace", "memory", "pivot", "getencodedid"], "content": "    function _quickSortInPlace(\n        PortfolioAsset[] memory assets,\n        int256 left,\n        int256 right\n    ) private pure {\n        if (left == right) return;\n        int256 i = left;\n        int256 j = right;\n\n        uint256 pivot = _getEncodedId(assets[uint256(left + (right - left) / 2)]);\n        while (i <= j) {\n            while (_getEncodedId(assets[uint256(i)]) < pivot) i++;\n            while (pivot < _getEncodedId(assets[uint256(j)])) j--;\n            if (i <= j) {\n                (assets[uint256(i)], assets[uint256(j)]) = (assets[uint256(j)], assets[uint256(i)]);\n                i++;\n                j--;\n            }\n        }\n\n        if (left < j) _quickSortInPlace(assets, left, j);\n        if (i < right) _quickSortInPlace(assets, i, right);\n    }\n\n    function _loadAssetArray(address account, uint8 length)\n        private\n        view\n        returns (PortfolioAsset[] memory)\n    {\n        PortfolioAsset[] memory assets = new PortfolioAsset[](length);\n        uint256 slot =\n            uint256(keccak256(abi.encode(account, Constants.PORTFOLIO_ARRAY_STORAGE_OFFSET)));\n\n"}, "card_c95af83de404": {"id": "card_c95af83de404", "relpath": "interfaces/notional/CashMarketInterface.sol", "char_start": 0, "char_end": 169, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity >=0.7.0;\n\ninterface CashMarketInterface {\n    functi", "peek_tail": "ashMarketInterface {\n    function getActiveMaturities() external view returns (uint32[] memory);\n}\n\n", "shingle_hash": "a99cf7cc075479d9", "top_tokens": ["spdx", "license", "identifier", "mit", "pragma", "solidity", "interface", "cashmarketinterface", "function", "getactivematurities"], "content": "// SPDX-License-Identifier: MIT\npragma solidity >=0.7.0;\n\ninterface CashMarketInterface {\n    function getActiveMaturities() external view returns (uint32[] memory);\n}\n"}, "card_1527d378206a": {"id": "card_1527d378206a", "relpath": "contracts/proxy/ERC1967/ERC1967Upgrade.sol", "char_start": 2285, "char_end": 3689, "peek_head": "    /**\n     * @dev Perform implementation upgrade with security checks for UUPS proxies, and additi", "peek_tail": " new implementation and log the upgrade\n            _upgradeTo(newImplementation);\n        }\n    }\n\n", "shingle_hash": "6f62eaf05ef4f4d1", "top_tokens": ["address", "newimplementation", "upgrade", "rollback", "rollbacktesting", "implementation", "and", "data", "oldimplementation", "value"], "content": "    /**\n     * @dev Perform implementation upgrade with security checks for UUPS proxies, and additional setup call.\n     *\n     * Emits an {Upgraded} event.\n     */\n    function _upgradeToAndCallSecure(\n        address newImplementation,\n        bytes memory data,\n        bool forceCall\n    ) internal {\n        address oldImplementation = _getImplementation();\n\n        // Initial upgrade and setup call\n        _setImplementation(newImplementation);\n        if (data.length > 0 || forceCall) {\n            Address.functionDelegateCall(newImplementation, data);\n        }\n\n        // Perform rollback test if not already in progress\n        StorageSlot.BooleanSlot storage rollbackTesting = StorageSlot.getBooleanSlot(_ROLLBACK_SLOT);\n        if (!rollbackTesting.value) {\n            // Trigger rollback using upgradeTo from the new implementation\n            rollbackTesting.value = true;\n            Address.functionDelegateCall(\n                newImplementation,\n                abi.encodeWithSignature(\"upgradeTo(address)\", oldImplementation)\n            );\n            rollbackTesting.value = false;\n            // Check rollback was effective\n            require(oldImplementation == _getImplementation(), \"ERC1967Upgrade: upgrade breaks further upgrades\");\n            // Finally reset to the new implementation and log the upgrade\n            _upgradeTo(newImplementation);\n        }\n    }\n\n"}, "card_de501a7c44b9": {"id": "card_de501a7c44b9", "relpath": "contracts/internal/settlement/SettlePortfolioAssets.sol", "char_start": 2628, "char_end": 4006, "peek_head": "        market.totalfCash = market.totalfCash.subNoNeg(fCash);\n        market.totalAssetCash = marke", "peek_tail": "t256 fCash, SettlementMarket memory market) =\n            _calculateMarketStorage(liquidityToken);\n\n", "shingle_hash": "b993a612a1675cdf", "top_tokens": ["market", "fcash", "memory", "assetcash", "int256", "the", "settlementmarket", "subnoneg", "asset", "portfoliostate"], "content": "        market.totalfCash = market.totalfCash.subNoNeg(fCash);\n        market.totalAssetCash = market.totalAssetCash.subNoNeg(assetCash);\n        market.totalLiquidity = market.totalLiquidity.subNoNeg(asset.notional);\n\n        return (assetCash, fCash, market);\n    }\n\n    /// @notice Settles a liquidity token which requires getting the claims on both cash and fCash,\n    /// converting the fCash portion to cash at the settlement rate.\n    function _settleLiquidityToken(\n        PortfolioAsset memory asset,\n        AssetRateParameters memory settlementRate\n    ) private view returns (int256, SettlementMarket memory) {\n        (int256 assetCash, int256 fCash, SettlementMarket memory market) =\n            _calculateMarketStorage(asset);\n\n        assetCash = assetCash.add(settlementRate.convertFromUnderlying(fCash));\n        return (assetCash, market);\n    }\n\n    /// @notice Settles a liquidity token to idiosyncratic fCash, this occurs when the maturity is still in the future\n    function _settleLiquidityTokenTofCash(PortfolioState memory portfolioState, uint256 index)\n        private\n        view\n        returns (int256, SettlementMarket memory)\n    {\n        PortfolioAsset memory liquidityToken = portfolioState.storedAssets[index];\n        (int256 assetCash, int256 fCash, SettlementMarket memory market) =\n            _calculateMarketStorage(liquidityToken);\n\n"}, "card_f32f752e7a3d": {"id": "card_f32f752e7a3d", "relpath": "contracts/internal/liquidation/LiquidatefCash.sol", "char_start": 13937, "char_end": 15009, "peek_head": "        int256 fCashToLiquidate =\n            c.underlyingBenefitRequired.divInRatePrecision(benefit", "peek_tail": "]\n        int256 benefitGainedUnderlying = fCashToLiquidate.mulInRatePrecision(benefitMultiplier);\n\n", "shingle_hash": "85f8160612235152", "top_tokens": ["fcashtoliquidate", "int256", "liquidationdiscountfactor", "benefitmultiplier", "available", "does", "not", "above", "zero", "localassetcashfromliquidator"], "content": "        int256 fCashToLiquidate =\n            c.underlyingBenefitRequired.divInRatePrecision(benefitMultiplier);\n\n        fCashToLiquidate = LiquidationHelpers.calculateLiquidationAmount(\n            fCashToLiquidate,\n            notional,\n            maxfCashLiquidateAmount\n        );\n\n        // Ensures that local available does not go above zero and collateral available does not go below zero\n        int256 localAssetCashFromLiquidator;\n        (fCashToLiquidate, localAssetCashFromLiquidator) = _limitPurchaseByAvailableAmounts(\n            c,\n            liquidationDiscountFactor,\n            riskAdjustedDiscountFactor,\n            fCashToLiquidate\n        );\n\n        // inverse of initial fCashToLiquidate calculation above\n        // totalBenefit = fCashToLiquidate * [\n        //      (liquidationDiscountFactor - riskAdjustedDiscountFactor) +\n        //      (liquidationDiscountFactor * (localBuffer / liquidationDiscount - collateralHaircut))\n        // ]\n        int256 benefitGainedUnderlying = fCashToLiquidate.mulInRatePrecision(benefitMultiplier);\n\n"}, "card_645258b24a48": {"id": "card_645258b24a48", "relpath": "contracts/internal/liquidation/LiquidateCurrency.sol", "char_start": 7491, "char_end": 8836, "peek_head": "        if (\n            collateralAssetRemaining > 0 &&\n            _hasLiquidityTokens(portfolio.s", "peek_tail": "ining\n            );\n            collateralAssetRemaining = newCollateralAssetRemaining;\n        }\n\n", "shingle_hash": "7fbf1bee100a74ad", "top_tokens": ["the", "cash", "collateralassetremaining", "this", "newcollateralassetremaining", "and", "value", "portfolio", "balancestate", "there"], "content": "        if (\n            collateralAssetRemaining > 0 &&\n            _hasLiquidityTokens(portfolio.storedAssets, balanceState.currencyId)\n        ) {\n            int256 newCollateralAssetRemaining =\n                _withdrawCollateralLiquidityTokens(\n                    portfolio,\n                    factors,\n                    blockTime,\n                    collateralAssetRemaining\n                );\n\n            // This is a hack and ugly but there are stack issues in `LiquidateCurrencyAction.liquidateCollateralCurrency`\n            // and this is a way to deal with it with the fewest contortions. There are no asset cash transfers within liquidation\n            // so we overload the meaning of the field here to hold the net liquidity token cash change. Will zero this out before\n            // going into finalize for the liquidated account's cash balances. This value is not simply added to the netCashChange field\n            // because the cashClaim value is not stored in the balances and therefore the liquidated account will have too much cash\n            // debited from their stored cash value.\n            balanceState.netAssetTransferInternalPrecision = collateralAssetRemaining.sub(\n                newCollateralAssetRemaining\n            );\n            collateralAssetRemaining = newCollateralAssetRemaining;\n        }\n\n"}, "card_294e0298312d": {"id": "card_294e0298312d", "relpath": "contracts/external/actions/BatchAction.sol", "char_start": 5218, "char_end": 6691, "peek_head": "            _executeDepositAction(\n                account,\n                balanceState,\n          ", "peek_tail": "portfolioState,\n                        actions[i].trades\n                    );\n                }\n\n", "shingle_hash": "b385b5d4c7f58368", "top_tokens": ["actions", "trades", "accountcontext", "account", "netcash", "didincurdebt", "bitmapcurrencyid", "currencyid", "tradingaction", "hasdebt"], "content": "            _executeDepositAction(\n                account,\n                balanceState,\n                actions[i].actionType,\n                actions[i].depositActionAmount\n            );\n\n            if (actions[i].trades.length > 0) {\n                int256 netCash;\n                if (accountContext.bitmapCurrencyId != 0) {\n                    require(\n                        accountContext.bitmapCurrencyId == actions[i].currencyId,\n                        \"Invalid trades for account\"\n                    );\n                    bool didIncurDebt;\n                    (netCash, didIncurDebt) = TradingAction.executeTradesBitmapBatch(\n                        account,\n                        accountContext,\n                        actions[i].trades\n                    );\n                    if (didIncurDebt) {\n                        accountContext.hasDebt = accountContext.hasDebt | Constants.HAS_ASSET_DEBT;\n                    }\n                } else {\n                    // NOTE: we return portfolio state here instead of setting it inside executeTradesArrayBatch\n                    // because we want to only write to storage once after all trades are completed\n                    (portfolioState, netCash) = TradingAction.executeTradesArrayBatch(\n                        account,\n                        actions[i].currencyId,\n                        portfolioState,\n                        actions[i].trades\n                    );\n                }\n\n"}, "card_80ec3efbd364": {"id": "card_80ec3efbd364", "relpath": "contracts/external/actions/InitializeMarketsAction.sol", "char_start": 8389, "char_end": 9897, "peek_head": "        uint256 bitNum = assetsBitmap.getNextBitNum();\n        while (bitNum != 0) {\n            uin", "peek_tail": "         oracleRate = nToken.cashGroup.calculateOracleRate(maturity, blockTime);\n                }\n\n", "shingle_hash": "af236dcd54f6f30b", "top_tokens": ["ntoken", "maturity", "bitnum", "previousmarkets", "cashgroup", "uint256", "assetsbitmap", "for", "blocktime", "oraclerate"], "content": "        uint256 bitNum = assetsBitmap.getNextBitNum();\n        while (bitNum != 0) {\n            uint256 maturity = DateTime.getMaturityFromBitNum(nToken.lastInitializedTime, bitNum);\n\n            // When looping for sweepCashIntoMarkets, previousMarkets is not defined and we only\n            // want to apply withholding for idiosyncratic fCash.\n            if (\n                previousMarkets.length == 0 &&\n                DateTime.isValidMarketMaturity(\n                    nToken.cashGroup.maxMarketIndex,\n                    maturity,\n                    blockTime\n                )\n            ) {\n                assetsBitmap = assetsBitmap << 1;\n                bitNum += 1;\n                continue;\n            }\n\n            int256 notional =\n                BitmapAssetsHandler.getifCashNotional(\n                    nToken.tokenAddress,\n                    nToken.cashGroup.currencyId,\n                    maturity\n                );\n\n            // Withholding only applies for negative cash balances\n            if (notional < 0) {\n                uint256 oracleRate;\n                if (previousMarkets.length > 0) {\n                    oracleRate = _getPreviousWithholdingRate(\n                        nToken.cashGroup,\n                        previousMarkets,\n                        maturity,\n                        blockTime\n                    );\n                } else {\n                    oracleRate = nToken.cashGroup.calculateOracleRate(maturity, blockTime);\n                }\n\n"}, "card_d8947bd273d8": {"id": "card_d8947bd273d8", "relpath": "contracts/external/SettleAssetsExternal.sol", "char_start": 2429, "char_end": 3523, "peek_head": "    function _settleAccount(\n        address account,\n        AccountContext memory accountContext,\n", "peek_tail": "           BalanceHandler.finalizeSettleAmounts(account, accountContext, settleAmounts);\n        }\n\n", "shingle_hash": "3223ccd8943606e9", "top_tokens": ["accountcontext", "portfoliostate", "account", "memory", "settleamounts", "bool", "finalizeamounts", "finalizeportfolio", "settleamount", "function"], "content": "    function _settleAccount(\n        address account,\n        AccountContext memory accountContext,\n        bool finalizeAmounts,\n        bool finalizePortfolio\n    )\n        private\n        returns (\n            SettleAmount[] memory,\n            PortfolioState memory\n        )\n    {\n        SettleAmount[] memory settleAmounts;\n        PortfolioState memory portfolioState;\n\n        if (accountContext.bitmapCurrencyId != 0) {\n            settleAmounts = _settleBitmappedAccountStateful(account, accountContext);\n        } else {\n            portfolioState = PortfolioHandler.buildPortfolioState(\n                account,\n                accountContext.assetArrayLength,\n                0\n            );\n            settleAmounts = SettlePortfolioAssets.settlePortfolio(portfolioState, block.timestamp);\n\n            if (finalizePortfolio) {\n                accountContext.storeAssetsAndUpdateContext(account, portfolioState, false);\n            }\n        }\n\n        if (finalizeAmounts) {\n            BalanceHandler.finalizeSettleAmounts(account, accountContext, settleAmounts);\n        }\n\n"}, "card_3b348a3b5dbb": {"id": "card_3b348a3b5dbb", "relpath": "contracts/internal/liquidation/LiquidatefCash.sol", "char_start": 7183, "char_end": 8563, "peek_head": "            // fCashNotionalTransfers[i] is always positive at this point. The max liquidate amount ", "peek_tail": "                 fCashLiquidationValueUnderlying = c.localCashBalanceUnderlying;\n                }\n\n", "shingle_hash": "dd9284ec55f681da", "top_tokens": ["the", "fcashnotionaltransfers", "notional", "fcashliquidationvalueunderlying", "amount", "that", "localcashbalanceunderlying", "positive", "this", "point"], "content": "            // fCashNotionalTransfers[i] is always positive at this point. The max liquidate amount is\n            // calculated using the absolute value of the notional amount to ensure that the inequalities\n            // operate properly inside calculateLiquidationAmount.\n            c.fCashNotionalTransfers[i] = LiquidationHelpers.calculateLiquidationAmount(\n                c.fCashNotionalTransfers[i],\n                notional.abs(),\n                int256(maxfCashLiquidateAmounts[i])\n            );\n\n            int256 fCashLiquidationValueUnderlying =\n                c.fCashNotionalTransfers[i].mulInRatePrecision(liquidationDiscountFactor);\n\n            if (notional < 0) {\n                // In the case of negative notional amounts, limit the amount of liquidation to the local cash\n                // balance in underlying so that the liquidated account does not incur a negative cash balance.\n                if (fCashLiquidationValueUnderlying > c.localCashBalanceUnderlying) {\n                    // We know that all these values are positive at this point.\n                    c.fCashNotionalTransfers[i] = c.fCashNotionalTransfers[i]\n                        .mul(c.localCashBalanceUnderlying)\n                        .div(fCashLiquidationValueUnderlying);\n                    fCashLiquidationValueUnderlying = c.localCashBalanceUnderlying;\n                }\n\n"}, "card_7be07cd79426": {"id": "card_7be07cd79426", "relpath": "contracts/internal/portfolio/PortfolioHandler.sol", "char_start": 7938, "char_end": 8983, "peek_head": "            (hasDebt, portfolioActiveCurrencies, nextSettleTime) = _updatePortfolioContext(\n        ", "peek_tail": "   sstore(newAssetSlot, encodedAsset)\n            }\n            assetStorageLength += 1;\n        }\n\n", "shingle_hash": "0a8aefa3cef7ae01", "top_tokens": ["hasdebt", "portfolioactivecurrencies", "nextsettletime", "asset", "portfoliostate", "uint256", "assetstoragelength", "newassets", "updateportfoliocontext", "encodedasset"], "content": "            (hasDebt, portfolioActiveCurrencies, nextSettleTime) = _updatePortfolioContext(\n                asset,\n                hasDebt,\n                portfolioActiveCurrencies,\n                nextSettleTime\n            );\n        }\n\n        // Add new assets\n        uint256 assetStorageLength = portfolioState.storedAssetLength;\n        for (uint256 i; i < portfolioState.newAssets.length; i++) {\n            PortfolioAsset memory asset = portfolioState.newAssets[i];\n            if (asset.notional == 0) continue;\n\n            bytes32 encodedAsset = _encodeAssetToBytes(portfolioState.newAssets[i]);\n            uint256 newAssetSlot = initialSlot + assetStorageLength;\n\n            (hasDebt, portfolioActiveCurrencies, nextSettleTime) = _updatePortfolioContext(\n                asset,\n                hasDebt,\n                portfolioActiveCurrencies,\n                nextSettleTime\n            );\n\n            assembly {\n                sstore(newAssetSlot, encodedAsset)\n            }\n            assetStorageLength += 1;\n        }\n\n"}, "card_e6aa5b743bf2": {"id": "card_e6aa5b743bf2", "relpath": "contracts/internal/liquidation/LiquidateCurrency.sol", "char_start": 16209, "char_end": 17436, "peek_head": "            uint256 marketIndex = asset.assetType - 1;\n            // This is set up this way so tha", "peek_tail": ".deleteAsset(i);\n                factors.markets[marketIndex - 1].removeLiquidity(asset.notional);\n\n", "shingle_hash": "422a93b6e6ba548a", "top_tokens": ["marketindex", "asset", "this", "factors", "markets", "the", "assettype", "that", "can", "fcash"], "content": "            uint256 marketIndex = asset.assetType - 1;\n            // This is set up this way so that we can delay setting storage of markets so that this method can\n            // remain a view function\n            factors.cashGroup.loadMarket(\n                factors.markets[marketIndex - 1],\n                marketIndex,\n                true,\n                blockTime\n            );\n\n            // NOTE: we do not give any credit to the haircut fCash in this procedure but it will end up adding\n            // additional collateral value back into the account. It's probably too complex to deal with this so\n            // we will just leave it as such.\n            (w.assetCash, w.fCash) = asset.getCashClaims(factors.markets[marketIndex - 1]);\n            _calculateNetCashIncreaseAndIncentivePaid(factors, w, asset.assetType);\n\n            // (netCashToAccount <= assetAmountRemaining)\n            if (w.netCashIncrease.subNoNeg(w.incentivePaid) <= assetAmountRemaining) {\n                // The additional cash is insufficient to cover asset amount required so we just remove all of it.\n                portfolioState.deleteAsset(i);\n                factors.markets[marketIndex - 1].removeLiquidity(asset.notional);\n\n"}, "card_96a711767acc": {"id": "card_96a711767acc", "relpath": "contracts/proxy/Proxy.sol", "char_start": 2368, "char_end": 3181, "peek_head": "    /**\n     * @dev Fallback function that delegates calls to the address returned by `_implementati", "peek_tail": "hould call `super._beforeFallback()`.\n     */\n    function _beforeFallback() internal virtual {}\n}\n\n", "shingle_hash": "7af61a013c0407da", "top_tokens": ["fallback", "the", "function", "call", "dev", "that", "implementation", "virtual", "delegates", "calls"], "content": "    /**\n     * @dev Fallback function that delegates calls to the address returned by `_implementation()`. Will run if no other\n     * function in the contract matches the call data.\n     */\n    fallback() external payable virtual {\n        _fallback();\n    }\n\n    /**\n     * @dev Fallback function that delegates calls to the address returned by `_implementation()`. Will run if call data\n     * is empty.\n     */\n    receive() external payable virtual {\n        _fallback();\n    }\n\n    /**\n     * @dev Hook that is called before falling back to the implementation. Can happen as part of a manual `_fallback`\n     * call, or as part of the Solidity `fallback` or `receive` functions.\n     *\n     * If overriden should call `super._beforeFallback()`.\n     */\n    function _beforeFallback() internal virtual {}\n}\n"}, "card_2d3bec9a796b": {"id": "card_2d3bec9a796b", "relpath": "contracts/external/actions/ERC1155Action.sol", "char_start": 13069, "char_end": 14107, "peek_head": "        // These are the only three methods allowed to occur in a post transfer event. These actions", "peek_tail": "unt == to && isApprovedForAll(to, msg.sender)),\n                \"Unauthorized call\"\n            );\n\n", "shingle_hash": "cc78e1fbb89e3dbb", "top_tokens": ["the", "transactedaccount", "address", "these", "from", "sig", "selector", "transfer", "actions", "batchaction"], "content": "        // These are the only three methods allowed to occur in a post transfer event. These actions allow `from`\n        // accounts to take any sort of trading action as a result of their transfer. All of these actions will\n        // handle checking free collateral so no additional check is necessary here.\n        if (\n            sig == nTokenRedeemAction.nTokenRedeem.selector ||\n            sig == BatchAction.batchBalanceAction.selector ||\n            sig == BatchAction.batchBalanceAndTradeAction.selector\n        ) {\n            transactedAccount = abi.decode(data[4:36], (address));\n            // Ensure that the \"transactedAccount\" parameter of the call is set to the from address or the\n            // to address. If it is the \"to\" address then ensure that the msg.sender has approval to\n            // execute operations\n            require(\n                transactedAccount == from ||\n                    (transactedAccount == to && isApprovedForAll(to, msg.sender)),\n                \"Unauthorized call\"\n            );\n\n"}, "card_e60f1bc2ffbf": {"id": "card_e60f1bc2ffbf", "relpath": "contracts/internal/markets/Market.sol", "char_start": 28637, "char_end": 30014, "peek_head": "        assembly {\n            data := sload(slot)\n        }\n\n        int256 totalfCash = int256(uin", "peek_tail": "ket.totalLiquidity <= type(uint80).max); // dev: settlement market storage totalLiquidity overflow\n\n", "shingle_hash": "60f2437c5f5245bc", "top_tokens": ["market", "data", "totalfcash", "totalassetcash", "slot", "totalliquidity", "int256", "uint80", "uint256", "bytes32"], "content": "        assembly {\n            data := sload(slot)\n        }\n\n        int256 totalfCash = int256(uint80(uint256(data)));\n        int256 totalAssetCash = int256(uint80(uint256(data >> 80)));\n        // Clear the lower 160 bits, this data will be combined with the new totalfCash\n        // and totalAssetCash figures.\n        data = data & 0xffffffffffffffffffffffff0000000000000000000000000000000000000000;\n\n        slot = uint256(slot) + 1;\n\n        assembly {\n            totalLiquidity := sload(slot)\n        }\n\n        return\n            SettlementMarket({\n                storageSlot: bytes32(slot - 1),\n                totalfCash: totalfCash,\n                totalAssetCash: totalAssetCash,\n                totalLiquidity: int256(totalLiquidity),\n                data: data\n            });\n    }\n\n    function setSettlementMarket(SettlementMarket memory market) internal {\n        bytes32 slot = market.storageSlot;\n        bytes32 data;\n        require(market.totalfCash >= 0 && market.totalfCash <= type(uint80).max); // dev: settlement market storage totalfCash overflow\n        require(market.totalAssetCash >= 0 && market.totalAssetCash <= type(uint80).max); // dev: settlement market storage totalAssetCash overflow\n        require(market.totalLiquidity >= 0 && market.totalLiquidity <= type(uint80).max); // dev: settlement market storage totalLiquidity overflow\n\n"}, "card_1f8de14b0b41": {"id": "card_1f8de14b0b41", "relpath": "contracts/external/actions/LiquidateCurrencyAction.sol", "char_start": 6132, "char_end": 8100, "peek_head": "        return (\n            localAssetCashFromLiquidator,\n            _collateralAssetCashToLiquida", "peek_tail": "ncy,\n                maxCollateralLiquidation,\n                maxNTokenLiquidation\n            );\n\n", "shingle_hash": "c91bd60c335cb213", "top_tokens": ["collateral", "param", "currency", "int256", "memory", "collateralbalancestate", "local", "liquidateaccount", "localcurrency", "collateralcurrency"], "content": "        return (\n            localAssetCashFromLiquidator,\n            _collateralAssetCashToLiquidator(collateralBalanceState),\n            collateralBalanceState.netNTokenTransfer.neg()\n        );\n    }\n\n    /// @notice Liquidates an account between local and collateral currency\n    /// @param liquidateAccount account to liquidate\n    /// @param localCurrency id of the local currency\n    /// @param collateralCurrency id of the collateral currency\n    /// @param maxCollateralLiquidation maximum amount of collateral (inclusive of cash and nTokens) to liquidate\n    /// @param maxNTokenLiquidation maximum amount of nTokens to purchase (if any)\n    /// @param withdrawCollateral if true, withdraws collateral back to msg.sender\n    /// @param redeemToUnderlying if true, converts collateral from asset cash to underlying\n    /// @return currency transfer amounts:\n    ///   - local currency required from liquidator (negative)\n    ///   - collateral asset cash paid to liquidator (positive)\n    ///   - collateral nTokens paid to liquidator (positive)\n    function liquidateCollateralCurrency(\n        address liquidateAccount,\n        uint256 localCurrency,\n        uint256 collateralCurrency,\n        uint128 maxCollateralLiquidation,\n        uint96 maxNTokenLiquidation,\n        bool withdrawCollateral,\n        bool redeemToUnderlying\n    )\n        external\n        returns (\n            int256,\n            int256,\n            int256\n        )\n    {\n        (\n            int256 localAssetCashFromLiquidator,\n            BalanceState memory collateralBalanceState,\n            PortfolioState memory portfolio,\n            AccountContext memory accountContext,\n            MarketParameters[] memory markets\n        ) =\n            _collateralCurrencyLiquidation(\n                liquidateAccount,\n                localCurrency,\n                collateralCurrency,\n                maxCollateralLiquidation,\n                maxNTokenLiquidation\n            );\n\n"}, "card_1217d000b86f": {"id": "card_1217d000b86f", "relpath": "contracts/external/Views.sol", "char_start": 9889, "char_end": 10996, "peek_head": "        bytes18 currencies = accountContext.activeCurrencies;\n        while (currencies != 0) {\n    ", "peek_tail": "           account,\n                accountContext.assetArrayLength\n            );\n        }\n    }\n\n", "shingle_hash": "677844b7fbbb6b4a", "top_tokens": ["accountbalances", "currencies", "accountcontext", "currencyid", "account", "bitmapcurrencyid", "portfolio", "bytes18", "activecurrencies", "while"], "content": "        bytes18 currencies = accountContext.activeCurrencies;\n        while (currencies != 0) {\n            accountBalances[i].currencyId = uint256(\n                uint16(bytes2(currencies) & Constants.UNMASK_FLAGS)\n            );\n            if (accountBalances[i].currencyId == 0) break;\n\n            (\n                accountBalances[i].cashBalance,\n                accountBalances[i].nTokenBalance,\n                accountBalances[i].lastClaimTime,\n                accountBalances[i].lastClaimIntegralSupply\n            ) = BalanceHandler.getBalanceStorage(account, accountBalances[i].currencyId);\n            i += 1;\n            currencies = currencies << 16;\n        }\n\n        if (accountContext.bitmapCurrencyId != 0) {\n            portfolio = BitmapAssetsHandler.getifCashArray(\n                account,\n                accountContext.bitmapCurrencyId,\n                accountContext.nextSettleTime\n            );\n        } else {\n            portfolio = PortfolioHandler.getSortedPortfolio(\n                account,\n                accountContext.assetArrayLength\n            );\n        }\n    }\n\n"}, "card_e9b6786261e2": {"id": "card_e9b6786261e2", "relpath": "contracts/external/actions/TradingAction.sol", "char_start": 0, "char_end": 1276, "peek_head": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\n", "peek_tail": "ty,\n        int256 netAssetCash,\n        int256 netfCash,\n        int256 netLiquidityTokens\n    );\n\n", "shingle_hash": "2b4b10fd33fa6d5d", "top_tokens": ["import", "sol", "using", "for", "int256", "internal", "markets", "pragma", "market", "cashgroup"], "content": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\nimport \"../FreeCollateralExternal.sol\";\nimport \"../SettleAssetsExternal.sol\";\nimport \"../../internal/markets/Market.sol\";\nimport \"../../internal/markets/CashGroup.sol\";\nimport \"../../internal/markets/AssetRate.sol\";\nimport \"../../internal/balances/BalanceHandler.sol\";\nimport \"../../internal/portfolio/PortfolioHandler.sol\";\nimport \"../../internal/portfolio/TransferAssets.sol\";\nimport \"../../math/SafeInt256.sol\";\nimport \"@openzeppelin/contracts/math/SafeMath.sol\";\n\nlibrary TradingAction {\n    using PortfolioHandler for PortfolioState;\n    using AccountContextHandler for AccountContext;\n    using Market for MarketParameters;\n    using CashGroup for CashGroupParameters;\n    using AssetRate for AssetRateParameters;\n    using SafeInt256 for int256;\n    using SafeMath for uint256;\n\n    event LendBorrowTrade(\n        address account,\n        uint16 currencyId,\n        uint40 maturity,\n        int256 netAssetCash,\n        int256 netfCash,\n        int256 netFee\n    );\n    event AddRemoveLiquidity(\n        address account,\n        uint16 currencyId,\n        uint40 maturity,\n        int256 netAssetCash,\n        int256 netfCash,\n        int256 netLiquidityTokens\n    );\n\n"}, "card_258b955e3ab2": {"id": "card_258b955e3ab2", "relpath": "contracts/external/actions/nTokenRedeemAction.sol", "char_start": 12954, "char_end": 13433, "peek_head": "            fCashIndex += 1;\n        }\n        BalanceHandler.incrementFeeToReserve(cashGroup.curren", "peek_tail": "turity since maxMarketIndex can never be reduced.\n        return (values[0], hasResidual);\n    }\n}\n\n", "shingle_hash": "f2196bfd1bf736ea", "top_tokens": ["the", "values", "for", "have", "hasresidual", "fcashindex", "balancehandler", "incrementfeetoreserve", "cashgroup", "currencyid"], "content": "            fCashIndex += 1;\n        }\n        BalanceHandler.incrementFeeToReserve(cashGroup.currencyId, values[1]);\n\n        // By the end of the for loop all fCashAssets should have been accounted for as traded, failed in trade,\n        // or skipped and hasResidual is marked as true. It is not possible to have idiosyncratic fCash at a date\n        // past the max market maturity since maxMarketIndex can never be reduced.\n        return (values[0], hasResidual);\n    }\n}\n"}, "card_43dd54afa0fb": {"id": "card_43dd54afa0fb", "relpath": "contracts/external/adapters/nTokenERC20Proxy.sol", "char_start": 3652, "char_end": 4688, "peek_head": "    /// @notice Transfer `amount` tokens from `src` to `dst`\n    /// @dev emit:Transfer emit:Approva", "peek_tail": "view returns (int256) {\n        return proxy.nTokenPresentValueAssetDenominated(currencyId);\n    }\n\n", "shingle_hash": "22d27e62b66939bf", "top_tokens": ["the", "from", "transfer", "amount", "emit", "address", "tokens", "param", "return", "returns"], "content": "    /// @notice Transfer `amount` tokens from `src` to `dst`\n    /// @dev emit:Transfer emit:Approval\n    /// @param from The address of the source account\n    /// @param to The address of the destination account\n    /// @param amount The number of tokens to transfer\n    /// @return Whether or not the transfer succeeded\n    function transferFrom(\n        address from,\n        address to,\n        uint256 amount\n    ) external override returns (bool) {\n        (bool success, uint256 newAllowance) =\n            proxy.nTokenTransferFrom(currencyId, msg.sender, from, to, amount);\n\n        // Emit transfer events here so they come from the correct contract\n        emit Transfer(from, to, amount);\n        emit Approval(msg.sender, from, newAllowance);\n\n        return success;\n    }\n\n    /// @notice Returns the present value of the nToken's assets denominated in asset tokens\n    function getPresentValueAssetDenominated() external view returns (int256) {\n        return proxy.nTokenPresentValueAssetDenominated(currencyId);\n    }\n\n"}, "card_16466d912ca9": {"id": "card_16466d912ca9", "relpath": "contracts/external/actions/AccountAction.sol", "char_start": 1178, "char_end": 3138, "peek_head": "    /// @notice Method for manually settling an account, generally should not be called because othe", "peek_tail": "    ) external payable returns (uint256) {\n        // No other authorization required on depositing\n", "shingle_hash": "39b0f15e34358dba", "top_tokens": ["account", "the", "accountcontext", "for", "not", "param", "dev", "emit", "decimals", "method"], "content": "    /// @notice Method for manually settling an account, generally should not be called because other\n    /// methods will check if an account needs to be settled automatically. If a bitmap account has debt\n    /// and is settled via this method, the hasDebt flag will not be cleared until a free collateral check\n    /// is performed on the account.\n    /// @param account the account to settle\n    /// @dev emit:AccountSettled emit:AccountContextUpdate\n    /// @dev auth:none\n    function settleAccount(address account) external {\n        AccountContext memory accountContext = AccountContextHandler.getAccountContext(account);\n        if (accountContext.mustSettleAssets()) {\n            accountContext = SettleAssetsExternal.settleAssetsAndFinalize(account, accountContext);\n            // Don't use the internal method here to avoid setting the account context if it does\n            // not require settlement\n            accountContext.setAccountContext(account);\n        }\n    }\n\n    /// @notice Deposits and wraps the underlying token for a particular cToken. Does not settle assets or check free\n    /// collateral, idea is to be as gas efficient as possible during potential liquidation events.\n    /// @param account the account to deposit into\n    /// @param currencyId currency id of the asset token that wraps this underlying\n    /// @param amountExternalPrecision the amount of underlying tokens in its native decimal precision\n    /// (i.e. 18 decimals for DAI or 6 decimals for USDC). This will be converted to 8 decimals during transfer.\n    /// @return asset tokens minted and deposited to the account in internal decimals (8)\n    /// @dev emit:CashBalanceChange emit:AccountContextUpdate\n    /// @dev auth:none\n    function depositUnderlyingToken(\n        address account,\n        uint16 currencyId,\n        uint256 amountExternalPrecision\n    ) external payable returns (uint256) {\n        // No other authorization required on depositing\n"}, "card_c6dbf1b0dd7f": {"id": "card_c6dbf1b0dd7f", "relpath": "contracts/external/actions/LiquidatefCashAction.sol", "char_start": 6177, "char_end": 7527, "peek_head": "        LiquidatefCash.fCashContext memory c =\n            _liquidateCrossCurrency(\n                ", "peek_tail": "uidationActions(\n            liquidateAccount,\n            localCurrency,\n            0\n        );\n\n", "shingle_hash": "a285d7353c78c97f", "top_tokens": ["liquidateaccount", "localcurrency", "liquidatefcash", "fcashmaturities", "uint256", "fcashcontext", "memory", "fcashcurrency", "maxfcashliquidateamounts", "blocktime"], "content": "        LiquidatefCash.fCashContext memory c =\n            _liquidateCrossCurrency(\n                liquidateAccount,\n                localCurrency,\n                fCashCurrency,\n                fCashMaturities,\n                maxfCashLiquidateAmounts,\n                blockTime\n            );\n\n        LiquidatefCash.finalizefCashLiquidation(\n            liquidateAccount,\n            msg.sender,\n            localCurrency,\n            fCashCurrency,\n            fCashMaturities,\n            c\n        );\n\n        emit LiquidatefCashEvent(\n            liquidateAccount,\n            uint16(localCurrency),\n            uint16(fCashCurrency),\n            c.localAssetCashFromLiquidator,\n            fCashMaturities,\n            c.fCashNotionalTransfers\n        );\n\n        return (c.fCashNotionalTransfers, c.localAssetCashFromLiquidator);\n    }\n\n    function _liquidateLocal(\n        address liquidateAccount,\n        uint256 localCurrency,\n        uint256[] calldata fCashMaturities,\n        uint256[] calldata maxfCashLiquidateAmounts,\n        uint256 blockTime\n    ) private returns (LiquidatefCash.fCashContext memory) {\n        LiquidatefCash.fCashContext memory c;\n        (c.accountContext, c.factors, c.portfolio) = LiquidationHelpers.preLiquidationActions(\n            liquidateAccount,\n            localCurrency,\n            0\n        );\n\n"}, "card_efc99917c101": {"id": "card_efc99917c101", "relpath": "contracts/proxy/utils/UUPSUpgradeable.sol", "char_start": 1168, "char_end": 2112, "peek_head": "    /**\n     * @dev Upgrade the implementation of the proxy to `newImplementation`, and subsequently", "peek_tail": "}\n     * ```\n     */\n    function _authorizeUpgrade(address newImplementation) internal virtual;\n}\n\n", "shingle_hash": "15bfe423f770d235", "top_tokens": ["function", "newimplementation", "the", "authorizeupgrade", "data", "address", "dev", "upgrade", "and", "upgradetoandcall"], "content": "    /**\n     * @dev Upgrade the implementation of the proxy to `newImplementation`, and subsequently execute the function call\n     * encoded in `data`.\n     *\n     * Calls {_authorizeUpgrade}.\n     *\n     * Emits an {Upgraded} event.\n     */\n    function upgradeToAndCall(address newImplementation, bytes memory data) external payable virtual {\n        _authorizeUpgrade(newImplementation);\n        _upgradeToAndCallSecure(newImplementation, data, true);\n    }\n\n    /**\n     * @dev Function that should revert when `msg.sender` is not authorized to upgrade the contract. Called by\n     * {upgradeTo} and {upgradeToAndCall}.\n     *\n     * Normally, this function will use an xref:access.adoc[access control] modifier such as {Ownable-onlyOwner}.\n     *\n     * ```solidity\n     * function _authorizeUpgrade(address) internal override onlyOwner {}\n     * ```\n     */\n    function _authorizeUpgrade(address newImplementation) internal virtual;\n}\n"}, "card_ca61f44a0a3c": {"id": "card_ca61f44a0a3c", "relpath": "contracts/internal/valuation/FreeCollateral.sol", "char_start": 6155, "char_end": 7234, "peek_head": "        // Turns off has debt flag if it has changed\n        bool contextHasAssetDebt =\n            ", "peek_tail": "        ethRate.convertToETH(factors.assetRate.convertToUnderlying(netLocalAssetValue))\n        );\n\n", "shingle_hash": "7e3b07d5e94be3bd", "top_tokens": ["factors", "has", "debt", "accountcontext", "hasdebt", "constants", "asset", "ethrate", "contexthasassetdebt", "memory"], "content": "        // Turns off has debt flag if it has changed\n        bool contextHasAssetDebt =\n            accountContext.hasDebt & Constants.HAS_ASSET_DEBT == Constants.HAS_ASSET_DEBT;\n        if (bitmapHasDebt && !contextHasAssetDebt) {\n            accountContext.hasDebt = accountContext.hasDebt | Constants.HAS_ASSET_DEBT;\n            factors.updateContext = true;\n        } else if (!bitmapHasDebt && contextHasAssetDebt) {\n            accountContext.hasDebt = accountContext.hasDebt & ~Constants.HAS_ASSET_DEBT;\n            factors.updateContext = true;\n        }\n\n        return factors.cashGroup.assetRate.convertFromUnderlying(netPortfolioValue);\n    }\n\n    function _updateNetETHValue(\n        uint256 currencyId,\n        int256 netLocalAssetValue,\n        FreeCollateralFactors memory factors\n    ) private view returns (ETHRate memory) {\n        ETHRate memory ethRate = ExchangeRate.buildExchangeRate(currencyId);\n        factors.netETHValue = factors.netETHValue.add(\n            ethRate.convertToETH(factors.assetRate.convertToUnderlying(netLocalAssetValue))\n        );\n\n"}, "card_11dc6195707e": {"id": "card_11dc6195707e", "relpath": "contracts/internal/balances/Incentives.sol", "char_start": 3194, "char_end": 3752, "peek_head": "        uint256 incentivesToClaim = calculateIncentivesToClaim(\n            tokenAddress,\n          ", "peek_tail": "nHandler.transferIncentive(account, incentivesToClaim);\n\n        return incentivesToClaim;\n    }\n}\n\n", "shingle_hash": "f0d341821b4668d0", "top_tokens": ["balancestate", "incentivestoclaim", "uint256", "lastclaimtime", "lastclaimintegralsupply", "blocktime", "integraltotalsupply", "calculateincentivestoclaim", "tokenaddress", "storedntokenbalance"], "content": "        uint256 incentivesToClaim = calculateIncentivesToClaim(\n            tokenAddress,\n            uint256(balanceState.storedNTokenBalance),\n            balanceState.lastClaimTime,\n            balanceState.lastClaimIntegralSupply,\n            blockTime,\n            integralTotalSupply\n        );\n\n        balanceState.lastClaimTime = blockTime;\n        balanceState.lastClaimIntegralSupply = integralTotalSupply;\n\n        if (incentivesToClaim > 0) TokenHandler.transferIncentive(account, incentivesToClaim);\n\n        return incentivesToClaim;\n    }\n}\n"}, "card_7965dbb7e060": {"id": "card_7965dbb7e060", "relpath": "contracts/internal/portfolio/BitmapAssetsHandler.sol", "char_start": 5890, "char_end": 6926, "peek_head": "        // In this case the asset has matured and the total value is just the notional amount\n      ", "peek_tail": " internal view returns (int256, bool) {\n        int256 totalValueUnderlying;\n        bool hasDebt;\n\n", "shingle_hash": "0733a490a551f6d7", "top_tokens": ["the", "blocktime", "notional", "maturity", "uint256", "return", "oraclerate", "cashgroup", "bool", "value"], "content": "        // In this case the asset has matured and the total value is just the notional amount\n        if (maturity <= blockTime) return notional;\n\n        uint256 oracleRate = cashGroup.calculateOracleRate(maturity, blockTime);\n        if (riskAdjusted) {\n            return\n                AssetHandler.getRiskAdjustedPresentValue(\n                    cashGroup,\n                    notional,\n                    maturity,\n                    blockTime,\n                    oracleRate\n                );\n        }\n\n        return AssetHandler.getPresentValue(notional, maturity, blockTime, oracleRate);\n    }\n\n    /// @notice Get the net present value of all the ifCash assets\n    function getifCashNetPresentValue(\n        address account,\n        uint256 currencyId,\n        uint256 nextSettleTime,\n        uint256 blockTime,\n        bytes32 assetsBitmap,\n        CashGroupParameters memory cashGroup,\n        bool riskAdjusted\n    ) internal view returns (int256, bool) {\n        int256 totalValueUnderlying;\n        bool hasDebt;\n\n"}, "card_5ace73b53284": {"id": "card_5ace73b53284", "relpath": "contracts/internal/liquidation/LiquidationHelpers.sol", "char_start": 6358, "char_end": 8044, "peek_head": "        int256 localAssetFromLiquidator =\n            factors.localAssetRate.convertFromUnderlying(l", "peek_tail": ";\n        liquidatorLocalBalance.loadBalanceState(liquidator, localCurrencyId, liquidatorContext);\n\n", "shingle_hash": "5a39442ac628e983", "top_tokens": ["the", "localassetavailable", "localassetfromliquidator", "liquidator", "factors", "memory", "int256", "neg", "will", "then"], "content": "        int256 localAssetFromLiquidator =\n            factors.localAssetRate.convertFromUnderlying(localUnderlyingFromLiquidator);\n\n        if (localAssetFromLiquidator > factors.localAssetAvailable.neg()) {\n            // If the local to purchase will flip the sign of localAssetAvailable then the calculations\n            // for the collateral purchase amounts will be thrown off. The positive portion of localAssetAvailable\n            // has to have a haircut applied. If this haircut reduces the localAssetAvailable value below\n            // the collateralAssetValue then this may actually decrease overall free collateral.\n            collateralAssetBalanceToSell = collateralAssetBalanceToSell\n                .mul(factors.localAssetAvailable.neg())\n                .div(localAssetFromLiquidator);\n\n            localAssetFromLiquidator = factors.localAssetAvailable.neg();\n        }\n\n        return (collateralAssetBalanceToSell, localAssetFromLiquidator);\n    }\n\n    function finalizeLiquidatorLocal(\n        address liquidator,\n        uint256 localCurrencyId,\n        int256 netLocalFromLiquidator,\n        int256 netLocalNTokens\n    ) internal returns (AccountContext memory) {\n        // Liquidator must deposit netLocalFromLiquidator, in the case of a repo discount then the\n        // liquidator will receive some positive amount\n        Token memory token = TokenHandler.getToken(localCurrencyId, false);\n        AccountContext memory liquidatorContext =\n            AccountContextHandler.getAccountContext(liquidator);\n        BalanceState memory liquidatorLocalBalance;\n        liquidatorLocalBalance.loadBalanceState(liquidator, localCurrencyId, liquidatorContext);\n\n"}, "card_4cd94bbecad2": {"id": "card_4cd94bbecad2", "relpath": "contracts/global/Types.sol", "char_start": 13295, "char_end": 14279, "peek_head": "    // Rate scalar used to determine the slippage of the market\n    uint8[] rateScalars;\n}\n\n/// @dev", "peek_tail": "lance;\n    int256 nTokenBalance;\n    uint256 lastClaimTime;\n    uint256 lastClaimIntegralSupply;\n}\n\n", "shingle_hash": "a5fa55a7097ca2e8", "top_tokens": ["the", "account", "used", "this", "uint256", "determine", "uint8", "dev", "settlement", "free"], "content": "    // Rate scalar used to determine the slippage of the market\n    uint8[] rateScalars;\n}\n\n/// @dev Holds account level context information used to determine settlement and\n/// free collateral actions. Total storage is 28 bytes\nstruct AccountContext {\n    // Used to check when settlement must be triggered on an account\n    uint40 nextSettleTime;\n    // For lenders that never incur debt, we use this flag to skip the free collateral check.\n    bytes1 hasDebt;\n    // Length of the account's asset array\n    uint8 assetArrayLength;\n    // If this account has bitmaps set, this is the corresponding currency id\n    uint16 bitmapCurrencyId;\n    // 9 total active currencies possible (2 bytes each)\n    bytes18 activeCurrencies;\n}\n\n/// @dev Used in view methods to return account balances in a developer friendly manner\nstruct AccountBalance {\n    uint256 currencyId;\n    int256 cashBalance;\n    int256 nTokenBalance;\n    uint256 lastClaimTime;\n    uint256 lastClaimIntegralSupply;\n}\n"}, "card_1e5c09bd0663": {"id": "card_1e5c09bd0663", "relpath": "contracts/internal/nTokenHandler.sol", "char_start": 0, "char_end": 1500, "peek_head": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\n", "peek_tail": "ORAGE_OFFSET));\n        bytes32 data;\n        assembly {\n            data := sload(slot)\n        }\n\n", "shingle_hash": "ffe13b6e5d5e5eab", "top_tokens": ["import", "sol", "uint8", "bytes32", "dev", "stores", "private", "constant", "mask", "uint256"], "content": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\nimport \"./markets/CashGroup.sol\";\nimport \"./markets/AssetRate.sol\";\nimport \"./valuation/AssetHandler.sol\";\nimport \"./portfolio/BitmapAssetsHandler.sol\";\nimport \"./portfolio/PortfolioHandler.sol\";\nimport \"./balances/BalanceHandler.sol\";\nimport \"../math/SafeInt256.sol\";\n\nlibrary nTokenHandler {\n    using AssetRate for AssetRateParameters;\n    using SafeInt256 for int256;\n\n    /// @dev Stores (uint32)\n    bytes32 private constant INCENTIVE_RATE_MASK =\n        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFF;\n    /// @dev Stores (uint8, uint32)\n    bytes32 private constant ARRAY_TIME_MASK =\n        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000000000FFFFFFFFFFFF;\n    /// @dev Stores (uint8, uint8, uint8, uint8, uint8)\n    bytes32 private constant COLLATERAL_MASK =\n        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000000000FFFFFFFFFFFFFFFFFFFFFF;\n\n    /// @notice Returns an account context object that is specific to nTokens.\n    function getNTokenContext(address tokenAddress)\n        internal\n        view\n        returns (\n            uint256 currencyId,\n            uint256 incentiveAnnualEmissionRate,\n            uint256 lastInitializedTime,\n            bytes6 parameters\n        )\n    {\n        bytes32 slot = keccak256(abi.encode(tokenAddress, Constants.NTOKEN_CONTEXT_STORAGE_OFFSET));\n        bytes32 data;\n        assembly {\n            data := sload(slot)\n        }\n\n"}, "card_404cc7e7bdac": {"id": "card_404cc7e7bdac", "relpath": "interfaces/chainlink/AggregatorV2V3Interface.sol", "char_start": 0, "char_end": 217, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity >=0.6.0;\n\nimport \"./AggregatorInterface.sol\";\nimport", "peek_tail": "nterface.sol\";\n\ninterface AggregatorV2V3Interface is AggregatorInterface, AggregatorV3Interface\n{\n}\n", "shingle_hash": "f38b2c206fc5cdd1", "top_tokens": ["import", "aggregatorinterface", "sol", "aggregatorv3interface", "spdx", "license", "identifier", "mit", "pragma", "solidity"], "content": "// SPDX-License-Identifier: MIT\npragma solidity >=0.6.0;\n\nimport \"./AggregatorInterface.sol\";\nimport \"./AggregatorV3Interface.sol\";\n\ninterface AggregatorV2V3Interface is AggregatorInterface, AggregatorV3Interface\n{\n}"}, "card_7c9bbdbe9dfc": {"id": "card_7c9bbdbe9dfc", "relpath": "contracts/internal/balances/Incentives.sol", "char_start": 2072, "char_end": 3194, "peek_head": "        // Returns the average supply between now and the previous mint time using the integral of t", "peek_tail": "    tokenAddress,\n            balanceState.netNTokenSupplyChange,\n            blockTime\n        );\n\n", "shingle_hash": "f68393ed2b44b37a", "top_tokens": ["uint256", "the", "incentivestoclaim", "balancestate", "avgtotalsupply", "div", "returns", "supply", "time", "integraltotalsupply"], "content": "        // Returns the average supply between now and the previous mint time using the integral of the total\n        // supply.\n        uint256 avgTotalSupply = integralTotalSupply.sub(lastClaimIntegralSupply).div(timeSinceLastClaim);\n        if (avgTotalSupply == 0) return 0;\n\n        uint256 incentivesToClaim = nTokenBalance.mul(incentiveRate).div(avgTotalSupply);\n        // incentiveRate has a decimal basis of 1e16 so divide by token precision to reduce to 1e8\n        incentivesToClaim = incentivesToClaim.div(uint256(Constants.INTERNAL_TOKEN_PRECISION));\n\n        return incentivesToClaim;\n    }\n\n    /// @notice Incentives must be claimed every time nToken balance changes\n    function claimIncentives(BalanceState memory balanceState, address account)\n        internal\n        returns (uint256)\n    {\n        uint256 blockTime = block.timestamp;\n        address tokenAddress = nTokenHandler.nTokenAddress(balanceState.currencyId);\n        uint256 integralTotalSupply = nTokenHandler.changeNTokenSupply(\n            tokenAddress,\n            balanceState.netNTokenSupplyChange,\n            blockTime\n        );\n\n"}, "card_8cc058f495fa": {"id": "card_8cc058f495fa", "relpath": "contracts/internal/balances/TokenHandler.sol", "char_start": 0, "char_end": 1221, "peek_head": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\n", "peek_tail": "ns (Token memory) {\n        bytes32 slot = _getSlot(currencyId, underlying);\n        bytes32 data;\n\n", "shingle_hash": "1d805140fa08e609", "top_tokens": ["import", "sol", "token", "underlying", "currencyid", "for", "uint256", "returns", "bytes32", "pragma"], "content": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\nimport \"../../math/SafeInt256.sol\";\nimport \"../../global/Types.sol\";\nimport \"../../global/Constants.sol\";\nimport \"interfaces/compound/CErc20Interface.sol\";\nimport \"interfaces/compound/CEtherInterface.sol\";\nimport \"@openzeppelin/contracts/math/SafeMath.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/ERC20.sol\";\n\n/// @notice Handles all external token transfers and events\nlibrary TokenHandler {\n    using SafeInt256 for int256;\n    using SafeMath for uint256;\n\n    function _getSlot(uint256 currencyId, bool underlying) private pure returns (bytes32) {\n        return\n            keccak256(\n                abi.encode(\n                    currencyId,\n                    keccak256(abi.encode(underlying, Constants.TOKEN_STORAGE_OFFSET))\n                )\n            );\n    }\n\n    /// @notice Gets token data for a particular currency id, if underlying is set to true then returns\n    /// the underlying token. (These may not always exist)\n    function getToken(uint256 currencyId, bool underlying) internal view returns (Token memory) {\n        bytes32 slot = _getSlot(currencyId, underlying);\n        bytes32 data;\n\n"}, "card_e73aac5f9e1b": {"id": "card_e73aac5f9e1b", "relpath": "contracts/external/actions/TradingAction.sol", "char_start": 15205, "char_end": 16309, "peek_head": "    /// @dev Enables purchasing of NToken residuals\n    function _purchaseNTokenResidual(\n        Ca", "peek_tail": "izedTime,\n            bytes6 parameters\n        ) = nTokenHandler.getNTokenContext(nTokenAddress);\n\n", "shingle_hash": "3bf638f7a0d75c7a", "top_tokens": ["maturity", "uint256", "int256", "cashgroup", "blocktime", "trade", "require", "ntokenaddress", "invalid", "ntokenhandler"], "content": "    /// @dev Enables purchasing of NToken residuals\n    function _purchaseNTokenResidual(\n        CashGroupParameters memory cashGroup,\n        uint256 blockTime,\n        bytes32 trade\n    )\n        internal\n        returns (\n            uint256,\n            int256,\n            int256\n        )\n    {\n        uint256 maturity = uint256(uint32(bytes4(trade << 8)));\n        int256 fCashAmountToPurchase = int256(int88(bytes11(trade << 40)));\n        require(maturity > blockTime, \"Invalid maturity\");\n        // Require that the residual to purchase does not fall on an existing maturity (i.e.\n        // it is an idiosyncratic maturity)\n        require(\n            !DateTime.isValidMarketMaturity(cashGroup.maxMarketIndex, maturity, blockTime),\n            \"Invalid maturity\"\n        );\n\n        address nTokenAddress = nTokenHandler.nTokenAddress(cashGroup.currencyId);\n        // prettier-ignore\n        (\n            /* currencyId */,\n            /* incentiveRate */,\n            uint256 lastInitializedTime,\n            bytes6 parameters\n        ) = nTokenHandler.getNTokenContext(nTokenAddress);\n\n"}, "card_26c6d7a1d5d3": {"id": "card_26c6d7a1d5d3", "relpath": "contracts/internal/markets/CashGroup.sol", "char_start": 2352, "char_end": 3592, "peek_head": "    /// @notice Haircut on liquidity tokens to account for the risk associated with changes in the\n ", "peek_tail": "s (int256)\n    {\n        return int256(uint8(uint256(cashGroup.data >> RESERVE_FEE_SHARE)));\n    }\n\n", "shingle_hash": "ce2d9222364bf513", "top_tokens": ["uint256", "cashgroup", "the", "liquidity", "fee", "notice", "haircut", "function", "cashgroupparameters", "memory"], "content": "    /// @notice Haircut on liquidity tokens to account for the risk associated with changes in the\n    /// proportion of cash to fCash within the pool. This is set as a percentage less than or equal to 100.\n    function getLiquidityHaircut(CashGroupParameters memory cashGroup, uint256 assetType)\n        internal\n        pure\n        returns (uint256)\n    {\n        require(assetType > 1); // dev: liquidity haircut invalid asset type\n        uint256 offset =\n            LIQUIDITY_TOKEN_HAIRCUT + 8 * (assetType - Constants.MIN_LIQUIDITY_TOKEN_INDEX);\n        uint256 liquidityTokenHaircut = uint256(uint8(uint256(cashGroup.data >> offset)));\n        return liquidityTokenHaircut;\n    }\n\n    /// @notice Total trading fee denominated in basis points\n    function getTotalFee(CashGroupParameters memory cashGroup) internal pure returns (uint256) {\n        return uint256(uint8(uint256(cashGroup.data >> TOTAL_FEE))) * Constants.BASIS_POINT;\n    }\n\n    /// @notice Percentage of the total trading fee that goes to the reserve\n    function getReserveFeeShare(CashGroupParameters memory cashGroup)\n        internal\n        pure\n        returns (int256)\n    {\n        return int256(uint8(uint256(cashGroup.data >> RESERVE_FEE_SHARE)));\n    }\n\n"}, "card_17a09bc3c0d2": {"id": "card_17a09bc3c0d2", "relpath": "contracts/internal/portfolio/TransferAssets.sol", "char_start": 1312, "char_end": 3044, "peek_head": "    /// @dev Used to flip the sign of assets to decrement the `from` account that is sending assets\n", "peek_tail": "           accountContext.assetArrayLength,\n                assets.length\n            );\n        }\n\n", "shingle_hash": "80921f4701d90c1e", "top_tokens": ["accountcontext", "assets", "account", "memory", "the", "portfoliostate", "function", "portfolioasset", "returns", "dev"], "content": "    /// @dev Used to flip the sign of assets to decrement the `from` account that is sending assets\n    function invertNotionalAmountsInPlace(PortfolioAsset[] memory assets) internal pure {\n        for (uint256 i; i < assets.length; i++) {\n            assets[i].notional = assets[i].notional.neg();\n        }\n    }\n\n    /// @dev Useful method for hiding the logic of updating an account. WARNING: the account\n    /// context returned from this method may not be the same memory location as the account\n    /// context provided if the account is settled.\n    function placeAssetsInAccount(\n        address account,\n        AccountContext memory accountContext,\n        PortfolioAsset[] memory assets\n    ) internal returns (AccountContext memory) {\n        if (accountContext.bitmapCurrencyId == 0) {\n            return _addAssetsToPortfolio(account, accountContext, assets);\n        } else {\n            return _addAssetsToBitmap(account, accountContext, assets);\n        }\n    }\n\n    function _addAssetsToPortfolio(\n        address account,\n        AccountContext memory accountContext,\n        PortfolioAsset[] memory assets\n    ) private returns (AccountContext memory) {\n        PortfolioState memory portfolioState;\n        if (accountContext.mustSettleAssets()) {\n            // accountContext may change memory locations after this returns\n            (accountContext, portfolioState) = SettleAssetsExternal.settleAssetsAndReturnPortfolio(\n                account,\n                accountContext\n            );\n        } else {\n            portfolioState = PortfolioHandler.buildPortfolioState(\n                account,\n                accountContext.assetArrayLength,\n                assets.length\n            );\n        }\n\n"}, "card_1e5de886bec3": {"id": "card_1e5de886bec3", "relpath": "contracts/external/actions/TradingAction.sol", "char_start": 18578, "char_end": 20042, "peek_head": "        if (fCashAmount > 0) {\n            oracleRate = oracleRate.add(purchaseIncentive);\n        }", "peek_tail": "p\n        );\n        BitmapAssetsHandler.setAssetsBitmap(nTokenAddress, currencyId, ifCashBitmap);\n\n", "shingle_hash": "b6c40f373506d25d", "top_tokens": ["oraclerate", "the", "ntokenaddress", "currencyid", "ifcashbitmap", "purchaseincentive", "int256", "maturity", "uint256", "bitmapassetshandler"], "content": "        if (fCashAmount > 0) {\n            oracleRate = oracleRate.add(purchaseIncentive);\n        } else if (oracleRate > purchaseIncentive) {\n            oracleRate = oracleRate.sub(purchaseIncentive);\n        } else {\n            // If the oracle rate is less than the purchase incentive floor the interest rate at zero\n            oracleRate = 0;\n        }\n\n        int256 exchangeRate =\n            Market.getExchangeRateFromImpliedRate(oracleRate, maturity.sub(blockTime));\n\n        // Returns the net asset cash from the nToken perspective, which is the same sign as the fCash amount\n        return\n            cashGroup.assetRate.convertFromUnderlying(fCashAmount.divInRatePrecision(exchangeRate));\n    }\n\n    function _updateNTokenPortfolio(\n        address nTokenAddress,\n        uint256 currencyId,\n        uint256 maturity,\n        uint256 lastInitializedTime,\n        int256 fCashAmountToPurchase,\n        int256 netAssetCashNToken\n    ) private {\n        bytes32 ifCashBitmap = BitmapAssetsHandler.getAssetsBitmap(nTokenAddress, currencyId);\n        // prettier-ignore\n        (\n            ifCashBitmap,\n            /* notional */\n        ) = BitmapAssetsHandler.addifCashAsset(\n            nTokenAddress,\n            currencyId,\n            maturity,\n            lastInitializedTime,\n            fCashAmountToPurchase.neg(),\n            ifCashBitmap\n        );\n        BitmapAssetsHandler.setAssetsBitmap(nTokenAddress, currencyId, ifCashBitmap);\n\n"}, "card_aa1cdfe5a06d": {"id": "card_aa1cdfe5a06d", "relpath": "interfaces/IERC1155TokenReceiver.sol", "char_start": 1439, "char_end": 2965, "peek_head": "    /**\n        @notice Handle the receipt of multiple ERC1155 token types.\n        @dev An ERC1155-", "peek_tail": "        uint256[] calldata _values,\n        bytes calldata _data\n    ) external returns (bytes4);\n}\n", "shingle_hash": "d898c549c9b3cd17", "top_tokens": ["the", "address", "must", "uint256", "token", "param", "function", "ids", "array", "this"], "content": "    /**\n        @notice Handle the receipt of multiple ERC1155 token types.\n        @dev An ERC1155-compliant smart contract MUST call this function on the token recipient contract, at the end\n        of a `safeBatchTransferFrom` after the balances have been updated.\n        This function MUST return\n            `bytes4(keccak256(\"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)\"))`\n            (i.e. 0xbc197c81) if it accepts the transfer(s).\n        This function MUST revert if it rejects the transfer(s).\n        Return of any other value than the prescribed keccak256 generated value MUST result in the transaction being\n        reverted by the caller.\n        @param _operator  The address which initiated the batch transfer (i.e. msg.sender)\n        @param _from      The address which previously owned the token\n        @param _ids       An array containing ids of each token being transferred (order and length must match\n            _values array)\n        @param _values    An array containing amounts of each token being transferred (order and length must match\n            _ids array)\n        @param _data      Additional data with no specified format\n        @return           `bytes4(keccak256(\"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)\"))`\n    */\n    function onERC1155BatchReceived(\n        address _operator,\n        address _from,\n        uint256[] calldata _ids,\n        uint256[] calldata _values,\n        bytes calldata _data\n    ) external returns (bytes4);\n}"}, "card_0cfe07f64a8a": {"id": "card_0cfe07f64a8a", "relpath": "contracts/internal/valuation/ExchangeRate.sol", "char_start": 2458, "char_end": 3516, "peek_head": "    /// @notice Returns an ETHRate object used to calculate free collateral\n    function buildExchan", "peek_tail": "erface(rateOracle).latestRoundData();\n            require(rate > 0, \"ExchangeRate: invalid rate\");\n\n", "shingle_hash": "0b3f322b1fd1edee", "top_tokens": ["rate", "eth", "uint256", "currencyid", "slot", "data", "constants", "returns", "ethrate", "bytes32"], "content": "    /// @notice Returns an ETHRate object used to calculate free collateral\n    function buildExchangeRate(uint256 currencyId) internal view returns (ETHRate memory) {\n        bytes32 slot = keccak256(abi.encode(currencyId, ETH_RATE_STORAGE_SLOT));\n        bytes32 data;\n\n        assembly {\n            data := sload(slot)\n        }\n\n        int256 rateDecimals;\n        int256 rate;\n        if (currencyId == Constants.ETH_CURRENCY_ID) {\n            // ETH rates will just be 1e18, but will still have buffers, haircuts,\n            // and liquidation discounts\n            rateDecimals = Constants.ETH_DECIMALS;\n            rate = Constants.ETH_DECIMALS;\n        } else {\n            address rateOracle = address(bytes20(data << 96));\n            // prettier-ignore\n            (\n                /* uint80 */,\n                rate,\n                /* uint256 */,\n                /* uint256 */,\n                /* uint80 */\n            ) = AggregatorV2V3Interface(rateOracle).latestRoundData();\n            require(rate > 0, \"ExchangeRate: invalid rate\");\n\n"}, "card_e933c370268e": {"id": "card_e933c370268e", "relpath": "contracts/internal/markets/Market.sol", "char_start": 27401, "char_end": 28637, "peek_head": "    /// @notice Creates a market object and ensures that the rate oracle time window is updated appr", "peek_tail": "tSlot(currencyId, settlementDate, maturity));\n        int256 totalLiquidity;\n        bytes32 data;\n\n", "shingle_hash": "1510bc98c5e37a84", "top_tokens": ["uint256", "market", "the", "currencyid", "maturity", "settlementdate", "notice", "and", "function", "memory"], "content": "    /// @notice Creates a market object and ensures that the rate oracle time window is updated appropriately, this\n    /// is mainly used in the InitializeMarketAction contract.\n    function loadMarketWithSettlementDate(\n        MarketParameters memory market,\n        uint256 currencyId,\n        uint256 maturity,\n        uint256 blockTime,\n        bool needsLiquidity,\n        uint256 rateOracleTimeWindow,\n        uint256 settlementDate\n    ) internal view {\n        _loadMarketStorage(market, currencyId, maturity, needsLiquidity, settlementDate);\n\n        market.oracleRate = _updateRateOracle(\n            market.previousTradeTime,\n            market.lastImpliedRate,\n            market.oracleRate,\n            rateOracleTimeWindow,\n            blockTime\n        );\n    }\n\n    /// @notice When settling liquidity tokens we only need to get half of the market parameters and the settlement\n    /// date must be specified.\n    function getSettlementMarket(\n        uint256 currencyId,\n        uint256 maturity,\n        uint256 settlementDate\n    ) internal view returns (SettlementMarket memory) {\n        uint256 slot = uint256(getSlot(currencyId, settlementDate, maturity));\n        int256 totalLiquidity;\n        bytes32 data;\n\n"}, "card_ec1fa6f2b40f": {"id": "card_ec1fa6f2b40f", "relpath": "contracts/external/adapters/CompoundToNotionalV2.sol", "char_start": 0, "char_end": 1908, "peek_head": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\n", "peek_tail": "red\n            require(cTokenRepayAmount <= borrowBalance, \"Invalid repayment amount\");\n        }\n\n", "shingle_hash": "ad2fb9d82878f353", "top_tokens": ["import", "sol", "notionalv2", "address", "uint256", "ctokenrepayamount", "borrow", "interfaces", "ctokeninterface", "notional"], "content": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\nimport \"interfaces/compound/CTokenInterface.sol\";\nimport \"interfaces/compound/CErc20Interface.sol\";\nimport \"interfaces/notional/NotionalProxy.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ncontract CompoundToNotionalV2 {\n    NotionalProxy public immutable NotionalV2;\n    address public owner;\n\n    constructor(NotionalProxy notionalV2_) {\n        NotionalV2 = notionalV2_;\n        owner = msg.sender;\n    }\n\n    function enableToken(address token, address spender) external {\n        require(msg.sender == owner, \"Unauthorized\");\n        CTokenInterface(token).approve(spender, type(uint256).max);\n    }\n\n    function migrateBorrowFromCompound(\n        address cTokenBorrow,\n        uint256 cTokenRepayAmount,\n        uint16[] memory notionalV2CollateralIds,\n        uint256[] memory notionalV2CollateralAmounts,\n        BalanceActionWithTrades[] calldata borrowAction\n    ) external {\n        // borrow on notional via special flash loan facility\n        //  - borrow repayment amount\n        //  - withdraw to wallet, redeem to underlying\n        // receive callback (tokens transferred to borrowing account)\n        //   -> inside callback\n        //   -> repayBorrowBehalf(account, repayAmount)\n        //   -> deposit cToken to notional (account needs to have set approvals)\n        //   -> exit callback\n        // inside original borrow, check FC\n        uint256 borrowBalance = CTokenInterface(cTokenBorrow).borrowBalanceCurrent(msg.sender);\n        if (cTokenRepayAmount == 0) {\n            // Set the entire borrow balance if it is not set\n            cTokenRepayAmount = borrowBalance;\n        } else {\n            // Check that the cToken repayment amount is not more than required\n            require(cTokenRepayAmount <= borrowBalance, \"Invalid repayment amount\");\n        }\n\n"}, "card_caebaf0f7d65": {"id": "card_caebaf0f7d65", "relpath": "contracts/external/governance/GovernorAlpha.sol", "char_start": 10042, "char_end": 11590, "peek_head": "    /// @dev Helper method required to clear the stack for hashing operations\n    function _computeH", "peek_tail": "    require(computedOperationHash == proposal.operationHash, \"Operation hash mismatch\");\n        }\n\n", "shingle_hash": "413783149ab0ff81", "top_tokens": ["calldata", "proposalid", "proposal", "targets", "values", "calldatas", "the", "address", "uint256", "bytes32"], "content": "    /// @dev Helper method required to clear the stack for hashing operations\n    function _computeHash(\n        address[] calldata targets,\n        uint256[] calldata values,\n        bytes[] calldata calldatas,\n        uint256 proposalId\n    ) private pure returns (bytes32) {\n        return hashOperationBatch(targets, values, calldatas, bytes32(0), bytes32(proposalId));\n    }\n\n    /// @notice Adds a proposal to the timelock queue only after its vote has passed, `targets`,\n    /// `values`, and `calldatas` provided must hash back to the original proposal. All proposals\n    /// will automatically be delayed `getMinDelay()` seconds.\n    /// @param proposalId unique identifier for the proposal\n    /// @param targets an array of addresses to take actions on\n    /// @param values an array of ether amounts to send to respective target address\n    /// @param calldatas an array of calldata bytes to call respective target address with\n    /// @dev emit:ProposalQueued emit:CallScheduled (per call)\n    function queueProposal(\n        uint256 proposalId,\n        address[] calldata targets,\n        uint256[] calldata values,\n        bytes[] calldata calldatas\n    ) external {\n        require(state(proposalId) == ProposalState.Succeeded, \"Proposal must be success\");\n        bytes32 computedOperationHash = _computeHash(targets, values, calldatas, proposalId);\n        {\n            Proposal storage proposal = proposals[proposalId];\n            require(computedOperationHash == proposal.operationHash, \"Operation hash mismatch\");\n        }\n\n"}, "card_4e3fdc653b5f": {"id": "card_4e3fdc653b5f", "relpath": "interfaces/notional/nTokenERC20.sol", "char_start": 0, "char_end": 1137, "peek_head": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\n", "peek_tail": "  address from,\n        address to,\n        uint256 amount\n    ) external returns (bool, uint256);\n\n", "shingle_hash": "be9981b59d6ceba7", "top_tokens": ["address", "uint256", "function", "external", "returns", "amount", "uint16", "currencyid", "indexed", "spender"], "content": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\ninterface nTokenERC20 {\n    event Transfer(address indexed from, address indexed to, uint256 amount);\n\n    event Approval(address indexed owner, address indexed spender, uint256 amount);\n\n    function nTokenTotalSupply(address nTokenAddress) external view returns (uint256);\n\n    function nTokenTransferAllowance(\n        uint16 currencyId,\n        address owner,\n        address spender\n    ) external view returns (uint256);\n\n    function nTokenBalanceOf(uint16 currencyId, address account) external view returns (uint256);\n\n    function nTokenTransferApprove(\n        uint16 currencyId,\n        address owner,\n        address spender,\n        uint256 amount\n    ) external returns (bool);\n\n    function nTokenTransfer(\n        uint16 currencyId,\n        address from,\n        address to,\n        uint256 amount\n    ) external returns (bool);\n\n    function nTokenTransferFrom(\n        uint16 currencyId,\n        address spender,\n        address from,\n        address to,\n        uint256 amount\n    ) external returns (bool, uint256);\n\n"}, "card_d88f23ade1d4": {"id": "card_d88f23ade1d4", "relpath": "contracts/external/Views.sol", "char_start": 2354, "char_end": 3387, "peek_head": "    /// @notice Returns a currency and its corresponding asset rate and ETH exchange rates. Note tha", "peek_tail": "roupSettings memory)\n    {\n        return CashGroup.deserializeCashGroupStorage(currencyId);\n    }\n\n", "shingle_hash": "e0630ca6121fc5ed", "top_tokens": ["currencyid", "memory", "returns", "ethrate", "assetrate", "notice", "currency", "and", "rate", "rates"], "content": "    /// @notice Returns a currency and its corresponding asset rate and ETH exchange rates. Note that this does not recalculate\n    /// cToken interest rates, it only retrieves the latest stored rate.\n    function getCurrencyAndRates(uint16 currencyId)\n        external\n        view\n        override\n        returns (\n            Token memory assetToken,\n            Token memory underlyingToken,\n            ETHRate memory ethRate,\n            AssetRateParameters memory assetRate\n        )\n    {\n        assetToken = TokenHandler.getToken(currencyId, false);\n        underlyingToken = TokenHandler.getToken(currencyId, false);\n        ethRate = ExchangeRate.buildExchangeRate(currencyId);\n        assetRate = AssetRate.buildAssetRateView(currencyId);\n    }\n\n    /// @notice Returns cash group settings for a currency\n    function getCashGroup(uint16 currencyId)\n        external\n        view\n        override\n        returns (CashGroupSettings memory)\n    {\n        return CashGroup.deserializeCashGroupStorage(currencyId);\n    }\n\n"}, "card_f135f63c6998": {"id": "card_f135f63c6998", "relpath": "contracts/external/actions/GovernanceAction.sol", "char_start": 2326, "char_end": 3814, "peek_head": "        emit PauseRouterAndGuardianUpdated(pauseRouter_, pauseGuardian_);\n    }\n\n    /// @notice Lis", "peek_tail": " token listing\"\n        );\n        tokenAddressToCurrencyId[assetToken.tokenAddress] = currencyId;\n\n", "shingle_hash": "a31d79afc41f57c5", "top_tokens": ["param", "the", "token", "rate", "assettoken", "for", "currencyid", "emit", "currency", "multiplier"], "content": "        emit PauseRouterAndGuardianUpdated(pauseRouter_, pauseGuardian_);\n    }\n\n    /// @notice Lists a new currency along with its exchange rate to ETH\n    /// @dev emit:ListCurrency emit:UpdateETHRate\n    /// @param assetToken the token parameters for the asset token\n    /// @param underlyingToken the underlying token (if asset token is an interest bearing wrapper)\n    /// @param rateOracle ETH to underlying rate oracle\n    /// @param mustInvert if the rate from the oracle needs to be inverted\n    /// @param buffer multiplier (>= 100) for negative balances when calculating free collateral\n    /// @param haircut multiplier (<= 100) for positive balances when calculating free collateral\n    /// @param liquidationDiscount multiplier (>= 100) for exchange rate when liquidating\n    function listCurrency(\n        TokenStorage calldata assetToken,\n        TokenStorage calldata underlyingToken,\n        address rateOracle,\n        bool mustInvert,\n        uint8 buffer,\n        uint8 haircut,\n        uint8 liquidationDiscount\n    ) external override onlyOwner {\n        uint16 currencyId = maxCurrencyId + 1;\n        // Set the new max currency id\n        maxCurrencyId = currencyId;\n        require(currencyId <= Constants.MAX_CURRENCIES, \"G: max currency overflow\");\n        require(\n            tokenAddressToCurrencyId[assetToken.tokenAddress] == 0,\n            \"G: duplicate token listing\"\n        );\n        tokenAddressToCurrencyId[assetToken.tokenAddress] = currencyId;\n\n"}, "card_5c1df1b9487f": {"id": "card_5c1df1b9487f", "relpath": "contracts/external/actions/BatchAction.sol", "char_start": 12774, "char_end": 14041, "peek_head": "        if (withdrawEntireCashBalance) {\n            // This option is here so that accounts do not ", "peek_tail": " 0x00) {\n            FreeCollateralExternal.checkFreeCollateralAndRevert(account);\n        }\n    }\n\n", "shingle_hash": "482fd2cb1d534b9b", "top_tokens": ["balancestate", "account", "accountcontext", "withdrawamount", "netassettransferinternalprecision", "this", "cannot", "cash", "the", "add"], "content": "        if (withdrawEntireCashBalance) {\n            // This option is here so that accounts do not end up with dust after lending since we generally\n            // cannot calculate exact cash amounts from the liquidity curve.\n            withdrawAmount = balanceState.storedCashBalance.add(balanceState.netCashChange).add(\n                balanceState.netAssetTransferInternalPrecision\n            );\n\n            // If the account has a negative cash balance then cannot withdraw\n            if (withdrawAmount < 0) withdrawAmount = 0;\n        }\n\n        // prettier-ignore\n        balanceState.netAssetTransferInternalPrecision = balanceState\n            .netAssetTransferInternalPrecision\n            .sub(withdrawAmount);\n\n        balanceState.finalize(account, accountContext, redeemToUnderlying);\n    }\n\n    function _finalizeAccountContext(address account, AccountContext memory accountContext)\n        private\n    {\n        // At this point all balances, market states and portfolio states should be finalized. Just need to check free\n        // collateral if required.\n        accountContext.setAccountContext(account);\n        if (accountContext.hasDebt != 0x00) {\n            FreeCollateralExternal.checkFreeCollateralAndRevert(account);\n        }\n    }\n\n"}, "card_2902d1d21a99": {"id": "card_2902d1d21a99", "relpath": "contracts/external/actions/nTokenMintAction.sol", "char_start": 7861, "char_end": 9644, "peek_head": "        if (marketOverLeveraged) {\n            (perMarketDeposit, fCashAmount) = _deleverageMarket(\n", "peek_tail": "on =\n            market.totalfCash.divInRatePrecision(market.totalfCash.add(totalCashUnderlying));\n\n", "shingle_hash": "70b80ac22b6fa96c", "top_tokens": ["market", "the", "ntoken", "fcashamount", "permarketdeposit", "cashgroup", "marketoverleveraged", "marketindex", "int256", "deleveragemarket"], "content": "        if (marketOverLeveraged) {\n            (perMarketDeposit, fCashAmount) = _deleverageMarket(\n                nToken.cashGroup,\n                market,\n                perMarketDeposit,\n                blockTime,\n                marketIndex\n            );\n\n            // Recalculate this after lending into the market\n            marketOverLeveraged = _isMarketOverLeveraged(\n                nToken.cashGroup,\n                market,\n                leverageThreshold\n            );\n        }\n\n        if (!marketOverLeveraged) {\n            // (marketIndex - 1) is the index of the nToken portfolio array where the asset\n            // is stored\n            fCashAmount = fCashAmount.add(\n                _addLiquidityToMarket(nToken, market, marketIndex - 1, perMarketDeposit)\n            );\n            // No residual cash if we're adding liquidity\n            return (fCashAmount, 0);\n        }\n\n        return (fCashAmount, perMarketDeposit);\n    }\n\n    /// @notice Markets are over levered when their proportion is greater than a governance set\n    /// threshold. At this point, providing liquidity will incur too much negative fCash on the nToken\n    /// account for the given amount of cash deposited, putting the nToken account at risk of liquidation.\n    /// If the market is over leveraged, we call `deleverageMarket` to lend to the market instead.\n    function _isMarketOverLeveraged(\n        CashGroupParameters memory cashGroup,\n        MarketParameters memory market,\n        int256 leverageThreshold\n    ) private pure returns (bool) {\n        int256 totalCashUnderlying = cashGroup.assetRate.convertToUnderlying(market.totalAssetCash);\n        int256 proportion =\n            market.totalfCash.divInRatePrecision(market.totalfCash.add(totalCashUnderlying));\n\n"}, "card_c50a5bc3284e": {"id": "card_c50a5bc3284e", "relpath": "contracts/global/StorageLayoutV1.sol", "char_start": 0, "char_end": 1436, "peek_head": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\n", "peek_tail": "pause router is used to pass the rollback check\n    address internal rollbackRouterImplementation;\n\n", "shingle_hash": "20e2279e90e15a47", "top_tokens": ["the", "address", "this", "internal", "set", "storage", "and", "rate", "currency", "mapping"], "content": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >0.7.0;\npragma experimental ABIEncoderV2;\n\nimport \"./Types.sol\";\n\n/**\n * @notice Storage layout for the system. Do not change this file once deployed, future storage\n * layouts must inherit this and increment the version number.\n */\ncontract StorageLayoutV1 {\n    uint16 internal maxCurrencyId;\n\n    // Returns the exchange rate between an underlying currency and ETH for free\n    // collateral purposes. Mapping is from currency id to rate storage object.\n    mapping(uint256 => ETHRateStorage) internal underlyingToETHRateMapping;\n    // Returns the exchange rate between an underlying currency and asset for trading\n    // and free collateral. Mapping is from currency id to rate storage object.\n    mapping(uint256 => AssetRateStorage) internal assetToUnderlyingRateMapping;\n\n    /* Authentication Mappings */\n    // This is set to the timelock contract to execute governance functions\n    address public owner;\n    // This is set to the governance token address\n    address internal token;\n    // This is set to an address of a router that can only call governance actions\n    address public pauseRouter;\n    // This is set to an address of a router that can only call governance actions\n    address public pauseGuardian;\n    // On upgrades this is set in the case that the pause router is used to pass the rollback check\n    address internal rollbackRouterImplementation;\n\n"}, "card_ba68699ecd69": {"id": "card_ba68699ecd69", "relpath": "contracts/external/actions/GovernanceAction.sol", "char_start": 9314, "char_end": 11289, "peek_head": "    /// @notice Updates collateralization parameters for an nToken\n    /// @dev emit:UpdateTokenColl", "peek_tail": "HaircutPercentage and <= 100) at which\n    /// liquidators will purchase nTokens during liquidation\n", "shingle_hash": "7fa86c789ac366f9", "top_tokens": ["the", "that", "will", "ntoken", "param", "this", "residuals", "for", "ntokens", "and"], "content": "    /// @notice Updates collateralization parameters for an nToken\n    /// @dev emit:UpdateTokenCollateralParameters\n    /// @param currencyId the currency id that the nToken references\n    /// @param residualPurchaseIncentive10BPS nTokens will have residual amounts of fCash at the end of each\n    /// quarter that are \"dead weight\" because they are at idiosyncratic maturities and do not contribute to\n    /// actively providing liquidity. This parameter will incentivize market participants to purchase these residuals\n    /// at a discount from the on chain oracle rate, denominated in 10 basis point increments. These residuals will\n    /// be added back into nToken balances and will be used to provide liquidity upon the next market initialization.\n    /// @param pvHaircutPercentage a percentage (< 100) that the present value of the nToken's assets will be valued\n    /// at for the purposes of free collateral, relevant when accounts hold nTokens as collateral against debts.\n    /// @param residualPurchaseTimeBufferHours an arbitrage opportunity is available by pushing markets in one direction\n    /// before quarterly settlement to generate large residual balances that can be purchased at a discount. The time buffer\n    /// here ensures that anyone attempting such an act would have to wait some number of hours (likely a few days) before\n    /// they could attempt to purchase residuals, ensuring that the market could realign to rates where the arbitrage is\n    /// no longer possible.\n    /// @param cashWithholdingBuffer10BPS nToken residuals may be negative fCash (debt), in this case cash is withheld to\n    /// transfer to accounts that take on the debt. This parameter denominates the discounted rate at which the cash will\n    /// be withheld at for this purpose.\n    /// @param liquidationHaircutPercentage a percentage of nToken present value (> pvHaircutPercentage and <= 100) at which\n    /// liquidators will purchase nTokens during liquidation\n"}, "card_a2a1c28a7223": {"id": "card_a2a1c28a7223", "relpath": "contracts/internal/liquidation/LiquidateCurrency.sol", "char_start": 11733, "char_end": 13635, "peek_head": "        requiredCollateralAssetCash = LiquidationHelpers.calculateLiquidationAmount(\n            req", "peek_tail": "t8(factors.nTokenParameters[Constants.PV_HAIRCUT_PERCENTAGE]));\n        int256 nTokensToLiquidate =\n", "shingle_hash": "2f962c3fb58a568b", "top_tokens": ["requiredcollateralassetcash", "int256", "factors", "maxcollateralliquidation", "fullntokenpv", "collateraltoraise", "tokenstoliquidate", "liquidationhaircut", "totalbalance", "liquidationhelpers"], "content": "        requiredCollateralAssetCash = LiquidationHelpers.calculateLiquidationAmount(\n            requiredCollateralAssetCash,\n            factors.collateralAssetAvailable,\n            0 // will check userSpecifiedAmount below\n        );\n\n        // Enforce the user specified max liquidation amount\n        if (\n            maxCollateralLiquidation > 0 && requiredCollateralAssetCash > maxCollateralLiquidation\n        ) {\n            requiredCollateralAssetCash = maxCollateralLiquidation;\n        }\n\n        // prettier-ignore\n        (requiredCollateralAssetCash, localAssetCashFromLiquidator) = LiquidationHelpers\n            .calculateLocalToPurchase(\n                factors,\n                liquidationDiscount,\n                requiredCollateralAssetCash,\n                requiredCollateralAssetCash\n            );\n\n        return (requiredCollateralAssetCash, localAssetCashFromLiquidator, liquidationDiscount);\n    }\n\n    /// @dev Calculates the nToken transfer.\n    function _calculateCollateralNTokenTransfer(\n        BalanceState memory balanceState,\n        LiquidationFactors memory factors,\n        int256 collateralAssetRemaining,\n        int256 maxNTokenLiquidation\n    ) internal pure returns (int256) {\n        // fullNTokenPV = haircutTokenPV / haircutPercentage\n        // collateralToRaise = tokensToLiquidate * fullNTokenPV * liquidationHaircut / totalBalance\n        // tokensToLiquidate = collateralToRaise * totalBalance / (fullNTokenPV * liquidationHaircut)\n        // tokensToLiquidate = (collateralToRaise * totalBalance * haircutPercentage) / (haircutTokenPV * liquidationHaircut)\n        int256 nTokenLiquidationHaircut =\n            int256(uint8(factors.nTokenParameters[Constants.LIQUIDATION_HAIRCUT_PERCENTAGE]));\n        int256 nTokenHaircut =\n            int256(uint8(factors.nTokenParameters[Constants.PV_HAIRCUT_PERCENTAGE]));\n        int256 nTokensToLiquidate =\n"}, "card_d8848a2d84da": {"id": "card_d8848a2d84da", "relpath": "contracts/internal/liquidation/LiquidationHelpers.sol", "char_start": 1850, "char_end": 3226, "peek_head": "        PortfolioState memory portfolioState =\n            PortfolioState({\n                storedAs", "peek_tail": "nts.DEFAULT_LIQUIDATION_PORTION).div(\n                Constants.PERCENTAGE_DECIMALS\n            );\n\n", "shingle_hash": "1bb5b3fbfa9e1671", "top_tokens": ["int256", "portfoliostate", "collateral", "purchase", "constants", "default", "liquidation", "the", "defaultallowedamount", "portfolio"], "content": "        PortfolioState memory portfolioState =\n            PortfolioState({\n                storedAssets: portfolio,\n                newAssets: new PortfolioAsset[](0),\n                lastNewAssetIndex: 0,\n                storedAssetLength: portfolio.length\n            });\n\n        return (accountContext, factors, portfolioState);\n    }\n\n    /// @notice We allow liquidators to purchase up to Constants.DEFAULT_LIQUIDATION_PORTION percentage of collateral\n    /// assets during liquidation to recollateralize an account as long as it does not also put the account\n    /// further into negative free collateral (i.e. constraints on local available and collateral available).\n    /// Additionally, we allow the liquidator to specify a maximum amount of collateral they would like to\n    /// purchase so we also enforce that limit here.\n    function calculateLiquidationAmount(\n        int256 initialAmountToLiquidate,\n        int256 maxTotalBalance,\n        int256 userSpecifiedMaximum\n    ) internal pure returns (int256) {\n        // By default, the liquidator is allowed to purchase at least to `defaultAllowedAmount`\n        // if `initialAmountToLiquidate` is less than `defaultAllowedAmount`.\n        int256 defaultAllowedAmount =\n            maxTotalBalance.mul(Constants.DEFAULT_LIQUIDATION_PORTION).div(\n                Constants.PERCENTAGE_DECIMALS\n            );\n\n"}};
+        
+        let currentGraph = null;
+        let currentGraphName = Object.keys(allGraphs)[0];
+        let simulation = null;
+        
+        // Professional color schemes with tech accent
+        const typeColors = {
+            // Common node types from graph generation
+            'contract': '#30a14e',         // GitHub green - main contracts
+            'interface': '#58a6ff',        // GitHub blue - interfaces
+            'library': '#a371f7',          // Purple - library contracts
+            'function': '#56d364',         // Light green - functions
+            'storage': '#f9826c',          // Warm orange - storage/state
+            'event': '#79c0ff',            // Light blue - events
+            'modifier': '#bc8cff',         // Light purple - modifiers
+            'external_actor': '#d29922',   // Gold - external entities
+            'role': '#ffa657',             // Orange - roles/permissions
+            
+            // Legacy/alternative types
+            'code': '#30a14e',             // GitHub green
+            'concept': '#58a6ff',          // GitHub blue
+            'invariant': '#f9826c',        // Warm orange
+            'observation': '#a371f7',      // Purple
+            'hypothesis': '#d29922',       // Gold
+            'issue': '#f85149',            // GitHub red
+            'pattern': '#56d364',          // Light green
+            'dataflow': '#79c0ff',         // Light blue
+            'control': '#ff7b72',          // Coral
+            'vulnerability': '#da3633',   // Danger red
+            'assumption': '#ffa657',       // Orange
+            'constraint': '#bc8cff',      // Light purple
+            'custom': '#8b949e'            // Gray - fallback
+        };
+        
+        // Edge type colors - expanded palette with more distinct colors
+        const edgeColors = {
+            // Primary relationships (high contrast)
+            'calls': '#30a14e',           // Green
+            'contains': '#58a6ff',         // Blue  
+            'depends_on': '#f9826c',       // Light red/orange
+            'references': '#a371f7',       // Purple
+            'uses': '#79c0ff',             // Light blue
+            'implements': '#56d364',       // Bright green
+            'extends': '#bc8cff',          // Light purple
+            'imports': '#d29922',          // Gold
+            
+            // Data flow (warm colors)
+            'dataflow': '#ffa657',         // Orange
+            'reads': '#39d353',            // Green
+            'writes': '#ff7b72',           // Coral
+            'modifies': '#f85149',         // Red
+            
+            // Control flow (cool colors)
+            'control': '#ffea7f',          // Yellow
+            'triggers': '#db61a2',         // Pink
+            'validates': '#2ea043',        // Dark green
+            'checks': '#539bf5',           // Sky blue
+            
+            // Security/Analysis (strong colors)
+            'violates': '#da3633',         // Danger red
+            'protects': '#1f6feb',         // Royal blue
+            'trusts': '#8957e5',           // Violet
+            'restricts': '#f778ba',        // Light pink
+            
+            // Structural (purple spectrum)
+            'inherits': '#986ee2',         // Lavender
+            'overrides': '#ff9492',        // Salmon
+            'delegates': '#56d4dd',        // Cyan
+            'aggregates': '#a475f9',       // Medium purple
+            
+            // Associations (varied)
+            'relates_to': '#8b949e',       // Gray (neutral)
+            'links_to': '#7ee787',         // Mint green
+            'connects': '#ffc680',         // Peach
+            'maps_to': '#c297ff',          // Light violet
+            
+            // State/Lifecycle (traffic light colors)
+            'initializes': '#3fb950',      // Green
+            'creates': '#58a6ff',          // Blue
+            'destroys': '#f85149',         // Red
+            'updates': '#d29922',          // Gold
+            
+            // Additional common relationships
+            'emits': '#ff6b6b',            // Light red
+            'listens': '#4ecdc4',          // Teal
+            'owns': '#95e1d3',             // Mint
+            'manages': '#f38181',          // Rose
+            'requires': '#aa96da',         // Soft purple
+            'provides': '#8fcaca',         // Soft cyan
+            'processes': '#ffd93d',        // Bright yellow
+            'handles': '#6bcf7f',          // Fresh green
+            
+            // Default fallback - will cycle through palette for unknowns
+            'custom': '#8b949e'            // Gray
+        };
+        
+        // Color palette for unknown edge types (will cycle through)
+        const fallbackColors = [
+            '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181', '#aa96da',
+            '#8fcaca', '#ffd93d', '#6bcf7f', '#ffbe76', '#ff7979',
+            '#badc58', '#dfe4ea', '#5f27cd', '#00d2d3', '#48dbfb',
+            '#0abde3', '#ee5a24', '#f368e0', '#feca57', '#ff9ff3'
+        ];
+        
+        // Function to get edge color (with fallback for unknown types)
+        function getEdgeColor(type) {
+            if (edgeColors[type]) {
+                return edgeColors[type];
+            }
+            // Generate consistent color for unknown types
+            let hash = 0;
+            for (let i = 0; i < type.length; i++) {
+                hash = ((hash << 5) - hash) + type.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return fallbackColors[Math.abs(hash) % fallbackColors.length];
+        }
+        
+        // Initialize
+        function init() {
+            loadGraph(currentGraphName);
+            setupEventListeners();
+            updateObservations();
+        }
+        
+        function loadGraph(graphName) {
+            currentGraphName = graphName;
+            currentGraph = allGraphs[graphName];
+            
+            // Clear existing graph
+            d3.select("#graph-container svg").remove();
+            
+            // Create new graph
+            createGraph(currentGraph);
+            updateStats();
+            updateTypeFilter();
+            updateLegend();
+        }
+        
+        function createGraph(graphData) {
+            const width = document.getElementById('graph-container').clientWidth;
+            const height = document.getElementById('graph-container').clientHeight;
+            
+            const svg = d3.select("#graph-container")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            const g = svg.append("g");
+            
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // Process nodes and edges
+            const nodes = graphData.nodes || [];
+            const edges = graphData.edges || [];
+            
+            // Create node ID set for validation
+            const nodeIds = new Set(nodes.map(n => n.id));
+            
+            // Create links data, filtering out invalid edges
+            const links = edges
+                .filter(e => {
+                    if (!nodeIds.has(e.source_id)) {
+                        console.warn(`Edge references non-existent source node: ${e.source_id}`);
+                        return false;
+                    }
+                    if (!nodeIds.has(e.target_id)) {
+                        console.warn(`Edge references non-existent target node: ${e.target_id}`);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(e => ({
+                    source: e.source_id,
+                    target: e.target_id,
+                    type: e.type,
+                    label: e.label,
+                    confidence: e.confidence || 1
+                }));
+            
+            // Create force simulation with better spacing
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(150))  // Increased distance
+                .force("charge", d3.forceManyBody().strength(-800))  // Stronger repulsion
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(50))  // Larger collision radius
+                .force("x", d3.forceX(width / 2).strength(0.05))  // Gentle centering
+                .force("y", d3.forceY(height / 2).strength(0.05));
+            
+            // Create arrow markers for edge types
+            const allEdgeTypes = [...new Set(edges.map(e => e.type))];
+            svg.append("defs").selectAll("marker")
+                .data(allEdgeTypes)
+                .enter().append("marker")
+                .attr("id", d => `arrow-${d}`)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 25)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", d => getEdgeColor(d));
+            
+            // Create link group for lines and labels
+            const linkGroup = g.append("g").attr("class", "links");
+            
+            // Create links with edge-specific colors
+            const link = linkGroup.selectAll("line")
+                .data(links)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("stroke", d => getEdgeColor(d.type))
+                .attr("stroke-width", d => 1 + Math.sqrt(d.confidence * 2))
+                .attr("marker-end", d => `url(#arrow-${d.type})`);
+            
+            // Create edge labels
+            const linkLabel = linkGroup.selectAll("text")
+                .data(links)
+                .enter().append("text")
+                .attr("class", "link-label")
+                .attr("font-size", "9px")
+                .attr("fill", d => getEdgeColor(d.type))
+                .attr("text-anchor", "middle")
+                .attr("opacity", 0.7)
+                .text(d => d.label || d.type);
+            
+            // Create nodes
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+            
+            node.append("circle")
+                .attr("r", d => {
+                    const confidence = d.confidence || 1;
+                    return 10 + confidence * 8;
+                })
+                .attr("fill", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("stroke", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("fill-opacity", 0.8);
+            
+            // Node label
+            node.append("text")
+                .attr("dx", 18)
+                .attr("dy", 4)
+                .text(d => d.label ? (d.label.length > 30 ? d.label.substring(0, 30) + "..." : d.label) : "")
+                .style("fill", "#e6edf3")
+                .style("font-size", "12px")
+                .style("font-weight", "500")
+                .style("text-shadow", "1px 1px 3px rgba(0,0,0,0.5)");
+            
+            // Add observations/assumptions box if they exist
+            node.each(function(d) {
+                const g = d3.select(this);
+                const hasObs = d.observations && d.observations.length > 0;
+                const hasAssump = d.assumptions && d.assumptions.length > 0;
+                
+                if (hasObs || hasAssump) {
+                    // Create background box
+                    const bbox = g.append("rect")
+                        .attr("x", 16)
+                        .attr("y", 10)
+                        .attr("rx", 3)
+                        .attr("ry", 3)
+                        .style("fill", "rgba(22, 27, 34, 0.8)")
+                        .style("stroke", "rgba(48, 54, 61, 0.8)")
+                        .style("stroke-width", "1px");
+                    
+                    let yOffset = 22;
+                    let maxWidth = 0;
+                    const textElements = [];
+                    
+                    // Add observations (up to 3)
+                    if (hasObs) {
+                        const obsToShow = d.observations
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 1) || 1;
+                                const confB = (typeof b === 'object' ? b.confidence : 1) || 1;
+                                return confB - confA;
+                            })
+                            .slice(0, 3);
+                        
+                        obsToShow.forEach(obs => {
+                            const obsText = typeof obs === 'object' ? 
+                                (obs.description || obs.content || '') : String(obs);
+                            if (obsText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("✓ " + (obsText.length > 25 ? obsText.substring(0, 25) + "..." : obsText))
+                                    .style("fill", "#30a14e")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Add assumptions (up to 2)
+                    if (hasAssump) {
+                        const assumToShow = d.assumptions
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 0.5) || 0.5;
+                                const confB = (typeof b === 'object' ? b.confidence : 0.5) || 0.5;
+                                return confB - confA;
+                            })
+                            .slice(0, 2);
+                        
+                        assumToShow.forEach(assum => {
+                            const assumText = typeof assum === 'object' ? 
+                                (assum.description || assum.content || '') : String(assum);
+                            if (assumText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("? " + (assumText.length > 25 ? assumText.substring(0, 25) + "..." : assumText))
+                                    .style("fill", "#d29922")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Calculate max width from text elements
+                    textElements.forEach(text => {
+                        const bbox = text.node().getBBox();
+                        maxWidth = Math.max(maxWidth, bbox.width);
+                    });
+                    
+                    // Update background box size
+                    bbox.attr("width", maxWidth + 8)
+                        .attr("height", yOffset - 14);
+                }
+            });
+            
+            // Tooltip
+            const tooltip = d3.select("#tooltip");
+            
+            node.on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                
+                let content = `<strong>${d.label}</strong><br/>`;
+                content += `Type: ${d.type}<br/>`;
+                if (d.confidence !== undefined) {
+                    content += `Confidence: ${(d.confidence * 100).toFixed(0)}%<br/>`;
+                }
+                if (d.description) {
+                    content += `<br/>${d.description}`;
+                }
+                if (d.observations && d.observations.length > 0) {
+                    content += `<br/><br/><strong style="color: #30a14e;">Observations:</strong><br/>`;
+                    d.observations.slice(0, 5).forEach(obs => {
+                        const obsText = typeof obs === 'object' ? 
+                            (obs.description || obs.content || JSON.stringify(obs)) : String(obs);
+                        content += `<span style="color: #30a14e;">✓</span> ${obsText}<br/>`;
+                    });
+                }
+                if (d.assumptions && d.assumptions.length > 0) {
+                    content += `<br/><strong style="color: #d29922;">Assumptions:</strong><br/>`;
+                    d.assumptions.slice(0, 3).forEach(assum => {
+                        const assumText = typeof assum === 'object' ? 
+                            (assum.description || assum.content || JSON.stringify(assum)) : String(assum);
+                        const conf = typeof assum === 'object' ? assum.confidence : 0.5;
+                        content += `<span style="color: #d29922;">?</span> ${assumText} <span style="opacity: 0.7;">(conf: ${conf})</span><br/>`;
+                    });
+                }
+                if (d.properties && Object.keys(d.properties).length > 0) {
+                    content += `<br/><br/>Properties:<br/>`;
+                    for (const [key, value] of Object.entries(d.properties)) {
+                        content += `${key}: ${value}<br/>`;
+                    }
+                }
+                
+                tooltip.html(content)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                showNodeDetails(d);
+            });
+            
+            // Update positions
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                linkLabel
+                    .attr("x", d => (d.source.x + d.target.x) / 2)
+                    .attr("y", d => (d.source.y + d.target.y) / 2);
+                
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function updateStats() {
+            const stats = currentGraph.stats || {};
+            let html = '';
+            
+            html += `<div class="stat"><span>Nodes</span><span class="stat-value">${stats.num_nodes || 0}</span></div>`;
+            html += `<div class="stat"><span>Edges</span><span class="stat-value">${stats.num_edges || 0}</span></div>`;
+            html += `<div class="stat"><span>Node Types</span><span class="stat-value">${(stats.node_types || []).length}</span></div>`;
+            html += `<div class="stat"><span>Edge Types</span><span class="stat-value">${(stats.edge_types || []).length}</span></div>`;
+            
+            document.getElementById('stats').innerHTML = html;
+        }
+        
+        function updateTypeFilter() {
+            const types = new Set();
+            (currentGraph.nodes || []).forEach(n => types.add(n.type));
+            
+            const select = document.getElementById('type-filter');
+            select.innerHTML = '<option value="all">All Types</option>';
+            
+            Array.from(types).sort().forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        }
+        
+        function updateLegend() {
+            // Get unique node types
+            const nodeTypes = new Set();
+            (currentGraph.nodes || []).forEach(n => nodeTypes.add(n.type));
+            
+            // Get unique edge types
+            const edgeTypes = new Set();
+            (currentGraph.edges || []).forEach(e => edgeTypes.add(e.type));
+            
+            let html = '<h4>Legend</h4>';
+            
+            // Node types section
+            if (nodeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Node Types</div>';
+                Array.from(nodeTypes).sort().forEach(type => {
+                    const color = typeColors[type?.toLowerCase()] || typeColors['custom'];
+                    html += `<div class="legend-item">
+                        <div class="legend-color" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Edge types section
+            if (edgeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Edge Types</div>';
+                Array.from(edgeTypes).sort().forEach(type => {
+                    const color = getEdgeColor(type);
+                    html += `<div class="legend-item">
+                        <div class="legend-line" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Add observations/assumptions legend
+            html += '<div class="legend-section">';
+            html += '<div class="legend-section-title">Annotations</div>';
+            html += '<div class="legend-item"><span style="color: #30a14e; font-weight: bold;">✓</span> <span>Verified observation</span></div>';
+            html += '<div class="legend-item"><span style="color: #d29922; font-weight: bold;">?</span> <span>Unverified assumption</span></div>';
+            html += '</div>';
+            
+            document.getElementById('legend').innerHTML = html;
+        }
+        
+        function showNodeDetails(node) {
+            const nodeColor = typeColors[node.type?.toLowerCase()] || typeColors['custom'];
+            let html = `<h4 style="margin: 0 0 10px 0; color: ${nodeColor};">${node.label}</h4>`;
+            html += `<div style="color: #8b949e;"><strong>Type:</strong> <span style="color: ${nodeColor};">${node.type}</span></div>`;
+            html += `<div style="color: #8b949e;"><strong>ID:</strong> <span style="color: #7d8590; font-family: 'JetBrains Mono', monospace; font-size: 11px;">${node.id}</span></div>`;
+            
+            if (node.confidence !== undefined) {
+                const confColor = node.confidence > 0.7 ? '#30a14e' : node.confidence > 0.4 ? '#d29922' : '#f9826c';
+                html += `<div style="color: #8b949e;"><strong>Confidence:</strong> <span style="color: ${confColor};">${(node.confidence * 100).toFixed(0)}%</span></div>`;
+            }
+            
+            if (node.created_by) {
+                html += `<div style="color: #8b949e;"><strong>Created:</strong> <span style="color: #7d8590;">${node.created_by}</span></div>`;
+            }
+            
+            if (node.description) {
+                html += `<div style="margin-top: 10px; color: #8b949e;"><strong>Description:</strong><br/><span style="color: #e6edf3;">${node.description}</span></div>`;
+            }
+            
+            // Observations (verified facts about the system)
+            if (node.observations && node.observations.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(48, 164, 78, 0.1); border-radius: 6px; border: 1px solid rgba(48, 164, 78, 0.3);">';
+                html += '<strong style="color: #30a14e; font-size: 11px; text-transform: uppercase;">✓ Verified Observations</strong>';
+                node.observations.forEach(obs => {
+                    let obsText, obsType = 'general', obsConf = 1.0;
+                    if (typeof obs === 'object') {
+                        obsText = obs.description || obs.content || JSON.stringify(obs);
+                        obsType = obs.type || 'general';
+                        obsConf = obs.confidence !== undefined ? obs.confidence : 1.0;
+                    } else {
+                        obsText = String(obs);
+                    }
+                    const typeLabel = obsType !== 'general' ? ` [${obsType}]` : '';
+                    const confLabel = obsConf < 1.0 ? ` (conf: ${obsConf.toFixed(1)})` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #30a14e; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${obsText}${typeLabel}${confLabel}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Assumptions (unverified, needs validation)
+            if (node.assumptions && node.assumptions.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(210, 153, 34, 0.1); border-radius: 6px; border: 1px solid rgba(210, 153, 34, 0.3);">';
+                html += '<strong style="color: #d29922; font-size: 11px; text-transform: uppercase;">? Unverified Assumptions</strong>';
+                node.assumptions.forEach(assum => {
+                    let assumText, assumType = 'general', assumConf = 0.5;
+                    if (typeof assum === 'object') {
+                        assumText = assum.description || assum.content || JSON.stringify(assum);
+                        assumType = assum.type || 'general';
+                        assumConf = assum.confidence !== undefined ? assum.confidence : 0.5;
+                    } else {
+                        assumText = String(assum);
+                    }
+                    const typeLabel = assumType !== 'general' ? ` [${assumType}]` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #d29922; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${assumText}${typeLabel} (conf: ${assumConf.toFixed(1)})</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (node.properties && Object.keys(node.properties).length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #58a6ff; font-size: 11px; text-transform: uppercase;">Properties</strong></div>';
+                for (const [key, value] of Object.entries(node.properties)) {
+                    html += `<div style="margin-left: 10px; color: #8b949e; font-size: 12px;">• ${key}: <span style="color: #7d8590;">${JSON.stringify(value)}</span></div>`;
+                }
+            }
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #56d364; font-size: 11px; text-transform: uppercase;">Source References</strong></div>';
+                node.source_refs.forEach(ref => {
+                    html += `<div style="margin-left: 10px; font-size: 10px; color: #7d8590; font-family: 'JetBrains Mono', monospace;">• ${ref}</div>`;
+                });
+            }
+            
+            document.getElementById('node-info').innerHTML = html;
+            
+            // Update card viewer
+            updateCardViewer(node);
+        }
+        
+        function updateCardViewer(node) {
+            const cardViewer = document.getElementById('card-viewer');
+            const noCards = document.getElementById('no-cards');
+            const cardSelector = document.getElementById('card-selector');
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                // Show card viewer
+                cardViewer.style.display = 'block';
+                noCards.style.display = 'none';
+                
+                // Clear and populate selector
+                cardSelector.innerHTML = '<option value="">Select a card to view code</option>';
+                
+                node.source_refs.forEach(cardId => {
+                    if (cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        const option = document.createElement('option');
+                        option.value = cardId;
+                        option.textContent = `${cardId} (${card.relpath || 'unknown file'})`;
+                        cardSelector.appendChild(option);
+                    }
+                });
+                
+                // Handle card selection
+                cardSelector.onchange = function() {
+                    const cardId = this.value;
+                    const cardContent = document.getElementById('card-content');
+                    
+                    if (cardId && cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        let content = '';
+                        
+                        // Show file path
+                        if (card.relpath) {
+                            content += `// File: ${card.relpath}\n`;
+                            if (card.char_start !== undefined && card.char_end !== undefined) {
+                                content += `// Characters: ${card.char_start}-${card.char_end}\n`;
+                            }
+                            content += '\n';
+                        }
+                        
+                        // Show actual code content
+                        if (card.content) {
+                            content += card.content;
+                        } else if (card.peek_head || card.peek_tail) {
+                            content += card.peek_head || '';
+                            if (card.peek_head && card.peek_tail) {
+                                content += '\n...\n';
+                            }
+                            content += card.peek_tail || '';
+                        } else {
+                            content = 'No content available for this card';
+                        }
+                        
+                        cardContent.textContent = content;
+                    } else {
+                        cardContent.innerHTML = '<em style="color: #888;">Select a card above to view its content</em>';
+                    }
+                };
+            } else {
+                // Hide card viewer
+                cardViewer.style.display = 'none';
+                noCards.style.display = 'block';
+            }
+        }
+        
+        function updateObservations() {
+            let html = '';
+            const recentObs = observations.slice(-10).reverse();
+            
+            recentObs.forEach(obs => {
+                html += `<div class="observation">${obs}</div>`;
+            });
+            
+            if (html === '') {
+                html = '<em style="color: #888;">No observations yet</em>';
+            }
+            
+            document.getElementById('observations').innerHTML = html;
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('graph-selector').addEventListener('change', (e) => {
+                loadGraph(e.target.value);
+            });
+            
+            document.getElementById('type-filter').addEventListener('change', (e) => {
+                filterNodesByType(e.target.value);
+            });
+            
+            document.getElementById('layout-selector').addEventListener('change', (e) => {
+                changeLayout(e.target.value);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                resetView();
+            });
+        }
+        
+        function filterNodesByType(type) {
+            d3.selectAll('.node').style('opacity', d => {
+                return type === 'all' || d.type === type ? 1 : 0.1;
+            });
+        }
+        
+        function changeLayout(layout) {
+            // Simplified - would implement different layout algorithms
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
+        
+        function resetView() {
+            const svg = d3.select("svg");
+            const width = svg.attr("width");
+            const height = svg.attr("height");
+            
+            svg.transition()
+                .duration(750)
+                .call(
+                    d3.zoom().transform,
+                    d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+                );
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

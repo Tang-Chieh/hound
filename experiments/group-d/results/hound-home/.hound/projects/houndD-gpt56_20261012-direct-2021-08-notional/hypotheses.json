@@ -1,0 +1,263 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_edcfd0350bd4": {
+      "title": "Stale oracle prices can be used to manipulate collateral valuation and liquidation outcomes",
+      "description": "VULNERABILITY TYPE: oracle_price_manipulation\nROOT CAUSE: Oracle consumption validates positivity but does not demonstrably enforce freshness, round validity, or a bounded staleness policy.\nATTACK VECTOR: Wait for the external aggregator to stop updating or become stale, then borrow against collateral whose market value has fallen, withdraw or transfer assets using inflated free collateral, or acquire underpriced collateral through liquidation while the stale rate remains active.\nAFFECTED NODES: library_ExchangeRate, oracle_AggregatorV2V3Interface, library_FreeCollateral, library_FreeCollateralExternal, action_LiquidateCurrencyAction, library_LiquidationHelpers, library_LiquidateCurrency\nAFFECTED CODE: ExchangeRate oracle read, FreeCollateral collateral valuation, FreeCollateralExternal external collateral check, LiquidateCurrency liquidation calculations\nSEVERITY: high\nREASONING: The architecture explicitly connects ExchangeRate to the external aggregator and collateral valuation, and the aggregator observation mentions only a positive latest rate requirement. Because collateral checks and liquidation consume this valuation, stale-rate acceptance can directly affect financially sensitive operations. Exact source lines were not available in the loaded context.\nSUGGESTED MITIGATION: Require a complete and successful oracle round, reject zero or negative answers, enforce updatedAt/max-age and heartbeat checks, and fail closed when the feed is stale or incomplete. Consider conservative fallback pricing and circuit breakers for abnormal deviations.",
+      "vulnerability_type": "oracle_price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "library_ExchangeRate",
+        "oracle_AggregatorV2V3Interface",
+        "library_FreeCollateral",
+        "library_FreeCollateralExternal",
+        "action_LiquidateCurrencyAction",
+        "library_LiquidationHelpers",
+        "library_LiquidateCurrency"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly connects ExchangeRate to the external aggregator and collateral valuation, and the aggregator observation mentions only a positive latest rate requirement. Because collateral checks and liquidation consume this valuation, stale-rate acceptance can directly affect financially sensitive operations. Exact source lines were not available in the loaded context.",
+      "mitigation": "Require a complete and successful oracle round, reject zero or negative answers, enforce updatedAt/max-age and heartbeat checks, and fail closed when the feed is stale or incomplete. Consider conservative fallback pricing and circuit breakers for abnormal deviations.",
+      "finding_description": "ExchangeRate reads the AggregatorV2V3Interface for collateral valuation, while the available evidence only indicates a positive-rate check. There is no visible validation of updatedAt, round completeness, heartbeat, or maximum age before the rate is consumed by FreeCollateral and downstream liquidation paths. An attacker can transact while the oracle remains stale during market movement, causing assets to be overvalued for borrowing or undervalued for liquidation.",
+      "impact": "Accounts may obtain excess borrowing capacity or avoid liquidation, creating protocol bad debt; alternatively, liquidators may seize collateral at materially incorrect values and transfer losses to borrowers or the protocol.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/valuation/FreeCollateral.sol",
+          "contracts/external/FreeCollateralExternal.sol",
+          "contracts/internal/valuation/ExchangeRate.sol",
+          "contracts/external/actions/LiquidateCurrencyAction.sol",
+          "contracts/internal/liquidation/LiquidateCurrency.sol",
+          "contracts/internal/liquidation/LiquidationHelpers.sol",
+          "interfaces/chainlink/AggregatorV2V3Interface.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200812",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:10:55.531094",
+      "id": "hyp_edcfd0350bd4",
+      "qa_comment": "Upon reviewing ExchangeRate.buildExchangeRate in contracts/internal/valuation/ExchangeRate.sol, I confirmed that the oracle-consumption weakness is present. For non-ETH currencies, the function calls AggregatorV2V3Interface.latestRoundData() but discards the roundId, startedAt, updatedAt, and answeredInRound fields, validating only that the returned rate is greater than zero. No heartbeat, maximum-age, round-completeness, or answeredInRound consistency check is enforced. The resulting ETHRate is consumed by FreeCollateral.getFreeCollateralStateful, getFreeCollateralView, and getLiquidationFactors through _updateNetETHValue, and consequently affects checkFreeCollateralAndRevert, LiquidationHelpers.preLiquidationActions, and LiquidateCurrency liquidation pricing. Therefore, if the configured aggregator stops updating while its last positive answer is stale, the protocol continues valuing balances and calculating liquidation discounts and transfers using that obsolete price. The positivity check prevents zero or negative answers but does not mitigate stale data, so the hypothesis is not a false positive. Exploitability and impact depend on feed failure or halted updates and the configured oracle, but the missing freshness validation is clearly demonstrated."
+    },
+    "hyp_ac800e609e93": {
+      "title": "Single spot oracle value is trusted without an anti-manipulation bound across valuation-sensitive operations",
+      "description": "VULNERABILITY TYPE: oracle_price_manipulation\nROOT CAUSE: A single oracle answer is treated as authoritative for financially sensitive operations without an observable independent plausibility or deviation check.\nATTACK VECTOR: Cause or exploit an anomalous oracle update, or exploit a compromised/configured feed, then execute collateral-sensitive operations before governance or monitoring can disable the market. Overpricing collateral enables excess debt or withdrawals; underpricing enables discounted liquidations.\nAFFECTED NODES: library_ExchangeRate, oracle_AggregatorV2V3Interface, library_FreeCollateral, library_FreeCollateralExternal, action_LiquidateCurrencyAction, library_LiquidateCurrency\nAFFECTED CODE: ExchangeRate oracle read, FreeCollateral exchange-rate computation, LiquidateCurrency collateral liquidation\nSEVERITY: high\nREASONING: The graph confirms direct oracle-to-valuation flow but does not expose implementation details proving that deviation checks or circuit breakers are absent. This is a targeted verification hypothesis rather than a confirmed line-level finding.\nSUGGESTED MITIGATION: Add per-asset circuit breakers and bounded deviation checks against a recent trusted observation, a secondary oracle, or a time-weighted reference. Pause borrowing and liquidation when prices move beyond configured limits, and use conservative prices during fallback.",
+      "vulnerability_type": "oracle_price_manipulation",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "library_ExchangeRate",
+        "oracle_AggregatorV2V3Interface",
+        "library_FreeCollateral",
+        "library_FreeCollateralExternal",
+        "action_LiquidateCurrencyAction",
+        "library_LiquidateCurrency"
+      ],
+      "evidence": [],
+      "reasoning": "The graph confirms direct oracle-to-valuation flow but does not expose implementation details proving that deviation checks or circuit breakers are absent. This is a targeted verification hypothesis rather than a confirmed line-level finding.",
+      "mitigation": "Add per-asset circuit breakers and bounded deviation checks against a recent trusted observation, a secondary oracle, or a time-weighted reference. Pause borrowing and liquidation when prices move beyond configured limits, and use conservative prices during fallback.",
+      "finding_description": "The ExchangeRate library directly reads a single external price oracle and supplies the result to FreeCollateral. The available architecture does not show a deviation limiter, circuit breaker, medianization, or independent sanity bound before the value is used for collateral and liquidation calculations. A sudden erroneous or compromised feed update can therefore be immediately converted into borrowing capacity, withdrawals, or liquidation pricing.",
+      "impact": "A bad oracle update can cause rapid undercollateralized borrowing, protocol insolvency, or unfair liquidation of user positions at materially incorrect prices.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/valuation/FreeCollateral.sol",
+          "contracts/external/FreeCollateralExternal.sol",
+          "contracts/internal/valuation/ExchangeRate.sol",
+          "contracts/external/actions/LiquidateCurrencyAction.sol",
+          "contracts/internal/liquidation/LiquidateCurrency.sol",
+          "interfaces/chainlink/AggregatorV2V3Interface.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200812",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:11:02.375161",
+      "id": "hyp_ac800e609e93"
+    },
+    "hyp_530958dffc6e": {
+      "title": "Spot Market State Manipulation Can Distort Liquidation Pricing",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Liquidation valuation is coupled to mutable Market parameters, with no evidence in the loaded component of a TWAP, bounded reserve-change check, or other anti-manipulation protection for the market-derived price.\nATTACK VECTOR: Use capital or a flash loan to move the relevant market reserves or implied rate, invoke the permissionless liquidation path while the manipulated state is active, and unwind the market position afterward. The attacker may obtain excessive collateral or force liquidation at an unfair valuation.\nAFFECTED NODES: library_Market, market_MarketParameters, action_LiquidateCurrencyAction, library_LiquidateCurrency, library_LiquidationHelpers\nAFFECTED CODE: library_Market: market calculations, market_MarketParameters: packed market storage and liquidity-proportional arithmetic, action_LiquidateCurrencyAction: external liquidation entry, library_LiquidateCurrency: liquidation valuation and collateral withdrawal, library_LiquidationHelpers: liquidation calculations\nSEVERITY: high\nREASONING: The graph explicitly connects liquidation to Market-derived parameters and collateral writes, but the loaded observations do not show whether the market price is spot-based, whether liquidation uses an independent oracle, or whether slippage and reserve-change protections exist. This is therefore a focused hypothesis requiring source-level confirmation and is distinct from the existing external-oracle staleness and single-spot-oracle hypotheses.\nSUGGESTED MITIGATION: Use a manipulation-resistant valuation for liquidation, such as a validated time-weighted market price or independent oracle with bounded deviation checks. Enforce maximum reserve movement and minimum-output constraints across market operations, and ensure a single transaction cannot both materially move the valuation source and execute liquidation against that manipulated value.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "library_Market",
+        "market_MarketParameters",
+        "action_LiquidateCurrencyAction",
+        "library_LiquidateCurrency",
+        "library_LiquidationHelpers"
+      ],
+      "evidence": [],
+      "reasoning": "The graph explicitly connects liquidation to Market-derived parameters and collateral writes, but the loaded observations do not show whether the market price is spot-based, whether liquidation uses an independent oracle, or whether slippage and reserve-change protections exist. This is therefore a focused hypothesis requiring source-level confirmation and is distinct from the existing external-oracle staleness and single-spot-oracle hypotheses.",
+      "mitigation": "Use a manipulation-resistant valuation for liquidation, such as a validated time-weighted market price or independent oracle with bounded deviation checks. Enforce maximum reserve movement and minimum-output constraints across market operations, and ensure a single transaction cannot both materially move the valuation source and execute liquidation against that manipulated value.",
+      "finding_description": "Liquidation calculations depend on Market-derived parameters and write seized collateral or liquidity-token balances. If those parameters are derived from mutable AMM reserves or current market state without a manipulation-resistant reference price, an attacker can execute a large trade or liquidity operation immediately before liquidation, causing the liquidation calculation to use a temporarily distorted price.",
+      "impact": "A successful attack can over-seize borrower collateral, drain liquidity-token value, or create bad debt for the protocol and affected accounts.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/markets/Market.sol",
+          "contracts/external/actions/LiquidateCurrencyAction.sol",
+          "contracts/internal/liquidation/LiquidateCurrency.sol",
+          "contracts/internal/liquidation/LiquidationHelpers.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200812",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:12:48.068151",
+      "id": "hyp_530958dffc6e"
+    },
+    "hyp_641e2be6e388": {
+      "title": "Mutable Market State Can Manipulate nToken Mint or Redemption Value",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: nToken issuance and redemption are coupled to current Market-derived calculations, while the available component evidence does not show TWAP validation, independent oracle cross-checks, or bounded deviation protections for those calculations.\nATTACK VECTOR: Use a large trade, temporary liquidity operation, or flash liquidity to move the relevant market state, invoke nToken minting or redemption while the distorted parameters are active, and reverse the market operation afterward. The attacker profits if the manipulated conversion rate causes underpriced minting or overpriced redemption.\nAFFECTED NODES: action_nTokenMintAction, action_nTokenRedeemAction, library_Market, market_MarketParameters, token_nTokenERC20\nAFFECTED CODE: action_nTokenMintAction: calls Market calculations, action_nTokenRedeemAction: redemption and balance handling, library_Market: market calculations, market_MarketParameters: packed market storage and liquidity-proportional arithmetic, token_nTokenERC20: nToken supply and balances\nSEVERITY: high\nREASONING: The graph directly links nToken minting and redemption to Market calculations and nToken balance changes, establishing a price-sensitive path. However, source-level details are unavailable to confirm whether conversion values use mutable spot state or whether slippage, oracle, and reserve-change protections exist. This is distinct from the existing liquidation-pricing hypothesis because the affected operation is nToken issuance and redemption.\nSUGGESTED MITIGATION: Base nToken conversion amounts on a manipulation-resistant valuation, such as a validated time-weighted or independently oracle-checked rate. Enforce maximum deviation and minimum-output or maximum-input bounds, and prevent a transaction from materially changing the valuation state and using that changed state for minting or redemption.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "action_nTokenMintAction",
+        "action_nTokenRedeemAction",
+        "library_Market",
+        "market_MarketParameters",
+        "token_nTokenERC20"
+      ],
+      "evidence": [],
+      "reasoning": "The graph directly links nToken minting and redemption to Market calculations and nToken balance changes, establishing a price-sensitive path. However, source-level details are unavailable to confirm whether conversion values use mutable spot state or whether slippage, oracle, and reserve-change protections exist. This is distinct from the existing liquidation-pricing hypothesis because the affected operation is nToken issuance and redemption.",
+      "mitigation": "Base nToken conversion amounts on a manipulation-resistant valuation, such as a validated time-weighted or independently oracle-checked rate. Enforce maximum deviation and minimum-output or maximum-input bounds, and prevent a transaction from materially changing the valuation state and using that changed state for minting or redemption.",
+      "finding_description": "nToken minting and redemption both call Market calculations against packed MarketParameters. If the resulting token amounts or exchange rate are derived from immediately mutable liquidity, implied rates, or reserve state without a manipulation-resistant reference price or transaction-level bounds, an attacker can first distort the market state and then mint nTokens cheaply or redeem them for excessive underlying value.",
+      "impact": "A successful attack can dilute existing nToken holders, drain underlying liquidity from the protocol, or transfer value from other users through mispriced nToken issuance or redemption.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "interfaces/notional/nTokenERC20.sol",
+          "contracts/external/actions/nTokenMintAction.sol",
+          "contracts/internal/markets/Market.sol",
+          "contracts/external/actions/nTokenRedeemAction.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200812",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:13:08.549254",
+      "id": "hyp_641e2be6e388"
+    },
+    "hyp_816decd26ad5": {
+      "title": "Manipulable Asset-Rate Adapter Can Distort fCash Liquidation Exchange Rates",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: Liquidation pricing depends on an externally sourced asset rate without evidence of freshness, deviation, TWAP, or bounded-change validation in the fCash liquidation path.\nATTACK VECTOR: Manipulate the external cash-market or adapter exchange rate, then call the fCash liquidation entry point with a liquidation amount and cash limit that causes LiquidationHelpers to settle the position using the distorted rate.\nAFFECTED NODES: action_LiquidatefCashAction, library_LiquidatefCash, library_LiquidationHelpers, library_AssetRate, oracle_AssetRateAdapter, external_CashMarketInterface\nAFFECTED CODE: LiquidatefCashAction liquidation entry point, LiquidatefCash liquidation logic, LiquidationHelpers liquidation calculations, AssetRate external rate retrieval\nSEVERITY: high\nREASONING: The architecture explicitly connects fCash liquidation to LiquidatefCash and LiquidationHelpers, and separately identifies AssetRateAdapter as an external rate source. The available evidence does not show rate freshness, manipulation resistance, or bounds in this path; the hypothesis should be confirmed by tracing the exact adapter implementation and the rate used by the liquidation calculation.\nSUGGESTED MITIGATION: Use a manipulation-resistant, bounded asset-rate source for liquidation, such as a validated TWAP or signed rate with freshness and deviation checks; reject rates outside configured bounds and add liquidation slippage limits based on independently verified valuation.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "action_LiquidatefCashAction",
+        "library_LiquidatefCash",
+        "library_LiquidationHelpers",
+        "library_AssetRate",
+        "oracle_AssetRateAdapter",
+        "external_CashMarketInterface"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly connects fCash liquidation to LiquidatefCash and LiquidationHelpers, and separately identifies AssetRateAdapter as an external rate source. The available evidence does not show rate freshness, manipulation resistance, or bounds in this path; the hypothesis should be confirmed by tracing the exact adapter implementation and the rate used by the liquidation calculation.",
+      "mitigation": "Use a manipulation-resistant, bounded asset-rate source for liquidation, such as a validated TWAP or signed rate with freshness and deviation checks; reject rates outside configured bounds and add liquidation slippage limits based on independently verified valuation.",
+      "finding_description": "The fCash liquidation path delegates valuation and cash/fCash conversion to LiquidatefCash and LiquidationHelpers, while AssetRateAdapter obtains an external exchange rate and only the positivity of the rate is observed. If the adapter or its underlying cash-market rate can be moved by an attacker, the attacker can submit a liquidation while the distorted rate is active and receive excessive cash or acquire fCash at an artificially favorable price. This is distinct from the ExchangeRate/Aggregator collateral-valuation issue because it affects the liquidation conversion rate itself.",
+      "impact": "A liquidator may extract more cash or underpay for liquidated fCash, causing direct loss of the liquidated account's collateral and protocol insolvency if the distorted conversion is sufficiently large.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "interfaces/notional/AssetRateAdapter.sol",
+          "contracts/internal/markets/AssetRate.sol",
+          "contracts/external/actions/LiquidatefCashAction.sol",
+          "contracts/internal/liquidation/LiquidatefCash.sol",
+          "interfaces/notional/CashMarketInterface.sol",
+          "contracts/internal/liquidation/LiquidationHelpers.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200812",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:13:44.219458",
+      "id": "hyp_816decd26ad5"
+    },
+    "hyp_f2d0f4825202": {
+      "title": "Manipulable Asset-Rate Conversion Can Inflate or Deflate Settled Account Cash",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: Settlement performs financially consequential fCash-to-cash conversion using an externally sourced asset rate, but the loaded component evidence does not show validation of rate freshness, deviation, or consistency before balance and portfolio writes.\nATTACK VECTOR: Manipulate or induce a transiently favorable AssetRateAdapter/cash-market exchange rate, then call the permissionless external settlement entry point for an account containing unsettled portfolio fCash. The settlement records the manipulated conversion in AccountBalances and removes or updates the portfolio position.\nAFFECTED NODES: action_SettleAssetsExternal, library_SettlePortfolioAssets, library_AssetRate, oracle_AssetRateAdapter, external_CashMarketInterface, state_AccountBalances, portfolio_AccountPortfolio\nAFFECTED CODE: SettleAssetsExternal -> SettlePortfolioAssets -> asset-rate conversion -> AccountBalances/AccountPortfolio writes\nSEVERITY: high\nREASONING: The architecture explicitly identifies portfolio settlement as converting fCash at a rate and shows AssetRate consuming an external rate adapter/cash-market source, followed by balance and portfolio writes. Unlike a view-only valuation, settlement persists the result. The available graph does not establish that the rate is immutable, time-delayed, bounded, or cross-checked, so a manipulable adapter value is directly financially consequential. This is settlement-specific and distinct from the existing liquidation-rate hypothesis.\nSUGGESTED MITIGATION: Use a validated settlement rate with freshness and timestamp checks, enforce conservative deviation bounds against an independent reference or historical rate, and prevent settlement when the adapter rate is outside configured limits. Where protocol economics permit, settle matured fCash at a deterministic maturity value rather than a manipulable spot exchange rate.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "action_SettleAssetsExternal",
+        "library_SettlePortfolioAssets",
+        "library_AssetRate",
+        "oracle_AssetRateAdapter",
+        "external_CashMarketInterface",
+        "state_AccountBalances",
+        "portfolio_AccountPortfolio"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies portfolio settlement as converting fCash at a rate and shows AssetRate consuming an external rate adapter/cash-market source, followed by balance and portfolio writes. Unlike a view-only valuation, settlement persists the result. The available graph does not establish that the rate is immutable, time-delayed, bounded, or cross-checked, so a manipulable adapter value is directly financially consequential. This is settlement-specific and distinct from the existing liquidation-rate hypothesis.",
+      "mitigation": "Use a validated settlement rate with freshness and timestamp checks, enforce conservative deviation bounds against an independent reference or historical rate, and prevent settlement when the adapter rate is outside configured limits. Where protocol economics permit, settle matured fCash at a deterministic maturity value rather than a manipulable spot exchange rate.",
+      "finding_description": "SettleAssetsExternal delegates portfolio settlement to SettlePortfolioAssets, which converts fCash positions at an asset rate. The settlement path can therefore write account balances using an externally sourced AssetRateAdapter value without an evidenced freshness, bounds, or manipulation-resistance check. If the adapter or its underlying cash-market rate can be moved or returns an unfavorable transient value, a caller can trigger settlement while the rate is distorted and cause matured fCash to be converted into an excessive cash balance or an excessive debt.",
+      "impact": "An attacker may create excess cash credit or force an excessive debt realization during settlement, enabling withdrawal of unbacked funds or economically favorable account restructuring and imposing losses on the protocol or account counterparties.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "interfaces/notional/AssetRateAdapter.sol",
+          "contracts/internal/settlement/SettlePortfolioAssets.sol",
+          "contracts/internal/markets/AssetRate.sol",
+          "interfaces/notional/CashMarketInterface.sol",
+          "contracts/external/SettleAssetsExternal.sol",
+          "contracts/external/Views.sol",
+          "contracts/internal/portfolio/BitmapAssetsHandler.sol",
+          "contracts/internal/balances/BalanceHandler.sol",
+          "contracts/internal/portfolio/PortfolioHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200812",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:17:22.682116",
+      "id": "hyp_f2d0f4825202"
+    }
+  },
+  "metadata": {
+    "total": 6,
+    "confirmed": 1,
+    "last_modified": "2026-10-12T20:17:22.683129"
+  }
+}

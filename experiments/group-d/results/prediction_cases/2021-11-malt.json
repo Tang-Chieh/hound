@@ -1,0 +1,24 @@
+{
+  "repo_id": "2021-11-malt",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_36d029b59fa9",
+      "title": "Reward reinvestment is vulnerable to spot-price sandwich manipulation",
+      "description": "RewardReinvestor sends withdrawn reward tokens through IDexHandler.buyMalt(), while UniswapHandler.buyMalt() performs a router swap with amountOutMin set to zero. An attacker can front-run a public reinvestment transaction, temporarily skew the reward/Malt pool reserves, allow the reinvestor to execute at a severely unfavorable spot price, and then back-run to restore the pool. Because no minimum Malt output is enforced, the transaction can succeed while converting the user's rewards into materially less Malt than expected.",
+      "impact": "A user can lose most of the economic value of withdrawn rewards while receiving and bonding an attacker-manipulated, substantially smaller Malt amount; the attacker captures the difference through sandwich arbitrage.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/DexHandlers/UniswapHandler.sol",
+          "contract": "UniswapHandler",
+          "function": "buyMalt()"
+        }
+      ],
+      "mitigation": "Require the reinvestment caller to supply a minimum acceptable Malt output and deadline, propagate that bound into the router swap, and revert when it is not met. Prefer a manipulation-resistant TWAP or oracle-derived bound for any system-level validation, and avoid calculating protection solely from the current pool reserves.",
+      "severity": "high"
+    }
+  ]
+}

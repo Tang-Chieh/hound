@@ -1,0 +1,51 @@
+{
+  "repo_id": "2024-03-abracadabra-money",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_0cdad7952348",
+      "title": "Unbounded LTV configuration can create undercollateralized borrowing",
+      "description": "getCauldronParameters converts ltvBips to the Cauldron collateralization parameter without enforcing an upper bound. Values above 10,000 bips encode a collateralization rate above 100%, allowing the deployed market to value collateral at more than its configured economic limit when calculating borrow capacity.",
+      "impact": "Borrowers can extract more stablecoins than the collateral can repay, leaving the Cauldron and BentoBox with bad debt when collateral is liquidated at its actual market value.",
+      "vulnerable_code": [
+        {
+          "file": "utils/CauldronDeployLib.sol",
+          "contract": "CauldronDeployLib",
+          "function": "getCauldronParameters"
+        }
+      ],
+      "mitigation": "Require ltvBips <= 10_000 and enforce protocol-specific maximum LTV bounds before encoding parameters; validate the resulting Cauldron collateralization rate after deployment and block activation when it exceeds approved limits.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_a547184c8f23",
+      "title": "Owner-controlled ProxyOracle implementation enables instant price substitution",
+      "description": "ProxyOracle delegates oracle pricing to a replaceable implementation controlled by a single owner. If that owner is compromised, coerced, or malicious, it can atomically replace the implementation with one returning attacker-favorable prices, without an observed timelock, governance delay, or downstream circuit breaker. Cauldron exchange-rate updates and liquidation decisions consume the resulting prices.",
+      "impact": "The attacker can cause Cauldron to record false exchange rates, obtain undercollateralized loans, or trigger unfair liquidations, potentially draining collateral and lending assets.",
+      "vulnerable_code": [],
+      "mitigation": "Protect implementation changes with a timelock and multisignature governance, emit and monitor implementation-change events, require the replacement to satisfy an oracle interface and nonzero contract-code checks, and add downstream deviation bounds, circuit breakers, and delayed activation for materially different prices.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_108b416c2bac",
+      "title": "Oracle failure preserves stale exchange rates for borrowing and liquidation",
+      "description": "The Cauldron exchange-rate path caches the previous oracle rate and retains it when the oracle update fails. Borrowing, solvency checks, and liquidation then continue using an obsolete valuation rather than reverting or applying a bounded fallback. An attacker who can induce oracle failure or exploit a temporarily unavailable/manipulated source can transact while collateral is materially overvalued or debt is under-collateralized.",
+      "impact": "The attacker may borrow more than the collateral is worth or prevent timely liquidation, leaving bad debt and causing losses to lenders and the protocol.",
+      "vulnerable_code": [],
+      "mitigation": "Fail closed when an exchange-rate update fails, or enforce a maximum rate age and deviation bounds before allowing borrowing or liquidation. Consider pausing credit-sensitive operations until a fresh, independently validated price is available.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_38e58ce51876",
+      "title": "Spot-reserve MagicLP aggregator price can be manipulated before Cauldron valuation",
+      "description": "MagicLpAggregator derives the MagicLP token valuation from the pool's current reserve sum divided by total supply and only applies a minimum oracle price. The reserve state is affected by permissionless swaps, while no time-weighted or independently sourced price protection is evidenced. An attacker can trade against the pool to skew reserves immediately before a Cauldron oracle update, causing the aggregator and downstream ProxyOracle/Cauldron exchange rate to overvalue or undervalue collateral.",
+      "impact": "A borrower can temporarily inflate collateral value and borrow more than the collateral is worth, or force incorrect liquidation and acquire collateral at a manipulated valuation, producing bad debt or direct protocol loss.",
+      "vulnerable_code": [],
+      "mitigation": "Use a time-weighted and manipulation-resistant valuation for MagicLP, validate both underlying asset prices and pool state, impose bounded rate-change limits and liquidity/deviation checks, and reject oracle updates when reserve composition or price deviates materially from an independent reference.",
+      "severity": "high"
+    }
+  ]
+}

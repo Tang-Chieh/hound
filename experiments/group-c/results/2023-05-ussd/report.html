@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2023-05-ussd</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">USSD</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2023-05-ussd<br>
+                <strong>Date:</strong> October 12, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the USSD protocol, focusing on its collateral-backed minting, oracle-based valuation, Uniswap-assisted rebalancing, and administrative control mechanisms.</p>
+<p>The review covered the system architecture, including contract boundaries, end-to-end user and administrator flows, rebalancer operations, collateral configuration, oracle integrations, external token and protocol interactions, storage dependencies, and authorization boundaries.</p>
+<p>Our team identified multiple high- and critical-severity risks, including unauthorized rebalancer minting and burning, unrestricted simulation-oracle price updates, manipulation of permissionless spot-price rebalancing, unsafe oracle validation, and incorrect collateral-feed configuration. Additional logic, arithmetic, and deployment-configuration issues may cause rebalancing failures or materially incorrect collateral valuation. The overall security posture is high risk until privileged operations, oracle assumptions, swap execution, and configuration validation are strengthened.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The USSD contract is the primary upgradeable stablecoin component and implements the IUSSD interface. It maintains the configured collateral set, associated oracle references, collateral factors, the authorized rebalancer, and the Uniswap router address. Administrators holding STABLE_CONTROL_ROLE can initialize the system, add or remove collateral, configure the rebalancer, and set the swap router. Users invoke mintForToken, which calculates issuance using collateral balances and oracle-provided USD prices before transferring collateral and minting USSD.</p>
+<p>Collateral valuation flows through IStableOracle implementations. StableOracleWETH and StableOracleWBTC obtain values from Chainlink-style feeds, while StableOracleDAI and StableOracleWBGL use StaticOracle and Uniswap V3 TWAP-style quotations. SimOracle provides a mutable price source intended for simulation. The architecture relies on these oracle outputs in calculateMint, collateralFactor, and rebalancer valuation, making feed correctness, freshness, sign handling, deployment-specific addresses, and access control central to the protocol's solvency.</p>
+<p>USSDRebalancer implements IUSSDRebalancer and stores the configured Uniswap pool, USSD address, threshold, flutter ratios, and base asset. Its public rebalance function compares pool-derived valuation and supply proportions, then selects BuyUSSDSellCollateral or SellUSSDBuyCollateral. These operations call USSD minting or burning functions and route swaps through USSD.UniV3SwapInput, which in turn uses the configured Uniswap router. The rebalancer control role can change pool and strategy parameters, while USSD's configured rebalancer is intended to restrict swap execution.</p>
+<p>The Hound team identified security-sensitive weaknesses across these flows. Rebalancing uses current pool spot state and balances, permits public triggering, and executes swaps without meaningful minimum-output protection. The rebalancer-only mint and burn functions are not consistently protected, and the collateral exclusion check can permit unintended pool-leg swaps. Arithmetic underflow conditions can also make recovery branches revert. Oracle implementations lack robust freshness and signed-value validation; one WBTC implementation uses an ETH/USD feed, the DAI oracle has an unusable ETH dependency, and the simulation oracle permits arbitrary public price changes.</p>
+<p>StaticOracle provides pool preparation and weighted TWAP quotation functionality, but its specified-pool interface accepts pool addresses without demonstrating factory or token-pair validation, and its time-period preparation requires strict bounds and cardinality handling. Overall, the system's security depends heavily on administrator configuration and trusted external pricing, while several public or insufficiently constrained paths can affect supply, collateral accounting, trade execution, or protocol availability.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">9</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">1</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">5</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">3</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 0,1 189.28,48.40 Z" 
+                      fill="#dc3545" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L189.28,48.40 A100,100 0 1,1 38.40,175.00 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L38.40,175.00 A100,100 0 0,1 125.00,25.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">9</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #dc3545;"></div>
+                    <div class="legend-text">Critical</div>
+                    <div class="legend-count">1</div>
+                    <div style="color: #64738c; font-size: 12px;">(11.1%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">5</div>
+                    <div style="color: #64738c; font-size: 12px;">(55.6%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">3</div>
+                    <div style="color: #64738c; font-size: 12px;">(33.3%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding critical">
+                <span class="severity-badge severity-critical">critical</span>
+                <h3>Unrestricted SimOracle price setter allows arbitrary oracle-price manipulation</h3>
+                <div class="vulnerability-description">
+                    <p>This access control vulnerability allows any caller to set the price stored by SimOracle. The setPriceUSD() function directly writes the caller-supplied value to oracle storage without role-based authorization, governance approval, or other caller validation. The value is then exposed through getPriceUSD() to protocol integrations.</p>
+<p>An attacker can set an arbitrary price, invoke minting, collateral-factor, or rebalancing operations that consume the manipulated value, and then restore or change the price. This enables direct manipulation of collateral valuations, mint amounts, and buy or sell decisions, creating a critical risk of unauthorized issuance, reserve depletion, or extraction of protocol value. The issue is particularly severe if SimOracle is used in a production deployment.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the SimOracle contract, specifically the setPriceUSD() and getPriceUSD() functions, and the USSD contract's mintForToken(), calculateMint(), and collateralFactor() functions together with the USSDRebalancer contract's buyUSSD() and sellUSSD() functions</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the alleged access-control vulnerability in `SimOracle.setPriceUSD` at `ussd-contracts/contracts/oracles/SimOracle.sol`, I confirmed that the vulnerability clearly exists. The function assigns the caller-supplied `_price` directly to the public `price` storage variable and has no modifier, role check, owner check, or other authorization mechanism. Consequently, any address can replace the oracle value with zero, an inflated value, or any arbitrary number. `getPriceUSD` returns this mutable value without validation. The impact is exploitable where this oracle is configured in USSD collateral: `USSD.mintForToken` is publicly callable and uses `calculateMint`, which directly consumes the oracle price to determine minted supply; `collateralFactor` also uses it for accounting, while `USSDRebalancer` reads it during collateral valuation and rebalancing. Although USSD management functions use `STABLE_CONTROL_ROLE`, those protections do not restrict the separate oracle setter. The implementation comment identifies this as a simulation/test oracle, but no code prevents deployment or use in production. The hypothesis is therefore valid, subject to confirming deployment configuration.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Restrict setPriceUSD to a narrowly authorized governance or test-only role, or remove this oracle from production deployments. Enforce nonzero and protocol-specific bounds, and use a time-delayed, auditable update mechanism where mutable simulation pricing is required.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/oracles/SimOracle.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 15-21</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>15
+16
+17
+18
+19
+20
+21</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function getPriceUSD() override external view returns (uint256) {
+    return price;
+}
+
+function setPriceUSD(uint256 _price) public {
+    price = _price;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The oracle exposes the stored price and allows any caller to overwrite it through setPriceUSD(), which has no access-control modifier or caller validation.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSD.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 170-178</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>170
+171
+172
+173
+174
+175
+176
+177</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function calculateMint(address _token, uint256 _amount) public view returns (uint256 stableCoinAmount) {
+    uint256 assetPrice = collateral[getCollateralIndex(_token)].oracle.getPriceUSD();
+    return (((assetPrice * _amount) / 1e18) * (10 ** decimals())) / (10 ** IERC20MetadataUpgradeable(_token).decimals());
+}
+
+/*//////////////////////////////////////////////////////////////
+                     ACCOUNTING LOGIC
+//////////////////////////////////////////////////////////////*/</code></pre></div>
+            </div>
+            <div class="code-explanation">USSD mint calculations directly consume the SimOracle price, so an attacker-controlled oracle value can inflate or otherwise manipulate the amount of stablecoin minted.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Permissionless rebalancing is manipulable through the Uniswap V3 spot price and pool balances</h3>
+                <div class="vulnerability-description">
+                    <p>This economic manipulation vulnerability arises because the rebalancer relies on manipulable Uniswap V3 spot state and permits unrestricted execution without sufficient price protections. The valuation and supply-proportion calculations use the pool's current price and token balances, while the rebalance operation can be called publicly. The associated swaps also set the minimum output to zero, allowing execution at any price returned by the pool.</p>
+<p>An attacker can use a flash loan or large temporary swaps or transfers to distort the pool price or balances, invoke rebalance() while the manipulated state is active, and then unwind the manipulation. This can cause the rebalancer to trade at materially unfavorable prices, transfer value to the attacker through arbitrage, or reduce protocol reserves. The risk is amplified by the absence of a TWAP, slippage limits, execution deadlines, or authorized keeper controls.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the USSDRebalancer contract, specifically the rebalance(), getOwnValuation(), and getSupplyProportion() functions, and the USSD contract's UniV3SwapInput() function</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing USSDRebalancer.rebalance, getOwnValuation, getSupplyProportion, and USSD.UniV3SwapInput, I confirmed that the alleged economic-manipulation vulnerability is exploitable. rebalance() is public and derives its decision from uniPool.slot0() through getOwnValuation(), making the trigger dependent on the current Uniswap V3 spot price rather than a TWAP or independent oracle. It also reads token balances directly from the pool in getSupplyProportion(), which reflect temporary swap state and can be affected during an atomic transaction. Once the manipulated state crosses the threshold, rebalance() executes asset conversions using UniV3SwapInput(), whose router parameters set amountOutMinimum to zero and leave the deadline commented out. Consequently, an attacker can temporarily move the pool price with a large swap or flash-loan-funded transaction, invoke rebalance, and allow the rebalancer to trade at an adverse price before unwinding the manipulation. No caller restriction, slippage validation, price-observation delay, or post-trade invariant prevents this path. Arithmetic checks may cause some manipulated calls to revert, but they do not mitigate unfavorable executable trades.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Use a sufficiently long TWAP or independently validated oracle for the trigger and sizing, validate pool liquidity/state, impose nonzero minimum outputs and deadlines, and restrict execution to an authorized keeper or enforce a commit/validation mechanism.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSDRebalancer.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 92-108</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function rebalance() override public {
+  uint256 ownval = getOwnValuation();
+  (uint256 USSDamount, uint256 DAIamount) = getSupplyProportion();
+  if (ownval &lt; 1e6 - threshold) {
+    // peg-down recovery
+    BuyUSSDSellCollateral((USSDamount - DAIamount / 1e12)/2);
+  } else if (ownval &gt; 1e6 + threshold) {
+    // mint and buy collateral
+    // never sell too much USSD for DAI so it &#39;overshoots&#39; (becomes more in quantity than DAI on the pool)
+    // otherwise could be arbitraged through mint/redeem
+    // the execution difference due to fee should be taken into accounting too
+    // take 1% safety margin (estimated as 2 x 0.5% fee)
+    IUSSD(USSD).mintRebalancer(((DAIamount / 1e12 - USSDamount)/2) * 99 / 100); // mint ourselves amount till balance recover
+    SellUSSDBuyCollateral();
+  }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">rebalance() is publicly callable without keeper or authorization controls, and it bases trading decisions on the current Uniswap V3 spot valuation and pool token balances before executing corrective trades.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSD.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 227-241</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function UniV3SwapInput(
+    bytes memory _path,
+    uint256 _sellAmount
+) public override onlyBalancer {
+    IV3SwapRouter.ExactInputParams memory params = IV3SwapRouter
+        .ExactInputParams({
+            path: _path,
+            recipient: address(this),
+            //deadline: block.timestamp,
+            amountIn: _sellAmount,
+            amountOutMinimum: 0
+        });
+    uniRouter.exactInput(params);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The swap wrapper executes Uniswap V3 trades with amountOutMinimum set to zero and no deadline, allowing swaps initiated during rebalance to execute at any manipulated or otherwise unfavorable price.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Peg-down rebalance can revert from unsigned subtraction underflow</h3>
+                <div class="vulnerability-description">
+                    <p>This denial-of-service vulnerability is caused by unchecked unsigned subtraction in the rebalancer's trade-sizing and threshold calculations. In the peg-down branch, the code subtracts one pool balance from another without first confirming that the minuend is greater than or equal to the subtrahend. The configured threshold is also stored without an upper-bound check, allowing values greater than 1e6 to produce an invalid subtraction during threshold evaluation.</p>
+<p>An attacker or unfavorable pool state can cause the DAI balance to exceed the USSD balance while the valuation remains below the peg, triggering a uint256 underflow and reverting rebalance(). Similarly, an improperly configured threshold can make the function revert whenever it is evaluated. Because rebalancing depends on this function, the issue can prevent corrective operations and create a denial of service until the pool state or configuration changes.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the USSDRebalancer contract, specifically the rebalance() and setTreshold() functions, and the rebalancer configuration storage</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the rebalance() and setTreshold() implementations in USSDRebalancer.sol, I confirmed that the alleged denial-of-service vulnerability exists. In the peg-down branch, rebalance() evaluates (USSDamount - DAIamount / 1e12) / 2 without checking that the normalized USSD balance is at least the DAI balance. Because Solidity 0.8.6 reverts on underflow, any below-peg state with DAIamount / 1e12 greater than USSDamount causes rebalance() to fail before BuyUSSDSellCollateral() executes. The balance relation is not enforced by getSupplyProportion(), and an attacker can influence pool balances through permissionless token transfers or swaps, while rebalance() itself is publicly callable. Additionally, the condition ownval &lt; 1e6 - threshold reverts when threshold exceeds 1e6, and setTreshold() imposes no upper bound. That configuration path is role-restricted, so it requires a privileged or compromised control account, but it remains an unmitigated permanent failure mode. No guards or clamping logic prevent either underflow.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Clamp trade sizes when the balance difference is negative, branch explicitly on the balance relation, and require threshold &lt;= 1e6 in setTreshold before storing it.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSDRebalancer.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 92-108</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function rebalance() override public {
+  uint256 ownval = getOwnValuation();
+  (uint256 USSDamount, uint256 DAIamount) = getSupplyProportion();
+  if (ownval &lt; 1e6 - threshold) {
+    // peg-down recovery
+    BuyUSSDSellCollateral((USSDamount - DAIamount / 1e12)/2);
+  } else if (ownval &gt; 1e6 + threshold) {
+    // mint and buy collateral
+    // never sell too much USSD for DAI so it &#39;overshoots&#39; (becomes more in quantity than DAI on the pool)
+    // otherwise could be arbitraged through mint/redeem
+    // the execution difference due to fee should be taken into accounting too
+    // take 1% safety margin (estimated as 2 x 0.5% fee)
+    IUSSD(USSD).mintRebalancer(((DAIamount / 1e12 - USSDamount)/2) * 99 / 100); // mint ourselves amount till balance recover
+    SellUSSDBuyCollateral();
+  }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The peg-down branch evaluates `1e6 - threshold` without enforcing an upper bound on `threshold`, and then performs `USSDamount - DAIamount / 1e12` without confirming the USSD balance is sufficient. Either subtraction can underflow and revert `rebalance()`.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Unrestricted mintRebalancer and burnRebalancer permit unauthorized supply manipulation</h3>
+                <div class="vulnerability-description">
+                    <p>This access control vulnerability allows any external caller to invoke the sensitive mintRebalancer() and burnRebalancer() functions. Although the USSD contract defines an onlyBalancer authorization mechanism, these functions do not enforce it or otherwise verify that the caller is the configured rebalancer.</p>
+<p>An attacker can mint tokens directly, alter total supply and contract-held balances, or burn balances repeatedly to disrupt the assumptions used by rebalancing and collateral accounting. These unauthorized supply changes can distort the protocol's valuation and supply ratios, interfere with legitimate rebalance operations, and potentially extract value from the system.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the USSD contract, specifically the mintRebalancer() and burnRebalancer() functions, the configured rebalancer storage, and the USSDRebalancer contract's rebalance() function</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the rebalancer functions in ussd-contracts/contracts/USSD.sol, I confirmed an access-control vulnerability. The externally callable mintRebalancer(uint256) and burnRebalancer(uint256) functions invoke _mint(address(this), amount) and _burn(address(this), amount) without applying the contract’s existing onlyBalancer modifier or any equivalent authorization check. Consequently, any address can arbitrarily increase totalSupply by minting tokens to the USSD contract, and can burn any tokens currently held by the contract, subject only to the balance requirement enforced internally by _burn. The onlyBalancer modifier, defined immediately afterward, restricts msg.sender to address(rebalancer), but it is used only on UniV3SwapInput and does not protect either supply-management function. The configured rebalancer calls these functions during rebalance(), demonstrating that they are intended for privileged internal operation. Unauthorized minting can materially distort totalSupply and collateralFactor accounting and affect subsequent rebalancing decisions, while unauthorized burning can destroy contract-held supply. No other guard in the shown implementation prevents direct invocation.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Apply onlyBalancer to both functions, or use an explicit role restricted to the configured rebalancer; reject zero or invalid rebalancer addresses during configuration.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSD.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 204-216</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function mintRebalancer(uint256 amount) public override {
+    _mint(address(this), amount);
+}
+
+function burnRebalancer(uint256 amount) public override {
+    _burn(address(this), amount);
+}
+
+modifier onlyBalancer() {
+    require(msg.sender == address(rebalancer), &quot;bal&quot;);
+    _;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">mintRebalancer() and burnRebalancer() directly change the contract&#39;s token supply and balance without applying the defined onlyBalancer modifier; the modifier appears immediately afterward but is not attached to either function.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSDRebalancer.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 92-108</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function rebalance() override public {
+  uint256 ownval = getOwnValuation();
+  (uint256 USSDamount, uint256 DAIamount) = getSupplyProportion();
+  if (ownval &lt; 1e6 - threshold) {
+    // peg-down recovery
+    BuyUSSDSellCollateral((USSDamount - DAIamount / 1e12)/2);
+  } else if (ownval &gt; 1e6 + threshold) {
+    // mint and buy collateral
+    // never sell too much USSD for DAI so it &#39;overshoots&#39; (becomes more in quantity than DAI on the pool)
+    // otherwise could be arbitraged through mint/redeem
+    // the execution difference due to fee should be taken into accounting too
+    // take 1% safety margin (estimated as 2 x 0.5% fee)
+    IUSSD(USSD).mintRebalancer(((DAIamount / 1e12 - USSDamount)/2) * 99 / 100); // mint ourselves amount till balance recover
+    SellUSSDBuyCollateral();
+  }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The intended rebalancing flow invokes mintRebalancer() when the pool is above the target valuation, demonstrating that these sensitive operations are expected to be called by the configured rebalancer rather than arbitrary external callers.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Oracle implementations accept invalid or unavailable prices</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle validation vulnerability allows invalid, stale, or unavailable feed data to be consumed as collateral prices. The oracle implementations cast signed Chainlink answers directly to uint256 without requiring a positive value, discard round and timestamp metadata, and do not enforce a maximum data age. In addition, the DAI oracle's ETH oracle dependency is assigned to the zero address and cannot be configured through a constructor or setter.</p>
+<p>A stale, negative, incomplete, or otherwise invalid feed response can therefore affect minting, collateral valuation, and rebalancing. Configuring DAI collateral with the affected implementation may also cause price retrieval to fail or produce unusable results. These conditions can lead to incorrect collateralization, under- or over-minting, failed rebalancing, or loss of protocol funds.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the StableOracleWETH, StableOracleWBTC, and StableOracleDAI contracts, specifically their getPriceUSD() functions, as well as the USSD contract's calculateMint() function and the USSDRebalancer contract's rebalance() function</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the oracle contracts and their consumers, I confirmed a real oracle-validation vulnerability. StableOracleWETH.getPriceUSD and StableOracleWBTC.getPriceUSD call latestRoundData() but discard roundId, updatedAt, and answeredInRound, perform no positive-price or staleness checks, and directly cast int256 price to uint256. A negative feed value therefore becomes an extremely large unsigned price, while an old but otherwise valid round remains usable. These values flow into USSD.calculateMint(), which is called by mintForToken(), and into collateralFactor() and USSDRebalancer.rebalance(), with no additional validation or freshness guard. Consequently, a stale or invalid feed can distort minting, collateral accounting, and rebalancing. StableOracleDAI additionally initializes ethOracle to the zero address and provides no setter or constructor injection; any getPriceUSD() call reaches ethOracle.getPriceUSD() and reverts, making DAI collateral configuration unusable and potentially causing denial of service in accounting or rebalancing paths. Although exploitation depends on feed state or collateral configuration, the source clearly lacks the stated safeguards.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require price &gt; 0, validate updatedAt and answeredInRound against the current round, enforce a maximum staleness bound, and inject and validate a nonzero ETH oracle before enabling the collateral.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/oracles/StableOracleDAI.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 33-50</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">function getPriceUSD() external view override returns (uint256) {
+    address[] memory pools = new address[](1);
+    pools[0] = 0x60594a405d53811d3BC4766596EFD80fd545A270;
+    uint256 DAIWethPrice = DAIEthOracle.quoteSpecificPoolsWithTimePeriod(
+        1000000000000000000, // 1 Eth
+        0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, // WETH (base token)
+        0x6B175474E89094C44Da98b954EedeAC495271d0F, // DAI (quote token)
+        pools, // DAI/WETH pool uni v3
+        600 // period
+    );
+
+    uint256 wethPriceUSD = ethOracle.getPriceUSD();
+
+    // chainlink price data is 8 decimals for WETH/USD, so multiply by 10 decimals to get 18 decimal fractional
+    //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeedDAIETH.latestRoundData();
+    (, int256 price, , , ) = priceFeedDAIETH.latestRoundData();
+
+    return</code></pre></div>
+            </div>
+            <div class="code-explanation">The DAI price path calls the ETH oracle without validating its availability, reads Chainlink latestRoundData without checking round completeness or freshness, and directly casts the signed answer to uint256.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSD.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 170-178</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>170
+171
+172
+173
+174
+175
+176
+177</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function calculateMint(address _token, uint256 _amount) public view returns (uint256 stableCoinAmount) {
+    uint256 assetPrice = collateral[getCollateralIndex(_token)].oracle.getPriceUSD();
+    return (((assetPrice * _amount) / 1e18) * (10 ** decimals())) / (10 ** IERC20MetadataUpgradeable(_token).decimals());
+}
+
+/*//////////////////////////////////////////////////////////////
+                     ACCOUNTING LOGIC
+//////////////////////////////////////////////////////////////*/</code></pre></div>
+            </div>
+            <div class="code-explanation">Mint valuation directly consumes getPriceUSD() and uses the returned value to determine how much USSD to mint, with no additional validation of the oracle result.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>StableOracleWBTC uses the ETH/USD Chainlink feed instead of BTC/USD</h3>
+                <div class="vulnerability-description">
+                    <p>This configuration error causes the StableOracleWBTC contract to use an ETH/USD Chainlink feed as the price source for WBTC. The hardcoded feed address conflicts with the expected BTC/USD feed, so the value returned by getPriceUSD() does not represent the collateral asset being priced.</p>
+<p>When WBTC is supplied as collateral, minting and collateral accounting consume the ETH price as though it were the WBTC price. Differences between ETH and BTC market prices can therefore produce materially incorrect collateral valuations, allowing users to mint more or less USSD than intended and potentially extract value from the protocol.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the StableOracleWBTC contract, specifically its constructor and getPriceUSD() function, and the USSD contract's mintForToken() and calculateMint() functions</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing StableOracleWBTC.sol, I confirmed the configuration error is present and can affect collateral valuation. The constructor assigns priceFeed to 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419, the Ethereum mainnet Chainlink ETH/USD feed, while the source comment identifies 0xf4030086522a5beea4988f8ca5b36dbc97bee88c as the intended BTC/USD feed. getPriceUSD() calls latestRoundData() on the configured feed and scales its eight-decimal result by 1e10, thereby exposing the ETH/USD price as the WBTC/USD price. In USSD.sol, calculateMint() uses this oracle value directly to determine minted USSD for deposited collateral, and collateralFactor() uses it for total collateral accounting. Although addCollateral() is restricted to STABLE_CONTROL_ROLE, there is no validation that the oracle reports BTC/USD, and authorization only controls configuration; it does not correct the hardcoded feed. Consequently, whenever this oracle is registered for WBTC, users can mint or benefit from accounting based on the divergence between ETH and BTC prices. The issue is therefore exploitable under the stated deployment/configuration conditions.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Use the verified BTC/USD feed address for the target deployment, inject the feed address through a controlled constructor parameter, and validate that the configured feed&#39;s description, decimals, and network match BTC/USD before enabling the collateral.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/oracles/StableOracleWBTC.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 21-28</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-10').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>21
+22
+23
+24
+25
+26
+27</pre></div>
+                <div class="code-content"><pre id="code-block-10"><code class="language-solidity">    function getPriceUSD() external view override returns (uint256) {
+        //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeed.latestRoundData();
+        (, int256 price, , , ) = priceFeed.latestRoundData();
+        // chainlink price data is 8 decimals for WETH/USD
+        return uint256(price) * 1e10;
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The WBTC oracle returns the configured Chainlink feed value and explicitly treats the data as WETH/USD, demonstrating that the price returned for WBTC is using ETH-oriented feed assumptions.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSD.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 170-178</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-11').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>170
+171
+172
+173
+174
+175
+176
+177</pre></div>
+                <div class="code-content"><pre id="code-block-11"><code class="language-solidity">function calculateMint(address _token, uint256 _amount) public view returns (uint256 stableCoinAmount) {
+    uint256 assetPrice = collateral[getCollateralIndex(_token)].oracle.getPriceUSD();
+    return (((assetPrice * _amount) / 1e18) * (10 ** decimals())) / (10 ** IERC20MetadataUpgradeable(_token).decimals());
+}
+
+/*//////////////////////////////////////////////////////////////
+                     ACCOUNTING LOGIC
+//////////////////////////////////////////////////////////////*/</code></pre></div>
+            </div>
+            <div class="code-explanation">Mint valuation directly consumes the collateral oracle&#39;s getPriceUSD() result, so an incorrect WBTC feed causes users to receive an incorrect amount of USSD.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Collateral exclusion check is always true and can swap pool base assets incorrectly</h3>
+                <div class="vulnerability-description">
+                    <p>This logic error causes the collateral exclusion check to evaluate as true for every token when determining whether a collateral asset should be swapped. The condition uses token != token0 || token != token1, although excluding an asset that matches either pool leg requires both inequalities to be true. For distinct token0 and token1 addresses, at least one inequality is always true, including when the collateral token equals token0 or token1.</p>
+<p>When the over-peg rebalancing path processes a pool-leg asset, the rebalancer may execute an unintended pathbuy operation involving an asset that should have been excluded. This can result in an invalid or self-referential swap, cause rebalancing to revert, or spend newly acquired base assets through an unintended route, potentially causing reserve loss or denial of service.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the USSDRebalancer contract, specifically the SellUSSDBuyCollateral() function, and the USSD contract's UniV3SwapInput() function</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing USSDRebalancer.sol, I confirmed the reported logic error in SellUSSDBuyCollateral. For each underweight collateral, the exclusion check uses `collateral[i].token != uniPool.token0() || collateral[i].token != uniPool.token1()`. Because a Uniswap V3 pool has distinct token addresses, this expression is always true: a token matching token0 differs from token1, and a token matching token1 differs from token0. Consequently, the function invokes `IUSSD(USSD).UniV3SwapInput(collateral[i].pathbuy, daibought/portions)` even when the collateral token is a pool leg that the comment explicitly says must not be touched. A misconfigured collateral entry for USSD, the base asset, or another pool-leg address can therefore cause the rebalancer to execute an unintended route during the public rebalance() over-peg branch. UniV3SwapInput only restricts callers to the configured rebalancer and performs no path or token validation, so it does not mitigate the issue. Adding collateral requires STABLE_CONTROL_ROLE, meaning exploitation depends on privileged misconfiguration, but the faulty guard is real and operationally exploitable thereafter.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Replace the condition with token != uniPool.token0() &amp;&amp; token != uniPool.token1(), validate every configured path against its input/output tokens, and skip or explicitly handle pool-leg collateral.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSDRebalancer.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 194-207</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-12').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206</pre></div>
+                <div class="code-content"><pre id="code-block-12"><code class="language-solidity">      }
+
+      for (uint256 i = 0; i &lt; collateral.length; i++) {
+        uint256 collateralval = IERC20Upgradeable(collateral[i].token).balanceOf(USSD) * 1e18 / (10**IERC20MetadataUpgradeable(collateral[i].token).decimals()) * collateral[i].oracle.getPriceUSD() / 1e18;
+        if (collateralval * 1e18 / ownval &lt; collateral[i].ratios[flutter]) {
+          if (collateral[i].token != uniPool.token0() || collateral[i].token != uniPool.token1()) {
+            // don&#39;t touch DAI if it&#39;s needed to be bought (it&#39;s already bought)
+            IUSSD(USSD).UniV3SwapInput(collateral[i].pathbuy, daibought/portions);
+          }
+        }
+      }
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">In SellUSSDBuyCollateral, the exclusion condition uses ||, so a collateral token matching either pool leg still satisfies the condition and its pathbuy route is executed.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>"description": "SellUSSDBuyCollateral intends to avoid swapping collateral tokens that are already the pool legs, but uses if (token != token0</h3>
+                <div class="vulnerability-description">
+                    <p>This logic error causes the collateral exclusion condition to accept every token, including assets that are already the configured pool legs. The condition token != token0 || token != token1 should use an AND operator to exclude a token matching either pool-leg address. Because at least one inequality remains true for every token, the intended exclusion is never enforced.</p>
+<p>If a collateral entry corresponds to token0, token1, or another base asset used by the pool, the rebalancer may execute an unintended pathbuy operation during the over-peg flow. This can produce an invalid or self-referential swap, cause rebalancing or mint-related accounting to revert, or spend newly acquired base assets through an unintended route, resulting in denial of service or reserve loss.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the USSDRebalancer contract's rebalance() and SellUSSDBuyCollateral() functions, the USSD contract's mintRebalancer() and UniV3SwapInput() functions, and the related collateral accounting and flutterRatios state</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing SellUSSDBuyCollateral in USSDRebalancer.sol and UniV3SwapInput in USSD.sol, I confirmed the reported logic error. The exclusion check `if (collateral[i].token != uniPool.token0() || collateral[i].token != uniPool.token1())` is always true because a Uniswap V3 pool has distinct token0 and token1: if the collateral equals token0, it differs from token1, and vice versa; any other token differs from both. Consequently, when a collateral entry is below its configured ratio, the rebalancer always calls `UniV3SwapInput(collateral[i].pathbuy, daibought / portions)`, including for pool-leg collateral or the base asset that the preceding swap already acquired. `UniV3SwapInput` only checks that the caller is the configured rebalancer and provides no validation that the path is appropriate for the collateral, so no downstream guard mitigates this condition. Since `rebalance()` is publicly callable and invokes this branch during over-peg recovery, a suitably configured collateral entry can make rebalancing revert through an invalid or empty route, or execute an unintended swap. The impact is configuration-dependent but the vulnerability is present.</span>
+                </div>
+                
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/USSDRebalancer.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 163-180</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-13').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180</pre></div>
+                <div class="code-content"><pre id="code-block-13"><code class="language-solidity">function SellUSSDBuyCollateral() internal {
+  uint256 amount = IUSSD(USSD).balanceOf(USSD);
+  // sell for DAI then swap by DAI routes
+  uint256 daibought = 0;
+  if (uniPool.token0() == USSD) {
+    daibought = IERC20Upgradeable(baseAsset).balanceOf(USSD);
+    IUSSD(USSD).UniV3SwapInput(bytes.concat(abi.encodePacked(uniPool.token0(), hex&quot;0001f4&quot;, uniPool.token1())), amount);
+    daibought = IERC20Upgradeable(baseAsset).balanceOf(USSD) - daibought; // would revert if not bought
+  } else {
+    daibought = IERC20Upgradeable(baseAsset).balanceOf(USSD);
+    IUSSD(USSD).UniV3SwapInput(bytes.concat(abi.encodePacked(uniPool.token1(), hex&quot;0001f4&quot;, uniPool.token0())), amount);
+    daibought = IERC20Upgradeable(baseAsset).balanceOf(USSD) - daibought; // would revert if not bought
+  }
+
+  // total collateral portions
+  uint256 cf = IUSSD(USSD).collateralFactor();
+  uint256 flutter = 0;
+  for (flutter = 0; flutter &lt; flutterRatios.length; flutter++) {</code></pre></div>
+            </div>
+            <div class="code-explanation">This target function implements the over-peg sell-USSD/buy-collateral flow. It first swaps USSD for the pool&#39;s other leg and records the acquired base-asset amount, which is later distributed through collateral buy paths; the flawed collateral-leg exclusion occurs later in this same function.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Network-specific hardcoded Chainlink feed can invalidate WETH pricing on non-mainnet deployments</h3>
+                <div class="vulnerability-description">
+                    <p>This configuration error hardcodes a network-specific Chainlink feed address in StableOracleWETH without allowing the feed to be supplied, selected, or validated for the deployment network. The address may identify the intended WETH/USD feed on one network but may be absent, incompatible, or associated with a different asset on another network. The implementation also lacks deployment-time code and interface validation.</p>
+<p>When the contract is deployed on an unsupported network, WETH pricing can fail or consume data from an incorrect or potentially malicious contract at the hardcoded address. This affects USSD minting, collateral valuation, and other operations that rely on the WETH price, even if the response itself is structurally valid.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the StableOracleWETH contract, specifically its constructor and getPriceUSD() function</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the StableOracleWETH constructor and getPriceUSD function in StableOracleWETH.sol, I confirmed the configuration vulnerability. The constructor unconditionally assigns the Chainlink feed address 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419, which is a mainnet-specific WETH/USD proxy, without accepting a deployment-time parameter or selecting an address based on chain ID. The address is stored internally and there is no setter, administrative correction mechanism, code-existence check, interface validation, asset-pair verification, or decimals validation. getPriceUSD then directly invokes latestRoundData on that address and assumes an 8-decimal positive WETH/USD response before scaling it by 1e10. Consequently, deployment on another network can cause pricing calls to revert if no contract exists, or consume incorrect or attacker-controlled data if a contract is present at that address. The source does not establish that a vulnerable non-mainnet deployment already occurred, but it clearly permits this unsafe deployment configuration and provides no guard against it.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Pass the intended feed address as a constructor parameter or select it from a chain-validated configuration; verify the target has contract code, supports AggregatorV3Interface, reports the expected asset pair and decimals, and reject deployment when the configured network/feed combination is invalid.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">ussd-contracts/contracts/oracles/StableOracleWETH.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 21-28</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-14').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>21
+22
+23
+24
+25
+26
+27</pre></div>
+                <div class="code-content"><pre id="code-block-14"><code class="language-solidity">    function getPriceUSD() external view override returns (uint256) {
+        //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeed.latestRoundData();
+        (, int256 price, , , ) = priceFeed.latestRoundData();
+        // chainlink price data is 8 decimals for WETH/USD
+        return uint256(price) * 1e10;
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The target pricing function directly queries the configured Chainlink feed and scales its result without validating the feed&#39;s network, asset identity, contract code, or answer validity. Because the feed is hardcoded elsewhere, deployments on unsupported networks may consume an incompatible or malicious contract.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

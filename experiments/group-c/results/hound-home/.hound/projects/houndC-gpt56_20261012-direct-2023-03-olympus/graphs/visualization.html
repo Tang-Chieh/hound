@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Knowledge Graphs Visualization</title>
+    <meta charset="utf-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e6edf3;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #1c2128 0%, #2d333b 100%);
+            color: #e6edf3;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #30a14e33;
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #30a14e;
+        }
+        
+        #controls {
+            background: #161b22;
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .control-group label {
+            font-size: 11px;
+            color: #7d8590;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        select, button {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        select:hover, button:hover {
+            background: #30363d;
+            border-color: #30a14e;
+        }
+        
+        select:focus, button:focus {
+            outline: none;
+            border-color: #30a14e;
+            box-shadow: 0 0 0 2px #30a14e22;
+        }
+        
+        #main-container {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+        
+        #graph-container {
+            flex: 1;
+            background: #0d1117;
+            position: relative;
+        }
+        
+        #sidebar {
+            width: 380px;
+            background: #161b22;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #30363d;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-section h3 {
+            color: #e6edf3;
+            margin-bottom: 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        #node-info {
+            background: #21262d;
+            padding: 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #30363d;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .observation {
+            background: #21262d;
+            padding: 10px;
+            border-left: 3px solid #30a14e;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #30363d;
+            font-size: 13px;
+        }
+        
+        .stat-value {
+            color: #30a14e;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #tooltip {
+            position: absolute;
+            padding: 12px;
+            background: rgba(22, 27, 34, 0.95);
+            color: #e6edf3;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            font-size: 12px;
+            max-width: 300px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle {
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+        
+        .node:hover circle {
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+        
+        .link {
+            stroke-opacity: 0.4;
+            transition: stroke-opacity 0.3s;
+        }
+        
+        .link:hover {
+            stroke-opacity: 0.8;
+        }
+        
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 27, 34, 0.95);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            max-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        #legend h4 {
+            margin: 0 0 12px 0;
+            color: #e6edf3;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        .legend-section {
+            margin-bottom: 15px;
+        }
+        
+        .legend-section-title {
+            color: #7d8590;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .legend-item {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #8b949e;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .legend-line {
+            width: 18px;
+            height: 2px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔍 Hound3 Knowledge Graph</h1>
+        <div style="margin-top: 8px; opacity: 0.8; font-size: 13px; color: #8b949e;">
+            Dynamic Security Analysis Visualization
+        </div>
+    </div>
+    
+    <div id="controls">
+        <div class="control-group">
+            <label>Graph</label>
+            <select id="graph-selector">
+                <option value="SystemArchitecture">SystemArchitecture</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Node Type Filter</label>
+            <select id="type-filter">
+                <option value="all">All Types</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Layout</label>
+            <select id="layout-selector">
+                <option value="force">Force Directed</option>
+                <option value="hierarchical">Hierarchical</option>
+                <option value="circular">Circular</option>
+            </select>
+        </div>
+        
+        <button id="reset-view">Reset View</button>
+    </div>
+    
+    <div id="main-container">
+        <div id="graph-container">
+            <div id="legend"></div>
+        </div>
+        
+        <div id="sidebar">
+            <div class="sidebar-section">
+                <h3>Graph Statistics</h3>
+                <div id="stats"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Selected Node</h3>
+                <div id="node-info">
+                    <em style="color: #888;">Click a node to see details</em>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Source Cards</h3>
+                <div id="card-viewer" style="display: none;">
+                    <div style="margin-bottom: 10px;">
+                        <select id="card-selector" style="width: 100%;">
+                            <option value="">Select a card to view code</option>
+                        </select>
+                    </div>
+                    <div id="card-content" style="background: #0f3460; padding: 10px; border-radius: 6px; max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; white-space: pre-wrap;">
+                        <em style="color: #888;">Select a card above to view its content</em>
+                    </div>
+                </div>
+                <div id="no-cards" style="color: #888; font-style: italic;">
+                    No source cards for this node
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Agent Observations</h3>
+                <div id="observations"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tooltip"></div>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // All graph data
+        const allGraphs = {"SystemArchitecture": {"name": "SystemArchitecture", "internal_name": "SystemArchitecture", "focus": "High-level Olympus protocol component and flow overview: show the Kernel as the module/policy registry and permission boundary; core modules for roles, minting, treasury, and boosted-liquidity vault registry; policies that consume modules; and external interfaces to OHM, Balancer, Aura, Lido/wstETH, and Chainlink. Include deployment/configuration relationships, permission and control flow, and OHM, reserve, LP, and reward flows across system and external boundaries.", "nodes": [{"id": "kernel", "type": "kernel", "label": "Kernel", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_27256ba13241", "card_52e8bf492f6d", "card_5cb0761c9c9b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "kernel_executor", "type": "user_governance_actor", "label": "Kernel executor", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_27256ba13241", "card_5cb0761c9c9b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "roles_module", "type": "module", "label": "OlympusRoles / ROLES", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d8dc6db5e0d5", "card_95b29d1d1098", "card_6b362e1c366f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "mintr_module", "type": "module", "label": "OlympusMinter / MINTR", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e06e6d1a22ab", "card_4a7ab07bf4a1", "card_7434a8063a9c"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "treasury_module", "type": "module", "label": "OlympusTreasury / TRSRY", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9e18e81332b8", "card_d44803f381b0", "card_0649bb3d4978"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "blreg_module", "type": "module", "label": "OlympusBoostedLiquidityRegistry / BLREG", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_8df69fbcc376", "card_f8890c86754e", "card_b18c18e62999"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "roles_consumer", "type": "module", "label": "RolesConsumer", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d8dc6db5e0d5"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "roles_admin_policy", "type": "policy", "label": "RolesAdmin", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_83ce8fb55800", "card_3f0619599e38", "card_9d2abdd70c56"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "bl_manager_policy", "type": "policy", "label": "BLVaultManagerLido", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_38909b78fb36", "card_407ff1d708dc", "card_9989b1ae1e49"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "bl_vault", "type": "vault", "label": "BLVaultLido clone implementation", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b11d09c5604c", "card_ace16cc28b49", "card_734fa0e6f7c4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "user", "type": "user_governance_actor", "label": "Vault owner / user", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_747f8db170a8", "card_734fa0e6f7c4", "card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "roles_admin_actor", "type": "user_governance_actor", "label": "Roles administrator", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_83ce8fb55800", "card_9d2abdd70c56"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "liquidity_admin_role", "type": "role", "label": "liquidityvault_admin", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "ohm_token", "type": "token", "label": "OHM", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_79b014c25604", "card_4a7ab07bf4a1", "card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "reserve_tokens", "type": "token", "label": "Treasury reserve ERC20 assets", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d44803f381b0", "card_b6da46d927f9", "card_97bba9c717c5"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "wsteth_token", "type": "token", "label": "wstETH", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0c83b63ce73b", "card_0f3608a7fdeb", "card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "lp_token", "type": "token", "label": "Balancer OHM-wstETH BPT / LP", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_3894fd479c8b", "card_aeb16192812b", "card_dde81889e920"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "reward_tokens", "type": "token", "label": "BAL, AURA and extra Aura reward tokens", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_04d6660931d3", "card_c2c42ed54bf1", "card_335d28188ee2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "balancer_interface", "type": "contract_interface", "label": "Balancer interfaces (IVault, pool, helper)", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_3894fd479c8b", "card_eee1da8dccc0"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "aura_interface", "type": "contract_interface", "label": "Aura interfaces (booster, reward pool, mining library)", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d770cdb0edff"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "lido_interface", "type": "contract_interface", "label": "Lido wstETH interface", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0c83b63ce73b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "chainlink_interface", "type": "contract_interface", "label": "AggregatorV3Interface", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_473499d82df2", "card_747f8db170a8"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "balancer_protocol", "type": "external_protocol", "label": "Balancer", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_3894fd479c8b", "card_ace16cc28b49", "card_c2c42ed54bf1"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "aura_protocol", "type": "external_protocol", "label": "Aura", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d770cdb0edff", "card_aeb16192812b", "card_04d6660931d3"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "lido_protocol", "type": "external_protocol", "label": "Lido / wstETH", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0c83b63ce73b", "card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "chainlink_oracle", "type": "oracle", "label": "OHM-ETH and stETH-ETH Chainlink feeds", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_38909b78fb36", "card_18bffce96dcd", "card_473499d82df2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "install_module_action", "type": "module", "label": "Kernel module installation and initialization", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d5f3bc1af258"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "upgrade_module_action", "type": "module", "label": "Kernel module upgrade and dependent-policy reconfiguration", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d5f3bc1af258", "card_05871aa67821"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "activate_policy_action", "type": "policy", "label": "Kernel policy activation and permission setup", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_3b03adf75408", "card_5cb0761c9c9b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "mintr_mint", "type": "module", "label": "MINTR mintOhm", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7434a8063a9c"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "mintr_burn", "type": "module", "label": "MINTR burnOhm", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7434a8063a9c"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "manager_mint_vault", "type": "policy", "label": "BL manager mintOhmToVault", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0e65f0d506dd", "card_c129230dcb5a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "manager_burn_vault", "type": "policy", "label": "BL manager burnOhmFromVault", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0e65f0d506dd", "card_860c7f47208c"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "manager_vault_registry", "type": "registry", "label": "BLREG active vault registry", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_f8890c86754e", "card_b18c18e62999", "card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "manager_deploy_vault", "type": "policy", "label": "BL manager deployVault / clone initialization", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_734fa0e6f7c4", "card_c129230dcb5a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_deposit", "type": "vault", "label": "BLVaultLido deposit flow", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d7fd473e2b24", "card_ace16cc28b49", "card_aeb16192812b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_withdraw", "type": "vault", "label": "BLVaultLido withdraw flow", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9a8b3083f78b", "card_c2c42ed54bf1", "card_860c7f47208c"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_claim_rewards", "type": "vault", "label": "BLVaultLido claimRewards and reward distribution", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_dde81889e920", "card_04d6660931d3", "card_c2c42ed54bf1", "card_335d28188ee2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "manager_oracle_config", "type": "policy", "label": "BL manager oracle feed configuration", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_18bffce96dcd", "card_3ee529273b73"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "treasury_withdraw", "type": "module", "label": "TRSRY withdrawReserves", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_97bba9c717c5"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "treasury_debt", "type": "module", "label": "TRSRY incurDebt and repayDebt", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b6da46d927f9", "card_7e7f618267b3"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "roles_grant_revoke", "type": "module", "label": "ROLES saveRole and removeRole", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_95b29d1d1098", "card_06aceddee922"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "manager_price_reads", "type": "policy", "label": "BL manager oracle-based token pricing", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7c27514a3c72", "card_0163d2adce6"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "balancer_join", "type": "contract_interface", "label": "Balancer pool join", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_ace16cc28b49", "card_8abb85d5be10"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "balancer_exit", "type": "contract_interface", "label": "Balancer pool exit", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c2c42ed54bf1"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "aura_stake", "type": "contract_interface", "label": "Aura boosted LP deposit/stake", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_aeb16192812b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "aura_claim", "type": "contract_interface", "label": "Aura reward claim", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_dde81889e920", "card_04d6660931d3"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}], "edges": [{"id": "edge_77419f14", "type": "installs", "source_id": "kernel_executor", "target_id": "kernel", "properties": {}, "label": "installs", "confidence": 1.0, "evidence": ["card_5cb0761c9c9b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_27abf43b", "type": "installs", "source_id": "kernel", "target_id": "roles_module", "properties": {}, "label": "installs", "confidence": 1.0, "evidence": ["card_d5f3bc1af258"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9764b827", "type": "installs", "source_id": "kernel", "target_id": "mintr_module", "properties": {}, "label": "installs", "confidence": 1.0, "evidence": ["card_d5f3bc1af258"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_1216344b", "type": "installs", "source_id": "kernel", "target_id": "treasury_module", "properties": {}, "label": "installs", "confidence": 1.0, "evidence": ["card_d5f3bc1af258"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_389c1cea", "type": "installs", "source_id": "kernel", "target_id": "blreg_module", "properties": {}, "label": "installs", "confidence": 1.0, "evidence": ["card_d5f3bc1af258"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_38e62cd0", "type": "initializes", "source_id": "kernel", "target_id": "install_module_action", "properties": {}, "label": "initializes", "confidence": 1.0, "evidence": ["card_d5f3bc1af258"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7dc75600", "type": "upgrades", "source_id": "kernel", "target_id": "upgrade_module_action", "properties": {}, "label": "upgrades", "confidence": 1.0, "evidence": ["card_d5f3bc1af258"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b72750a6", "type": "reconfigures", "source_id": "upgrade_module_action", "target_id": "bl_manager_policy", "properties": {}, "label": "reconfigures", "confidence": 1.0, "evidence": ["card_05871aa67821"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_96cc21e7", "type": "activates", "source_id": "kernel", "target_id": "activate_policy_action", "properties": {}, "label": "activates", "confidence": 1.0, "evidence": ["card_3b03adf75408", "card_5cb0761c9c9b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8be92aaf", "type": "requests_permission", "source_id": "roles_admin_policy", "target_id": "roles_module", "properties": {}, "label": "requests_permission", "confidence": 1.0, "evidence": ["card_3f0619599e38"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_17049403", "type": "requests_permission", "source_id": "bl_manager_policy", "target_id": "mintr_module", "properties": {}, "label": "requests_permission", "confidence": 1.0, "evidence": ["card_9989b1ae1e49"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0a44f615", "type": "requests_permission", "source_id": "bl_manager_policy", "target_id": "blreg_module", "properties": {}, "label": "requests_permission", "confidence": 1.0, "evidence": ["card_9989b1ae1e49"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8c4a98b2", "type": "authorizes", "source_id": "kernel", "target_id": "roles_admin_policy", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_3b03adf75408"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_aa365eac", "type": "authorizes", "source_id": "kernel", "target_id": "bl_manager_policy", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_3b03adf75408", "card_5457371a2e64"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a6e9116f", "type": "depends_on", "source_id": "roles_admin_policy", "target_id": "roles_module", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_3f0619599e38"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5974cb4b", "type": "depends_on", "source_id": "bl_manager_policy", "target_id": "mintr_module", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_407ff1d708dc"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3c08e9a3", "type": "depends_on", "source_id": "bl_manager_policy", "target_id": "treasury_module", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_407ff1d708dc"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f7c754de", "type": "depends_on", "source_id": "bl_manager_policy", "target_id": "blreg_module", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_407ff1d708dc"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a0803078", "type": "depends_on", "source_id": "bl_manager_policy", "target_id": "roles_module", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_407ff1d708dc"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f482b5d1", "type": "depends_on", "source_id": "roles_consumer", "target_id": "roles_module", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_d8dc6db5e0d5"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b647acbe", "type": "grants_role", "source_id": "roles_admin_actor", "target_id": "roles_admin_policy", "properties": {}, "label": "grants_role", "confidence": 1.0, "evidence": ["card_83ce8fb55800", "card_9d2abdd70c56"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_61f748b1", "type": "authorizes", "source_id": "roles_admin_policy", "target_id": "roles_grant_revoke", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_9d2abdd70c56"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f5c451f7", "type": "grants_role", "source_id": "roles_grant_revoke", "target_id": "liquidity_admin_role", "properties": {}, "label": "grants_role", "confidence": 1.0, "evidence": ["card_95b29d1d1098", "card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_22d12a89", "type": "authorizes", "source_id": "roles_module", "target_id": "roles_grant_revoke", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_95b29d1d1098"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5d221575", "type": "authorizes", "source_id": "roles_module", "target_id": "manager_oracle_config", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4a394bc5", "type": "authorizes", "source_id": "roles_module", "target_id": "manager_vault_registry", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_50dc9792", "type": "authorizes", "source_id": "liquidity_admin_role", "target_id": "manager_oracle_config", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_de9fef36", "type": "authorizes", "source_id": "liquidity_admin_role", "target_id": "manager_vault_registry", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c6cc6792", "type": "reads_from", "source_id": "roles_consumer", "target_id": "roles_module", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_d8dc6db5e0d5"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a2bed296", "type": "calls", "source_id": "roles_admin_policy", "target_id": "roles_grant_revoke", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_9d2abdd70c56"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_36baa989", "type": "calls", "source_id": "bl_manager_policy", "target_id": "manager_deploy_vault", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_734fa0e6f7c4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_01f5e741", "type": "initializes", "source_id": "manager_deploy_vault", "target_id": "bl_vault", "properties": {}, "label": "initializes", "confidence": 1.0, "evidence": ["card_734fa0e6f7c4", "card_c129230dcb5a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_936f4109", "type": "activates", "source_id": "manager_vault_registry", "target_id": "bl_manager_policy", "properties": {}, "label": "activates", "confidence": 1.0, "evidence": ["card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_69d2ce7a", "type": "calls", "source_id": "manager_vault_registry", "target_id": "blreg_module", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9d3f2e34", "type": "depends_on", "source_id": "bl_manager_policy", "target_id": "bl_vault", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_38909b78fb36"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f5db7caa", "type": "authorizes", "source_id": "bl_manager_policy", "target_id": "manager_mint_vault", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_c129230dcb5a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_094b1096", "type": "authorizes", "source_id": "bl_manager_policy", "target_id": "manager_burn_vault", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_860c7f47208c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f41117e3", "type": "calls", "source_id": "manager_mint_vault", "target_id": "mintr_mint", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_c129230dcb5a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f4c84249", "type": "calls", "source_id": "manager_burn_vault", "target_id": "mintr_burn", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_860c7f47208c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_1529ccc2", "type": "mints", "source_id": "mintr_mint", "target_id": "ohm_token", "properties": {}, "label": "mints", "confidence": 1.0, "evidence": ["card_7434a8063a9c", "card_79b014c25604"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f09f3512", "type": "burns", "source_id": "mintr_burn", "target_id": "ohm_token", "properties": {}, "label": "burns", "confidence": 1.0, "evidence": ["card_7434a8063a9c", "card_79b014c25604"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_123813c6", "type": "calls", "source_id": "user", "target_id": "vault_deposit", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d5c14ad9", "type": "deposits", "source_id": "user", "target_id": "wsteth_token", "properties": {}, "label": "deposits", "confidence": 1.0, "evidence": ["card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6656a4c5", "type": "transfers", "source_id": "wsteth_token", "target_id": "bl_vault", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0a328088", "type": "calls", "source_id": "vault_deposit", "target_id": "manager_price_reads", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_74ab4b4b", "type": "mints", "source_id": "manager_mint_vault", "target_id": "ohm_token", "properties": {}, "label": "mints", "confidence": 1.0, "evidence": ["card_c129230dcb5a", "card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d7f09955", "type": "calls_external", "source_id": "vault_deposit", "target_id": "balancer_join", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_ace16cc28b49", "card_8abb85d5be10"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6cbb3be1", "type": "calls_external", "source_id": "balancer_join", "target_id": "balancer_protocol", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_3894fd479c8b", "card_ace16cc28b49"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_fecfe13d", "type": "transfers", "source_id": "ohm_token", "target_id": "balancer_protocol", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_8abb85d5be10"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e4de7b6f", "type": "transfers", "source_id": "wsteth_token", "target_id": "balancer_protocol", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_8abb85d5be10"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2601a99c", "type": "transfers", "source_id": "balancer_protocol", "target_id": "lp_token", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_aeb16192812b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5aff78af", "type": "calls_external", "source_id": "vault_deposit", "target_id": "aura_stake", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_aeb16192812b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_22d4327c", "type": "calls_external", "source_id": "aura_stake", "target_id": "aura_protocol", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_aeb16192812b", "card_d770ba3cc375"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_91084695", "type": "deposits", "source_id": "lp_token", "target_id": "aura_protocol", "properties": {}, "label": "deposits", "confidence": 1.0, "evidence": ["card_aeb16192812b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_49c2e46d", "type": "calls", "source_id": "vault_deposit", "target_id": "manager_vault_registry", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_aeb16192812b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5f685459", "type": "calls", "source_id": "user", "target_id": "vault_withdraw", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_9a8b3083f78b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_da190c2b", "type": "withdraws", "source_id": "aura_protocol", "target_id": "lp_token", "properties": {}, "label": "withdraws", "confidence": 1.0, "evidence": ["card_c2c42ed54bf1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8f6c79fb", "type": "calls_external", "source_id": "vault_withdraw", "target_id": "balancer_exit", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_c2c42ed54bf1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a07e53c9", "type": "calls_external", "source_id": "balancer_exit", "target_id": "balancer_protocol", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_3894fd479c8b", "card_c2c42ed54bf1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_92617e68", "type": "withdraws", "source_id": "balancer_protocol", "target_id": "ohm_token", "properties": {}, "label": "withdraws", "confidence": 1.0, "evidence": ["card_c2c42ed54bf1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4ffda6b8", "type": "withdraws", "source_id": "balancer_protocol", "target_id": "wsteth_token", "properties": {}, "label": "withdraws", "confidence": 1.0, "evidence": ["card_c2c42ed54bf1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_939d5303", "type": "burns", "source_id": "vault_withdraw", "target_id": "ohm_token", "properties": {}, "label": "burns", "confidence": 1.0, "evidence": ["card_860c7f47208c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d7cba26d", "type": "transfers", "source_id": "vault_withdraw", "target_id": "wsteth_token", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_860c7f47208c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ffdae6c1", "type": "transfers", "source_id": "vault_withdraw", "target_id": "treasury_module", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_860c7f47208c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f738714a", "type": "calls", "source_id": "vault_withdraw", "target_id": "manager_burn_vault", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_860c7f47208c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_43a01f22", "type": "calls", "source_id": "user", "target_id": "vault_claim_rewards", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_dde81889e920"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_41c335d1", "type": "calls_external", "source_id": "vault_claim_rewards", "target_id": "aura_claim", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_04d6660931d3"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_896e39e1", "type": "calls_external", "source_id": "aura_claim", "target_id": "aura_protocol", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_d770ba3cc375", "card_04d6660931d3"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ecbd9edb", "type": "transfers", "source_id": "aura_protocol", "target_id": "reward_tokens", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_04d6660931d3", "card_335d28188ee2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_99a13ade", "type": "transfers", "source_id": "vault_claim_rewards", "target_id": "user", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_c2c42ed54bf1", "card_335d28188ee2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_03da8880", "type": "transfers", "source_id": "vault_claim_rewards", "target_id": "treasury_module", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_c2c42ed54bf1", "card_335d28188ee2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0a71122e", "type": "transfers", "source_id": "reserve_tokens", "target_id": "treasury_module", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_b6da46d927f9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_44bdbab5", "type": "authorizes", "source_id": "treasury_module", "target_id": "treasury_withdraw", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_97bba9c717c5"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b018292a", "type": "authorizes", "source_id": "treasury_module", "target_id": "treasury_debt", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_b6da46d927f9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4fa69b49", "type": "withdraws", "source_id": "treasury_withdraw", "target_id": "reserve_tokens", "properties": {}, "label": "withdraws", "confidence": 1.0, "evidence": ["card_97bba9c717c5"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e5b45aba", "type": "transfers", "source_id": "treasury_module", "target_id": "reserve_tokens", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_97bba9c717c5"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a214e95d", "type": "transfers", "source_id": "treasury_module", "target_id": "bl_manager_policy", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_b6da46d927f9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5c5f44fe", "type": "transfers", "source_id": "bl_manager_policy", "target_id": "treasury_module", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_b6da46d927f9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7748a099", "type": "calls_external", "source_id": "bl_manager_policy", "target_id": "chainlink_interface", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_38909b78fb36", "card_18bffce96dcd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c2df3113", "type": "reads_from", "source_id": "chainlink_interface", "target_id": "chainlink_oracle", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_473499d82df2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7d7bc695", "type": "calls_external", "source_id": "bl_manager_policy", "target_id": "lido_interface", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_38909b78fb36", "card_0c83b63ce73b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7ad47003", "type": "reads_from", "source_id": "lido_interface", "target_id": "lido_protocol", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_0c83b63ce73b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4cf2651f", "type": "reads_from", "source_id": "manager_price_reads", "target_id": "chainlink_oracle", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_7c27514a3c72", "card_38909b78fb36"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3997edf9", "type": "calls_external", "source_id": "bl_manager_policy", "target_id": "balancer_interface", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_0163d2adce6", "card_aa68925315ea"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9770d1ee", "type": "calls_external", "source_id": "balancer_interface", "target_id": "balancer_protocol", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_3894fd479c8b", "card_eee1da8dccc0"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f16e0a12", "type": "calls_external", "source_id": "bl_manager_policy", "target_id": "aura_interface", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_817a9b5c3a5a", "card_04d6660931d3"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7f4fbf72", "type": "calls_external", "source_id": "aura_interface", "target_id": "aura_protocol", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_d770ba3cc375"], "created_by": "iteration_0", "iteration": 0}], "metadata": {"created_at": 1791137599.633325, "display_name": "SystemArchitecture"}, "stats": {"num_nodes": 47, "num_edges": 87, "node_types": ["policy", "external_protocol", "oracle", "kernel", "role", "registry", "contract_interface", "vault", "module", "token", "user_governance_actor"], "edge_types": ["deposits", "activates", "grants_role", "depends_on", "transfers", "calls_external", "burns", "upgrades", "installs", "authorizes", "reconfigures", "calls", "mints", "requests_permission", "initializes", "withdraws", "reads_from"]}}};
+        const observations = [];
+        const cardStore = {"card_18bffce96dcd": {"id": "card_18bffce96dcd", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 18587, "char_end": 19791, "peek_head": "    /// @inheritdoc IBLVaultManagerLido\n    function changeUpdateThresholds(\n        uint48 ohmEthUp", "peek_tail": "  //============================================================================================//\n\n", "shingle_hash": "d13f846bcb1596d9", "top_tokens": ["islidoblvaultactive", "inheritdoc", "iblvaultmanagerlido", "function", "external", "onlyrole", "liquidityvault", "admin", "uint48", "ohmethupdatethreshold"], "content": "    /// @inheritdoc IBLVaultManagerLido\n    function changeUpdateThresholds(\n        uint48 ohmEthUpdateThreshold_,\n        uint48 stethEthUpdateThreshold_\n    ) external onlyRole(\"liquidityvault_admin\") {\n        ohmEthPriceFeed.updateThreshold = ohmEthUpdateThreshold_;\n        stethEthPriceFeed.updateThreshold = stethEthUpdateThreshold_;\n    }\n\n    /// @inheritdoc IBLVaultManagerLido\n    function activate() external override onlyRole(\"liquidityvault_admin\") {\n        if (isLidoBLVaultActive) revert BLManagerLido_AlreadyActive();\n\n        isLidoBLVaultActive = true;\n        BLREG.addVault(address(this));\n    }\n\n    /// @inheritdoc IBLVaultManagerLido\n    function deactivate() external override onlyRole(\"liquidityvault_admin\") {\n        if (!isLidoBLVaultActive) revert BLManagerLido_AlreadyInactive();\n\n        isLidoBLVaultActive = false;\n        BLREG.removeVault(address(this));\n    }\n\n    //============================================================================================//\n    //                                      INTERNAL FUNCTIONS                                    //\n    //============================================================================================//\n\n"}, "card_c2c42ed54bf1": {"id": "card_c2c42ed54bf1", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 13716, "char_end": 15159, "peek_head": "        ExitPoolRequest memory exitPoolRequest = ExitPoolRequest({\n            assets: assets,\n     ", "peek_tail": "aFee);\n            }\n            if (auraFee > 0) aura().safeTransfer(TRSRY(), auraFee);\n        }\n\n", "shingle_hash": "6ec5d418d9d1ce84", "top_tokens": ["address", "balfee", "aurafee", "bal", "balrewards", "aura", "aurarewards", "exitpoolrequest", "this", "owner"], "content": "        ExitPoolRequest memory exitPoolRequest = ExitPoolRequest({\n            assets: assets,\n            minAmountsOut: minTokenAmounts_,\n            userData: abi.encode(1, lpAmount_),\n            toInternalBalance: false\n        });\n\n        // Exit Balancer pool\n        liquidityPool.approve(address(vault), lpAmount_);\n        vault.exitPool(\n            liquidityPool.getPoolId(),\n            address(this),\n            payable(address(this)),\n            exitPoolRequest\n        );\n    }\n\n    function _sendRewards() internal {\n        // Send Bal rewards to owner\n        {\n            uint256 balRewards = bal().balanceOf(address(this));\n            uint256 balFee = (balRewards * fee()) / 10_000;\n            if (balRewards - balFee > 0) {\n                bal().safeTransfer(owner(), balRewards - balFee);\n                emit RewardsClaimed(address(bal()), balRewards - balFee);\n            }\n            if (balFee > 0) bal().safeTransfer(TRSRY(), balFee);\n        }\n\n        // Send Aura rewards to owner\n        {\n            uint256 auraRewards = aura().balanceOf(address(this));\n            uint256 auraFee = (auraRewards * fee()) / 10_000;\n            if (auraRewards - auraFee > 0) {\n                aura().safeTransfer(owner(), auraRewards - auraFee);\n                emit RewardsClaimed(address(aura()), auraRewards - auraFee);\n            }\n            if (auraFee > 0) aura().safeTransfer(TRSRY(), auraFee);\n        }\n\n"}, "card_52e8bf492f6d": {"id": "card_52e8bf492f6d", "relpath": "sherlock-olympus/src/Kernel.sol", "char_start": 7812, "char_end": 8885, "peek_head": "    // =========  MODULE MANAGEMENT ========= //\n\n    /// @notice Array of all modules currently ins", "peek_tail": "MENT ========= //\n\n    /// @notice List of all active policies\n    Policy[] public activePolicies;\n\n", "shingle_hash": "67b62f5e769e57e6", "top_tokens": ["mapping", "keycode", "policy", "module", "notice", "public", "all", "management", "array", "address"], "content": "    // =========  MODULE MANAGEMENT ========= //\n\n    /// @notice Array of all modules currently installed.\n    Keycode[] public allKeycodes;\n\n    /// @notice Mapping of module address to keycode.\n    mapping(Keycode => Module) public getModuleForKeycode;\n\n    /// @notice Mapping of keycode to module address.\n    mapping(Module => Keycode) public getKeycodeForModule;\n\n    /// @notice Mapping of a keycode to all of its policy dependents. Used to efficiently reconfigure policy dependencies.\n    mapping(Keycode => Policy[]) public moduleDependents;\n\n    /// @notice Helper for module dependent arrays. Prevents the need to loop through array.\n    mapping(Keycode => mapping(Policy => uint256)) public getDependentIndex;\n\n    /// @notice Module <> Policy Permissions.\n    /// @dev    Keycode -> Policy -> Function Selector -> bool for permission\n    mapping(Keycode => mapping(Policy => mapping(bytes4 => bool))) public modulePermissions;\n\n    // =========  POLICY MANAGEMENT ========= //\n\n    /// @notice List of all active policies\n    Policy[] public activePolicies;\n\n"}, "card_0c83b63ce73b": {"id": "card_0c83b63ce73b", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/ILido.sol", "char_start": 0, "char_end": 148, "peek_head": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity >=0.8.0;\n\ninterface IWsteth {\n    function stEt", "peek_tail": "dity >=0.8.0;\n\ninterface IWsteth {\n    function stEthPerToken() external view returns (uint256);\n}\n\n", "shingle_hash": "16cd145d2642cb03", "top_tokens": ["spdx", "license", "identifier", "agpl", "pragma", "solidity", "interface", "iwsteth", "function", "stethpertoken"], "content": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity >=0.8.0;\n\ninterface IWsteth {\n    function stEthPerToken() external view returns (uint256);\n}\n"}, "card_ace16cc28b49": {"id": "card_ace16cc28b49", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 4288, "char_end": 5355, "peek_head": "    /// @inheritdoc IBLVaultLido\n    function deposit(\n        uint256 amount_,\n        uint256 minL", "peek_tail": "dress(this), amount_);\n\n            // Mint OHM\n            manager.mintOhmToVault(ohmMintAmount);\n\n", "shingle_hash": "448bf91a092c0301", "top_tokens": ["wsteth", "uint256", "ohm", "amount", "manager", "liquiditypool", "returns", "cache", "aurabooster", "mint"], "content": "    /// @inheritdoc IBLVaultLido\n    function deposit(\n        uint256 amount_,\n        uint256 minLpAmount_\n    ) external override onlyWhileActive onlyOwner nonReentrant returns (uint256 lpAmountOut) {\n        // Cache variables into memory\n        IBLVaultManagerLido manager = manager();\n        OlympusERC20Token ohm = ohm();\n        ERC20 wsteth = wsteth();\n        IBasePool liquidityPool = liquidityPool();\n        IAuraBooster auraBooster = auraBooster();\n\n        // Calculate OHM amount to mint\n        // getOhmTknPrice returns the amount of OHM per 1 wstETH\n        uint256 ohmWstethPrice = manager.getOhmTknPrice();\n        uint256 ohmMintAmount = (amount_ * ohmWstethPrice) / _WSTETH_DECIMALS;\n\n        // Block scope to avoid stack too deep\n        {\n            // Cache OHM-wstETH BPT before\n            uint256 bptBefore = liquidityPool.balanceOf(address(this));\n\n            // Transfer in wstETH\n            wsteth.safeTransferFrom(msg.sender, address(this), amount_);\n\n            // Mint OHM\n            manager.mintOhmToVault(ohmMintAmount);\n\n"}, "card_5457371a2e64": {"id": "card_5457371a2e64", "relpath": "sherlock-olympus/src/Kernel.sol", "char_start": 3320, "char_end": 4453, "peek_head": "    Kernel public kernel;\n\n    constructor(Kernel kernel_) {\n        kernel = kernel_;\n    }\n\n    //", "peek_tail": "(msg.sender), msg.sig))\n            revert Module_PolicyNotPermitted(msg.sender);\n        _;\n    }\n\n", "shingle_hash": "aa14524bfc561a40", "top_tokens": ["kernel", "msg", "notice", "modifier", "sender", "module", "onlykernel", "kerneladapter", "constructor", "restrict"], "content": "    Kernel public kernel;\n\n    constructor(Kernel kernel_) {\n        kernel = kernel_;\n    }\n\n    /// @notice Modifier to restrict functions to be called only by kernel.\n    modifier onlyKernel() {\n        if (msg.sender != address(kernel)) revert KernelAdapter_OnlyKernel(msg.sender);\n        _;\n    }\n\n    /// @notice Function used by kernel when migrating to a new kernel.\n    function changeKernel(Kernel newKernel_) external onlyKernel {\n        kernel = newKernel_;\n    }\n}\n\n/// @notice Base level extension of the kernel. Modules act as independent state components to be\n///         interacted with and mutated through policies.\n/// @dev    Modules are installed and uninstalled via the executor.\nabstract contract Module is KernelAdapter {\n    error Module_PolicyNotPermitted(address policy_);\n\n    constructor(Kernel kernel_) KernelAdapter(kernel_) {}\n\n    /// @notice Modifier to restrict which policies have access to module functions.\n    modifier permissioned() {\n        if (!kernel.modulePermissions(KEYCODE(), Policy(msg.sender), msg.sig))\n            revert Module_PolicyNotPermitted(msg.sender);\n        _;\n    }\n\n"}, "card_b11d09c5604c": {"id": "card_b11d09c5604c", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 1057, "char_end": 2123, "peek_head": "    // ========= ERRORS ========= //\n\n    error BLVaultLido_AlreadyInitialized();\n    error BLVaultL", "peek_tail": "= //\n\n    function owner() public pure returns (address) {\n        return _getArgAddress(0);\n    }\n\n", "shingle_hash": "7065da87f9595361", "top_tokens": ["uint256", "blvaultlido", "error", "event", "private", "reentrancystatus", "alreadyinitialized", "ohmamount", "wstethamount", "address"], "content": "    // ========= ERRORS ========= //\n\n    error BLVaultLido_AlreadyInitialized();\n    error BLVaultLido_OnlyOwner();\n    error BLVaultLido_Inactive();\n    error BLVaultLido_Reentrancy();\n    error BLVaultLido_AuraDepositFailed();\n\n    // ========= EVENTS ========= //\n\n    event Deposit(uint256 ohmAmount, uint256 wstethAmount);\n    event Withdraw(uint256 ohmAmount, uint256 wstethAmount);\n    event RewardsClaimed(address indexed rewardsToken, uint256 amount);\n\n    // ========= STATE VARIABLES ========= //\n\n    uint256 private constant _OHM_DECIMALS = 1e9;\n    uint256 private constant _WSTETH_DECIMALS = 1e18;\n\n    uint256 private _reentrancyStatus;\n\n    // ========= CONSTRUCTOR ========= //\n\n    constructor() {}\n\n    // ========= INITIALIZER ========= //\n\n    function initializeClone() external {\n        if (_reentrancyStatus != 0) revert BLVaultLido_AlreadyInitialized();\n        _reentrancyStatus = 1;\n    }\n\n    // ========= IMMUTABLE CLONE ARGS ========= //\n\n    function owner() public pure returns (address) {\n        return _getArgAddress(0);\n    }\n\n"}, "card_b6da46d927f9": {"id": "card_b6da46d927f9", "relpath": "sherlock-olympus/src/modules/TRSRY/OlympusTreasury.sol", "char_start": 3582, "char_end": 4704, "peek_head": "    /// @inheritdoc TRSRYv1\n    function incurDebt(ERC20 token_, uint256 amount_)\n        external\n ", "peek_tail": "m between passed-in amount and received amount\n        if (received > amount_) received = amount_;\n\n", "shingle_hash": "550a02bc7d668b6f", "top_tokens": ["token", "amount", "msg", "sender", "uint256", "address", "received", "this", "inheritdoc", "trsryv1"], "content": "    /// @inheritdoc TRSRYv1\n    function incurDebt(ERC20 token_, uint256 amount_)\n        external\n        override\n        permissioned\n        onlyWhileActive\n    {\n        debtApproval[msg.sender][token_] -= amount_;\n\n        // Add debt to caller\n        reserveDebt[token_][msg.sender] += amount_;\n        totalDebt[token_] += amount_;\n\n        token_.safeTransfer(msg.sender, amount_);\n\n        emit DebtIncurred(token_, msg.sender, amount_);\n    }\n\n    /// @inheritdoc TRSRYv1\n    function repayDebt(\n        address debtor_,\n        ERC20 token_,\n        uint256 amount_\n    ) external override permissioned nonReentrant {\n        if (reserveDebt[token_][debtor_] == 0) revert TRSRY_NoDebtOutstanding();\n\n        // Deposit from caller first (to handle nonstandard token transfers)\n        uint256 prevBalance = token_.balanceOf(address(this));\n        token_.safeTransferFrom(msg.sender, address(this), amount_);\n\n        uint256 received = token_.balanceOf(address(this)) - prevBalance;\n\n        // Choose minimum between passed-in amount and received amount\n        if (received > amount_) received = amount_;\n\n"}, "card_407ff1d708dc": {"id": "card_407ff1d708dc", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 4231, "char_end": 5326, "peek_head": "        // Set vault implementation\n        {\n            implementation = BLVaultLido(implementatio", "peek_tail": " {\n        Keycode mintrKeycode = MINTR.KEYCODE();\n        Keycode blregKeycode = BLREG.KEYCODE();\n\n", "shingle_hash": "5c62d029aea69c7b", "top_tokens": ["dependencies", "keycode", "tokeycode", "getmoduleaddress", "implementation", "mintr", "blreg", "ohmlimit", "inheritdoc", "policy"], "content": "        // Set vault implementation\n        {\n            implementation = BLVaultLido(implementation_);\n        }\n\n        // Configure system\n        {\n            ohmLimit = ohmLimit_;\n            currentFee = fee_;\n        }\n    }\n\n    /// @inheritdoc Policy\n    function configureDependencies() external override returns (Keycode[] memory dependencies) {\n        dependencies = new Keycode[](4);\n        dependencies[0] = toKeycode(\"MINTR\");\n        dependencies[1] = toKeycode(\"TRSRY\");\n        dependencies[2] = toKeycode(\"BLREG\");\n        dependencies[3] = toKeycode(\"ROLES\");\n\n        MINTR = MINTRv1(getModuleAddress(dependencies[0]));\n        TRSRY = TRSRYv1(getModuleAddress(dependencies[1]));\n        BLREG = BLREGv1(getModuleAddress(dependencies[2]));\n        ROLES = ROLESv1(getModuleAddress(dependencies[3]));\n    }\n\n    /// @inheritdoc Policy\n    function requestPermissions()\n        external\n        view\n        override\n        returns (Permissions[] memory permissions)\n    {\n        Keycode mintrKeycode = MINTR.KEYCODE();\n        Keycode blregKeycode = BLREG.KEYCODE();\n\n"}, "card_6b362e1c366f": {"id": "card_6b362e1c366f", "relpath": "sherlock-olympus/src/modules/ROLES/ROLES.v1.sol", "char_start": 0, "char_end": 1012, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport \"src/Kernel.sol\";\n\nabstrac", "peek_tail": "Can only be called by admin.\n    function saveRole(bytes32 role_, address addr_) external virtual;\n\n", "shingle_hash": "f4aa83061b3c8581", "top_tokens": ["bytes32", "role", "address", "roles", "addr", "error", "indexed", "mapping", "only", "event"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport \"src/Kernel.sol\";\n\nabstract contract ROLESv1 is Module {\n    // =========  EVENTS ========= //\n\n    event RoleGranted(bytes32 indexed role_, address indexed addr_);\n    event RoleRevoked(bytes32 indexed role_, address indexed addr_);\n\n    // =========  ERRORS ========= //\n\n    error ROLES_InvalidRole(bytes32 role_);\n    error ROLES_RequireRole(bytes32 role_);\n    error ROLES_AddressAlreadyHasRole(address addr_, bytes32 role_);\n    error ROLES_AddressDoesNotHaveRole(address addr_, bytes32 role_);\n    error ROLES_RoleDoesNotExist(bytes32 role_);\n\n    // =========  STATE ========= //\n\n    /// @notice Mapping for if an address has a policy-defined role.\n    mapping(address => mapping(bytes32 => bool)) public hasRole;\n\n    // =========  FUNCTIONS ========= //\n\n    /// @notice Function to grant policy-defined roles to some address. Can only be called by admin.\n    function saveRole(bytes32 role_, address addr_) external virtual;\n\n"}, "card_3ee529273b73": {"id": "card_3ee529273b73", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 2115, "char_end": 3187, "peek_head": "    // Exchange Info\n    string public exchangeName;\n    BalancerData public balancerData;\n\n    // A", "peek_tail": "  //============================================================================================//\n\n", "shingle_hash": "dcb8739713fca12b", "top_tokens": ["public", "info", "uint256", "blvaultlido", "balancerdata", "auradata", "oraclefeed", "mapping", "address", "exchange"], "content": "    // Exchange Info\n    string public exchangeName;\n    BalancerData public balancerData;\n\n    // Aura Info\n    AuraData public auraData;\n    IAuraMiningLib public auraMiningLib;\n\n    // Oracle Info\n    OracleFeed public ohmEthPriceFeed;\n    OracleFeed public stethEthPriceFeed;\n\n    // Vault Info\n    BLVaultLido public implementation;\n    mapping(BLVaultLido => address) public vaultOwners;\n    mapping(address => BLVaultLido) public userVaults;\n\n    // Vaults State\n    uint256 public totalLp;\n    uint256 public deployedOhm;\n    uint256 public circulatingOhmBurned;\n\n    // System Configuration\n    uint256 public ohmLimit;\n    uint64 public currentFee;\n    bool public isLidoBLVaultActive;\n\n    // Constants\n    uint32 public constant MAX_FEE = 10_000; // 100%\n\n    //============================================================================================//\n    //                                      POLICY SETUP                                          //\n    //============================================================================================//\n\n"}, "card_9a8b3083f78b": {"id": "card_9a8b3083f78b", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol", "char_start": 1026, "char_end": 2116, "peek_head": "    /// @notice                 Withdraws LP tokens from Balancer, burns the OHM side, and returns t", "peek_tail": "  //============================================================================================//\n\n", "shingle_hash": "6e087256f282cb87", "top_tokens": ["the", "uint256", "from", "balancer", "ohm", "wsteth", "param", "amount", "claim", "tokens"], "content": "    /// @notice                 Withdraws LP tokens from Balancer, burns the OHM side, and returns the wstETH side to the user\n    /// @dev                    Can only be called by the owner of the vault\n    /// @param lpAmount_        The amount of LP tokens to withdraw from Balancer\n    /// @param minTokenAmounts_ The minimum acceptable amounts of OHM (first entry), and wstETH (second entry) to receive back from Balancer\n    /// @param claim_           Whether to claim outstanding rewards from Aura\n    /// @return uint256         The amount of OHM received\n    /// @return uint256         The amount of wstETH received\n    function withdraw(\n        uint256 lpAmount_,\n        uint256[] calldata minTokenAmounts_,\n        bool claim_\n    ) external returns (uint256, uint256);\n\n    //============================================================================================//\n    //                                       REWARDS FUNCTIONS                                    //\n    //============================================================================================//\n\n"}, "card_7434a8063a9c": {"id": "card_7434a8063a9c", "relpath": "sherlock-olympus/src/modules/MINTR/OlympusMinter.sol", "char_start": 1273, "char_end": 2415, "peek_head": "    /// @inheritdoc MINTRv1\n    function mintOhm(address to_, uint256 amount_) external override per", "peek_tail": "  ? type(uint256).max\n            : approval + amount_;\n        mintApproval[policy_] = newAmount;\n\n", "shingle_hash": "dd13d7f0ce68b29a", "top_tokens": ["amount", "uint256", "approval", "mintapproval", "msg", "sender", "inheritdoc", "mintrv1", "function", "address"], "content": "    /// @inheritdoc MINTRv1\n    function mintOhm(address to_, uint256 amount_) external override permissioned onlyWhileActive {\n        if (amount_ == 0) revert MINTR_ZeroAmount();\n\n        uint256 approval = mintApproval[msg.sender];\n        if (approval < amount_) revert MINTR_NotApproved();\n\n        unchecked {\n            mintApproval[msg.sender] = approval - amount_;\n        }\n\n        ohm.mint(to_, amount_);\n\n        emit Mint(msg.sender, to_, amount_);\n    }\n\n    /// @inheritdoc MINTRv1\n    function burnOhm(address from_, uint256 amount_)\n        external\n        override\n        permissioned\n        onlyWhileActive\n    {\n        if (amount_ == 0) revert MINTR_ZeroAmount();\n\n        ohm.burnFrom(from_, amount_);\n\n        emit Burn(msg.sender, from_, amount_);\n    }\n\n    /// @inheritdoc MINTRv1\n    function increaseMintApproval(address policy_, uint256 amount_) external override permissioned {\n        uint256 approval = mintApproval[policy_];\n\n        uint256 newAmount = type(uint256).max - approval <= amount_\n            ? type(uint256).max\n            : approval + amount_;\n        mintApproval[policy_] = newAmount;\n\n"}, "card_9d2abdd70c56": {"id": "card_9d2abdd70c56", "relpath": "sherlock-olympus/src/policies/RolesAdmin.sol", "char_start": 2213, "char_end": 3109, "peek_head": "    function grantRole(bytes32 role_, address wallet_) external onlyAdmin {\n        ROLES.saveRole(r", "peek_tail": "      admin = newAdmin;\n        newAdmin = address(0);\n        emit NewAdminPulled(admin);\n    }\n}\n\n", "shingle_hash": "643df80634e565be", "top_tokens": ["newadmin", "function", "role", "address", "wallet", "external", "onlyadmin", "admin", "bytes32", "roles"], "content": "    function grantRole(bytes32 role_, address wallet_) external onlyAdmin {\n        ROLES.saveRole(role_, wallet_);\n    }\n\n    function revokeRole(bytes32 role_, address wallet_) external onlyAdmin {\n        ROLES.removeRole(role_, wallet_);\n    }\n\n    //============================================================================================//\n    //                                      ADMIN FUNCTIONS                                       //\n    //============================================================================================//\n\n    function pushNewAdmin(address newAdmin_) external onlyAdmin {\n        newAdmin = newAdmin_;\n        emit NewAdminPushed(newAdmin_);\n    }\n\n    function pullNewAdmin() external {\n        if (msg.sender != newAdmin) revert OnlyNewAdmin();\n        admin = newAdmin;\n        newAdmin = address(0);\n        emit NewAdminPulled(admin);\n    }\n}\n"}, "card_eee1da8dccc0": {"id": "card_eee1da8dccc0", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBalancer.sol", "char_start": 1083, "char_end": 2047, "peek_head": "    function balanceOf(address user_) external view returns (uint256);\n\n    function totalSupply() e", "peek_tail": "tPoolRequest memory request\n    ) external returns (uint256 bptIn, uint256[] memory amountsOut);\n}\n\n", "shingle_hash": "99542d3240bd189c", "top_tokens": ["uint256", "address", "memory", "function", "external", "returns", "interface", "view", "string", "bytes32"], "content": "    function balanceOf(address user_) external view returns (uint256);\n\n    function totalSupply() external view returns (uint256);\n\n    function approve(address spender_, uint256 amount_) external returns (bool);\n}\n\n// Define Balancer Pool Factory Interface\ninterface IFactory {\n    function create(\n        string memory name,\n        string memory symbol,\n        ERC20[] memory tokens,\n        uint256[] memory weights,\n        uint256 swapFeePercentage,\n        address owner\n    ) external returns (address);\n}\n\ninterface IBalancerHelper {\n    function queryJoin(\n        bytes32 poolId,\n        address sender,\n        address recipient,\n        JoinPoolRequest memory request\n    ) external returns (uint256 bptOut, uint256[] memory amountsIn);\n\n    function queryExit(\n        bytes32 poolId,\n        address sender,\n        address recipient,\n        ExitPoolRequest memory request\n    ) external returns (uint256 bptIn, uint256[] memory amountsOut);\n}\n"}, "card_3894fd479c8b": {"id": "card_3894fd479c8b", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBalancer.sol", "char_start": 0, "char_end": 1083, "peek_head": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity >=0.8.0;\n\n// Import types\nimport {ERC20} from \"", "peek_tail": "ase Pool Interface\ninterface IBasePool {\n    function getPoolId() external view returns (bytes32);\n\n", "shingle_hash": "d71da4fd2a6b522e", "top_tokens": ["address", "uint256", "interface", "function", "bytes32", "memory", "external", "define", "poolid", "import"], "content": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity >=0.8.0;\n\n// Import types\nimport {ERC20} from \"solmate/tokens/ERC20.sol\";\n\n// Define Data Structures\nstruct JoinPoolRequest {\n    address[] assets;\n    uint256[] maxAmountsIn;\n    bytes userData;\n    bool fromInternalBalance;\n}\n\nstruct ExitPoolRequest {\n    address[] assets;\n    uint256[] minAmountsOut;\n    bytes userData;\n    bool toInternalBalance;\n}\n\n// Define Vault Interface\ninterface IVault {\n    function joinPool(\n        bytes32 poolId,\n        address sender,\n        address recipient,\n        JoinPoolRequest memory request\n    ) external payable;\n\n    function exitPool(\n        bytes32 poolId,\n        address sender,\n        address payable recipient,\n        ExitPoolRequest memory request\n    ) external;\n\n    function getPoolTokens(bytes32 poolId)\n        external\n        view\n        returns (\n            address[] memory,\n            uint256[] memory,\n            uint256\n        );\n}\n\n// Define Balancer Base Pool Interface\ninterface IBasePool {\n    function getPoolId() external view returns (bytes32);\n\n"}, "card_d8dc6db5e0d5": {"id": "card_d8dc6db5e0d5", "relpath": "sherlock-olympus/src/modules/ROLES/OlympusRoles.sol", "char_start": 0, "char_end": 1048, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {ROLESv1} from \"src/module", "peek_tail": "nction KEYCODE() public pure override returns (Keycode) {\n        return toKeycode(\"ROLES\");\n    }\n\n", "shingle_hash": "89359025c69c94e9", "top_tokens": ["roles", "module", "kernel", "rolesv1", "contract", "import", "src", "sol", "notice", "abstract"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {ROLESv1} from \"src/modules/ROLES/ROLES.v1.sol\";\nimport \"src/Kernel.sol\";\n\n/// @notice Abstract contract to have the `onlyRole` modifier\n/// @dev    Inheriting this automatically makes ROLES module a dependency\nabstract contract RolesConsumer {\n    ROLESv1 public ROLES;\n\n    modifier onlyRole(bytes32 role_) {\n        ROLES.requireRole(role_, msg.sender);\n        _;\n    }\n}\n\n/// @notice Module that holds multisig roles needed by various policies.\ncontract OlympusRoles is ROLESv1 {\n    //============================================================================================//\n    //                                        MODULE SETUP                                        //\n    //============================================================================================//\n\n    constructor(Kernel kernel_) Module(kernel_) {}\n\n    /// @inheritdoc Module\n    function KEYCODE() public pure override returns (Keycode) {\n        return toKeycode(\"ROLES\");\n    }\n\n"}, "card_747f8db170a8": {"id": "card_747f8db170a8", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultManagerLido.sol", "char_start": 1014, "char_end": 2031, "peek_head": "    struct OracleFeed {\n        AggregatorV3Interface feed;\n        uint48 updateThreshold;\n    }\n\n ", "peek_tail": "  //============================================================================================//\n\n", "shingle_hash": "98fc507ad720a898", "top_tokens": ["the", "vault", "user", "deployed", "address", "struct", "oraclefeed", "aggregatorv3interface", "feed", "uint48"], "content": "    struct OracleFeed {\n        AggregatorV3Interface feed;\n        uint48 updateThreshold;\n    }\n\n    //============================================================================================//\n    //                                        VAULT DEPLOYMENT                                    //\n    //============================================================================================//\n\n    /// @notice                         Deploys a personal single sided vault for the user\n    /// @dev                            The vault is deployed with the user as the owner\n    /// @return vault                   The address of the deployed vault\n    function deployVault() external returns (address);\n\n    //============================================================================================//\n    //                                         OHM MANAGEMENT                                     //\n    //============================================================================================//\n\n"}, "card_335d28188ee2": {"id": "card_335d28188ee2", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 15159, "char_end": 16236, "peek_head": "        // Send extra rewards to owner\n        {\n            uint256 numExtraRewards = auraRewardPoo", "peek_tail": "            unchecked {\n                    ++i;\n                }\n            }\n        }\n    }\n}\n\n", "shingle_hash": "243d8cf58c0d5e93", "top_tokens": ["extrarewardfee", "extrarewardtoken", "extrarewardamount", "uint256", "owner", "numextrarewards", "aurarewardpool", "iaurarewardpool", "extrarewardpool", "erc20"], "content": "        // Send extra rewards to owner\n        {\n            uint256 numExtraRewards = auraRewardPool().extraRewardsLength();\n            for (uint256 i; i < numExtraRewards; ) {\n                IAuraRewardPool extraRewardPool = IAuraRewardPool(auraRewardPool().extraRewards(i));\n                ERC20 extraRewardToken = ERC20(extraRewardPool.rewardToken());\n\n                uint256 extraRewardAmount = extraRewardToken.balanceOf(address(this));\n                uint256 extraRewardFee = (extraRewardAmount * fee()) / 10_000;\n                if (extraRewardAmount - extraRewardFee > 0) {\n                    extraRewardToken.safeTransfer(owner(), extraRewardAmount - extraRewardFee);\n                    emit RewardsClaimed(\n                        address(extraRewardToken),\n                        extraRewardAmount - extraRewardFee\n                    );\n                }\n                if (extraRewardFee > 0) extraRewardToken.safeTransfer(TRSRY(), extraRewardFee);\n\n                unchecked {\n                    ++i;\n                }\n            }\n        }\n    }\n}\n"}, "card_e06e6d1a22ab": {"id": "card_e06e6d1a22ab", "relpath": "sherlock-olympus/src/modules/MINTR/OlympusMinter.sol", "char_start": 0, "char_end": 1273, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {MINTRv1, OHM} from \"src/m", "peek_tail": "  //============================================================================================//\n\n", "shingle_hash": "b09d5c3b3be8d08b", "top_tokens": ["ohm", "kernel", "module", "mintr", "import", "mintrv1", "src", "sol", "functions", "inheritdoc"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {MINTRv1, OHM} from \"src/modules/MINTR/MINTR.v1.sol\";\nimport \"src/Kernel.sol\";\n\n/// @notice Wrapper for minting and burning functions of OHM token.\ncontract OlympusMinter is MINTRv1 {\n    //============================================================================================//\n    //                                      MODULE SETUP                                          //\n    //============================================================================================//\n\n    constructor(Kernel kernel_, address ohm_) Module(kernel_) {\n        ohm = OHM(ohm_);\n        active = true;\n    }\n\n    /// @inheritdoc Module\n    function KEYCODE() public pure override returns (Keycode) {\n        return toKeycode(\"MINTR\");\n    }\n\n    /// @inheritdoc Module\n    function VERSION() external pure override returns (uint8 major, uint8 minor) {\n        major = 1;\n        minor = 0;\n    }\n\n    //============================================================================================//\n    //                                       CORE FUNCTIONS                                       //\n    //============================================================================================//\n\n"}, "card_aeb16192812b": {"id": "card_aeb16192812b", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 5355, "char_end": 6385, "peek_head": "            // Join Balancer pool\n            _joinBalancerPool(ohmMintAmount, amount_, minLpAmount_", "peek_tail": " }\n\n        // Emit event\n        emit Deposit(ohmMintAmount - unusedOhm, amount_ - unusedWsteth);\n\n", "shingle_hash": "00f94ab06ca3baf5", "top_tokens": ["unusedohm", "lpamountout", "address", "unusedwsteth", "ohm", "balanceof", "this", "ohmmintamount", "amount", "liquiditypool"], "content": "            // Join Balancer pool\n            _joinBalancerPool(ohmMintAmount, amount_, minLpAmount_);\n\n            // OHM-PAIR BPT after\n            lpAmountOut = liquidityPool.balanceOf(address(this)) - bptBefore;\n            manager.increaseTotalLp(lpAmountOut);\n\n            // Stake into Aura\n            liquidityPool.approve(address(auraBooster), lpAmountOut);\n            bool depositSuccess = auraBooster.deposit(pid(), lpAmountOut, true);\n            if (!depositSuccess) revert BLVaultLido_AuraDepositFailed();\n        }\n\n        // Return unused tokens\n        uint256 unusedOhm = ohm.balanceOf(address(this));\n        uint256 unusedWsteth = wsteth.balanceOf(address(this));\n\n        if (unusedOhm > 0) {\n            ohm.increaseAllowance(MINTR(), unusedOhm);\n            manager.burnOhmFromVault(unusedOhm);\n        }\n\n        if (unusedWsteth > 0) {\n            wsteth.safeTransfer(msg.sender, unusedWsteth);\n        }\n\n        // Emit event\n        emit Deposit(ohmMintAmount - unusedOhm, amount_ - unusedWsteth);\n\n"}, "card_06aceddee922": {"id": "card_06aceddee922", "relpath": "sherlock-olympus/src/modules/ROLES/OlympusRoles.sol", "char_start": 2065, "char_end": 3048, "peek_head": "        hasRole[addr_][role_] = false;\n\n        emit RoleRevoked(role_, addr_);\n    }\n\n    //=======", "peek_tail": "-z only\n            }\n            unchecked {\n                i++;\n            }\n        }\n    }\n}\n\n", "shingle_hash": "f361c963305ccfcd", "top_tokens": ["role", "char", "hasrole", "addr", "view", "inheritdoc", "rolesv1", "function", "requirerole", "bytes32"], "content": "        hasRole[addr_][role_] = false;\n\n        emit RoleRevoked(role_, addr_);\n    }\n\n    //============================================================================================//\n    //                                       VIEW FUNCTIONS                                       //\n    //============================================================================================//\n\n    /// @inheritdoc ROLESv1\n    function requireRole(bytes32 role_, address caller_) external view override {\n        if (!hasRole[caller_][role_]) revert ROLES_RequireRole(role_);\n    }\n\n    /// @inheritdoc ROLESv1\n    function ensureValidRole(bytes32 role_) public pure override {\n        for (uint256 i = 0; i < 32; ) {\n            bytes1 char = role_[i];\n            if ((char < 0x61 || char > 0x7A) && char != 0x5f && char != 0x00) {\n                revert ROLES_InvalidRole(role_); // a-z only\n            }\n            unchecked {\n                i++;\n            }\n        }\n    }\n}\n"}, "card_d44803f381b0": {"id": "card_d44803f381b0", "relpath": "sherlock-olympus/src/modules/TRSRY/TRSRY.v1.sol", "char_start": 0, "char_end": 1184, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {ERC20} from \"solmate/toke", "peek_tail": "nt256 amount_);\n    event DebtSet(ERC20 indexed token_, address indexed policy_, uint256 amount_);\n\n", "shingle_hash": "c71a2df53af33173", "top_tokens": ["indexed", "erc20", "address", "event", "token", "uint256", "newamount", "policy", "amount", "withdrawer"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {ERC20} from \"solmate/tokens/ERC20.sol\";\nimport \"src/Kernel.sol\";\n\n/// @notice Treasury holds all other assets under the control of the protocol.\nabstract contract TRSRYv1 is Module {\n    // =========  EVENTS ========= //\n\n    event IncreaseWithdrawApproval(\n        address indexed withdrawer_,\n        ERC20 indexed token_,\n        uint256 newAmount_\n    );\n    event DecreaseWithdrawApproval(\n        address indexed withdrawer_,\n        ERC20 indexed token_,\n        uint256 newAmount_\n    );\n    event Withdrawal(\n        address indexed policy_,\n        address indexed withdrawer_,\n        ERC20 indexed token_,\n        uint256 amount_\n    );\n    event IncreaseDebtorApproval(address indexed debtor_, ERC20 indexed token_, uint256 newAmount_);\n    event DecreaseDebtorApproval(address indexed debtor_, ERC20 indexed token_, uint256 newAmount_);\n    event DebtIncurred(ERC20 indexed token_, address indexed policy_, uint256 amount_);\n    event DebtRepaid(ERC20 indexed token_, address indexed policy_, uint256 amount_);\n    event DebtSet(ERC20 indexed token_, address indexed policy_, uint256 amount_);\n\n"}, "card_8df69fbcc376": {"id": "card_8df69fbcc376", "relpath": "sherlock-olympus/src/modules/BLREG/OlympusBoostedLiquidityRegistry.sol", "char_start": 0, "char_end": 1102, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {BLREGv1} from \"src/module", "peek_tail": "nction KEYCODE() public pure override returns (Keycode) {\n        return toKeycode(\"BLREG\");\n    }\n\n", "shingle_hash": "5c0adb75929af7d2", "top_tokens": ["module", "kernel", "olympus", "boosted", "liquidity", "blreg", "vault", "registry", "the", "import"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {BLREGv1} from \"src/modules/BLREG/BLREG.v1.sol\";\nimport \"src/Kernel.sol\";\n\n/// @title  Olympus Boosted Liquidity Vault Registry\n/// @notice Olympus Boosted Liquidity Vault Registry (Module) Contract\n/// @dev    The Olympus Boosted Liquidity Vault Registry Module tracks the boosted liquidity vaults\n///         that are approved to be used by the Olympus protocol. This allows for a single-soure\n///         of truth for reporting purposes around total OHM deployed and net emissions.\ncontract OlympusBoostedLiquidityRegistry is BLREGv1 {\n    //============================================================================================//\n    //                                      MODULE SETUP                                          //\n    //============================================================================================//\n\n    constructor(Kernel kernel_) Module(kernel_) {}\n\n    /// @inheritdoc Module\n    function KEYCODE() public pure override returns (Keycode) {\n        return toKeycode(\"BLREG\");\n    }\n\n"}, "card_7e7f618267b3": {"id": "card_7e7f618267b3", "relpath": "sherlock-olympus/src/modules/TRSRY/TRSRY.v1.sol", "char_start": 3403, "char_end": 4425, "peek_head": "    /// @notice Pre-approved policies can get a loan to perform operations with treasury assets.\n   ", "peek_tail": ");\n\n    /// @notice Emergency shutdown of withdrawals.\n    function deactivate() external virtual;\n\n", "shingle_hash": "db1210ad8263ebe9", "top_tokens": ["notice", "function", "token", "external", "virtual", "erc20", "uint256", "with", "assets", "amount"], "content": "    /// @notice Pre-approved policies can get a loan to perform operations with treasury assets.\n    function incurDebt(ERC20 token_, uint256 amount_) external virtual;\n\n    /// @notice Repay a debtor debt.\n    /// @dev    Only confirmed to safely handle standard and non-standard ERC20s.\n    /// @dev    Can have unforeseen consequences with ERC777. Be careful with ERC777 as reserve.\n    function repayDebt(\n        address debtor_,\n        ERC20 token_,\n        uint256 amount_\n    ) external virtual;\n\n    /// @notice An escape hatch for setting debt in special cases, like swapping reserves to another token.\n    function setDebt(\n        address debtor_,\n        ERC20 token_,\n        uint256 amount_\n    ) external virtual;\n\n    /// @notice Get total balance of assets inside the treasury + any debt taken out against those assets.\n    function getReserveBalance(ERC20 token_) external view virtual returns (uint256);\n\n    /// @notice Emergency shutdown of withdrawals.\n    function deactivate() external virtual;\n\n"}, "card_b18c18e62999": {"id": "card_b18c18e62999", "relpath": "sherlock-olympus/src/modules/BLREG/OlympusBoostedLiquidityRegistry.sol", "char_start": 1102, "char_end": 2267, "peek_head": "    /// @inheritdoc Module\n    function VERSION() public pure override returns (uint8 major, uint8 m", "peek_tail": "      activeVaults.pop();\n                --activeVaultCount;\n                break;\n            }\n\n", "shingle_hash": "497429c3e9650682", "top_tokens": ["vault", "activevaults", "inheritdoc", "function", "override", "activevaultcount", "uint8", "major", "minor", "blregv1"], "content": "    /// @inheritdoc Module\n    function VERSION() public pure override returns (uint8 major, uint8 minor) {\n        major = 1;\n        minor = 0;\n    }\n\n    //============================================================================================//\n    //                                       CORE FUNCTIONS                                       //\n    //============================================================================================//\n\n    /// @inheritdoc BLREGv1\n    function addVault(address vault_) external override permissioned {\n        activeVaults.push(vault_);\n        ++activeVaultCount;\n\n        emit VaultAdded(vault_);\n    }\n\n    /// @inheritdoc BLREGv1\n    function removeVault(address vault_) external override permissioned {\n        // Find index of vault in array\n        for (uint256 i; i < activeVaultCount; ) {\n            if (activeVaults[i] == vault_) {\n                // Delete vault from array by swapping with last element and popping\n                activeVaults[i] = activeVaults[activeVaults.length - 1];\n                activeVaults.pop();\n                --activeVaultCount;\n                break;\n            }\n\n"}, "card_473499d82df2": {"id": "card_473499d82df2", "relpath": "sherlock-olympus/src/interfaces/AggregatorV2V3Interface.sol", "char_start": 1300, "char_end": 1629, "peek_head": "    function latestRoundData()\n        external\n        view\n        returns (\n            uint80 ro", "peek_tail": "d\n        );\n}\n\ninterface AggregatorV2V3Interface is AggregatorInterface, AggregatorV3Interface {}\n\n", "shingle_hash": "1bb5327c27c8f72a", "top_tokens": ["uint80", "uint256", "function", "latestrounddata", "external", "view", "returns", "roundid", "int256", "answer"], "content": "    function latestRoundData()\n        external\n        view\n        returns (\n            uint80 roundId,\n            int256 answer,\n            uint256 startedAt,\n            uint256 updatedAt,\n            uint80 answeredInRound\n        );\n}\n\ninterface AggregatorV2V3Interface is AggregatorInterface, AggregatorV3Interface {}\n"}, "card_0f3608a7fdeb": {"id": "card_0f3608a7fdeb", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 2123, "char_end": 3178, "peek_head": "    function manager() public pure returns (BLVaultManagerLido) {\n        return BLVaultManagerLido(", "peek_tail": "   }\n\n    function pid() public pure returns (uint256) {\n        return _getArgUint256(200);\n    }\n\n", "shingle_hash": "7e37372e21c671a7", "top_tokens": ["function", "public", "pure", "returns", "return", "getargaddress", "erc20", "blvaultmanagerlido", "address", "olympuserc20token"], "content": "    function manager() public pure returns (BLVaultManagerLido) {\n        return BLVaultManagerLido(_getArgAddress(20));\n    }\n\n    function TRSRY() public pure returns (address) {\n        return _getArgAddress(40);\n    }\n\n    function MINTR() public pure returns (address) {\n        return _getArgAddress(60);\n    }\n\n    function ohm() public pure returns (OlympusERC20Token) {\n        return OlympusERC20Token(_getArgAddress(80));\n    }\n\n    function wsteth() public pure returns (ERC20) {\n        return ERC20(_getArgAddress(100));\n    }\n\n    function aura() public pure returns (ERC20) {\n        return ERC20(_getArgAddress(120));\n    }\n\n    function bal() public pure returns (ERC20) {\n        return ERC20(_getArgAddress(140));\n    }\n\n    function vault() public pure returns (IVault) {\n        return IVault(_getArgAddress(160));\n    }\n\n    function liquidityPool() public pure returns (IBasePool) {\n        return IBasePool(_getArgAddress(180));\n    }\n\n    function pid() public pure returns (uint256) {\n        return _getArgUint256(200);\n    }\n\n"}, "card_8abb85d5be10": {"id": "card_8abb85d5be10", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 11630, "char_end": 12634, "peek_head": "            rewards[i + 2] = RewardsData({\n                rewardToken: extraRewardToken,\n          ", "peek_tail": " assets = new address[](2);\n        assets[0] = address(ohm);\n        assets[1] = address(wsteth);\n\n", "shingle_hash": "73075a12f81851b0", "top_tokens": ["address", "uint256", "ohm", "wsteth", "assets", "rewards", "internal", "memory", "vault", "rewardsdata"], "content": "            rewards[i + 2] = RewardsData({\n                rewardToken: extraRewardToken,\n                outstandingRewards: extraRewardAmount\n            });\n\n            unchecked {\n                ++i;\n            }\n        }\n\n        return rewards;\n    }\n\n    //============================================================================================//\n    //                                      INTERNAL FUNCTIONS                                    //\n    //============================================================================================//\n\n    function _joinBalancerPool(\n        uint256 ohmAmount_,\n        uint256 wstethAmount_,\n        uint256 minLpAmount_\n    ) internal {\n        // Cache variables to memory\n        OlympusERC20Token ohm = ohm();\n        ERC20 wsteth = wsteth();\n        IVault vault = vault();\n\n        // Build join pool request\n        address[] memory assets = new address[](2);\n        assets[0] = address(ohm);\n        assets[1] = address(wsteth);\n\n"}, "card_97bba9c717c5": {"id": "card_97bba9c717c5", "relpath": "sherlock-olympus/src/modules/TRSRY/OlympusTreasury.sol", "char_start": 2242, "char_end": 3582, "peek_head": "        uint256 newAmount = approval <= amount_ ? 0 : approval - amount_;\n        withdrawApproval[w", "peek_tail": "btor_][token_] = newAmount;\n        emit DecreaseDebtorApproval(debtor_, token_, newAmount);\n    }\n\n", "shingle_hash": "75c13fe73327a15e", "top_tokens": ["token", "amount", "newamount", "debtor", "uint256", "emit", "debtapproval", "inheritdoc", "trsryv1", "function"], "content": "        uint256 newAmount = approval <= amount_ ? 0 : approval - amount_;\n        withdrawApproval[withdrawer_][token_] = newAmount;\n\n        emit DecreaseWithdrawApproval(withdrawer_, token_, newAmount);\n    }\n\n    /// @inheritdoc TRSRYv1\n    function withdrawReserves(\n        address to_,\n        ERC20 token_,\n        uint256 amount_\n    ) public override permissioned onlyWhileActive {\n        withdrawApproval[msg.sender][token_] -= amount_;\n\n        token_.safeTransfer(to_, amount_);\n\n        emit Withdrawal(msg.sender, to_, token_, amount_);\n    }\n\n    // =========  DEBT FUNCTIONS ========= //\n\n    /// @inheritdoc TRSRYv1\n    function increaseDebtorApproval(\n        address debtor_,\n        ERC20 token_,\n        uint256 amount_\n    ) external override permissioned {\n        uint256 newAmount = debtApproval[debtor_][token_] + amount_;\n        debtApproval[debtor_][token_] = newAmount;\n        emit IncreaseDebtorApproval(debtor_, token_, newAmount);\n    }\n\n    /// @inheritdoc TRSRYv1\n    function decreaseDebtorApproval(\n        address debtor_,\n        ERC20 token_,\n        uint256 amount_\n    ) external override permissioned {\n        uint256 newAmount = debtApproval[debtor_][token_] - amount_;\n        debtApproval[debtor_][token_] = newAmount;\n        emit DecreaseDebtorApproval(debtor_, token_, newAmount);\n    }\n\n"}, "card_3f0619599e38": {"id": "card_3f0619599e38", "relpath": "sherlock-olympus/src/policies/RolesAdmin.sol", "char_start": 1122, "char_end": 2213, "peek_head": "    constructor(Kernel _kernel) Policy(_kernel) {\n        admin = msg.sender;\n    }\n\n    function co", "peek_tail": "\n\n    modifier onlyAdmin() {\n        if (msg.sender != admin) revert OnlyAdmin();\n        _;\n    }\n\n", "shingle_hash": "f3ecfe4b833c42c5", "top_tokens": ["roles", "keycode", "dependencies", "permissions", "requests", "kernel", "admin", "msg", "sender", "function"], "content": "    constructor(Kernel _kernel) Policy(_kernel) {\n        admin = msg.sender;\n    }\n\n    function configureDependencies() external override returns (Keycode[] memory dependencies) {\n        dependencies = new Keycode[](1);\n        dependencies[0] = toKeycode(\"ROLES\");\n\n        ROLES = ROLESv1(getModuleAddress(dependencies[0]));\n    }\n\n    function requestPermissions() external view override returns (Permissions[] memory requests) {\n        Keycode ROLES_KEYCODE = toKeycode(\"ROLES\");\n\n        requests = new Permissions[](2);\n        requests[0] = Permissions(ROLES_KEYCODE, ROLES.saveRole.selector);\n        requests[1] = Permissions(ROLES_KEYCODE, ROLES.removeRole.selector);\n    }\n\n    //============================================================================================//\n    //                                       CORE FUNCTIONS                                       //\n    //============================================================================================//\n\n    modifier onlyAdmin() {\n        if (msg.sender != admin) revert OnlyAdmin();\n        _;\n    }\n\n"}, "card_dde81889e920": {"id": "card_dde81889e920", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol", "char_start": 2116, "char_end": 3304, "peek_head": "    /// @notice                 Claims outstanding rewards from Aura\n    /// @dev                   ", "peek_tail": "wards in Aura\n    function getOutstandingRewards() external view returns (RewardsData[] memory);\n}\n\n", "shingle_hash": "723f339995bedcec", "top_tokens": ["the", "aura", "notice", "function", "external", "view", "uint256", "returns", "rewards", "vault"], "content": "    /// @notice                 Claims outstanding rewards from Aura\n    /// @dev                    Can only be called by the owner of the vault\n    function claimRewards() external;\n\n    //============================================================================================//\n    //                                        VIEW FUNCTIONS                                      //\n    //============================================================================================//\n\n    /// @notice                 Gets the LP balance of the contract based on its deposits to Aura\n    /// @return uint256         LP balance deposited into Aura\n    function getLpBalance() external view returns (uint256);\n\n    /// @notice                 Gets the contract's claim on wstETH based on its LP balance deposited into Aura\n    /// @return uint256         Claim on wstETH\n    function getUserPairShare() external view returns (uint256);\n\n    /// @notice                         Returns the vault's unclaimed rewards in Aura\n    /// @return RewardsData[]           The vault's unclaimed rewards in Aura\n    function getOutstandingRewards() external view returns (RewardsData[] memory);\n}\n"}, "card_04d6660931d3": {"id": "card_04d6660931d3", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 10621, "char_end": 11630, "peek_head": "    /// @inheritdoc IBLVaultLido\n    function getOutstandingRewards() public view override returns (", "peek_tail": "Pool.rewardToken();\n            uint256 extraRewardAmount = extraRewardPool.earned(address(this));\n\n", "shingle_hash": "083ea90f9a375f2e", "top_tokens": ["rewardsdata", "uint256", "rewards", "address", "numextrarewards", "aurarewardpool", "get", "balrewards", "rewardtoken", "extrarewardpool"], "content": "    /// @inheritdoc IBLVaultLido\n    function getOutstandingRewards() public view override returns (RewardsData[] memory) {\n        uint256 numExtraRewards = auraRewardPool().extraRewardsLength();\n        RewardsData[] memory rewards = new RewardsData[](numExtraRewards + 2);\n\n        // Get Bal reward\n        uint256 balRewards = auraRewardPool().earned(address(this));\n        rewards[0] = RewardsData({rewardToken: address(bal()), outstandingRewards: balRewards});\n\n        // Get Aura rewards\n        uint256 auraRewards = manager().auraMiningLib().convertCrvToCvx(balRewards);\n        rewards[1] = RewardsData({rewardToken: address(aura()), outstandingRewards: auraRewards});\n\n        // Get extra rewards\n        for (uint256 i; i < numExtraRewards; ) {\n            IAuraRewardPool extraRewardPool = IAuraRewardPool(auraRewardPool().extraRewards(i));\n\n            address extraRewardToken = extraRewardPool.rewardToken();\n            uint256 extraRewardAmount = extraRewardPool.earned(address(this));\n\n"}, "card_5cb0761c9c9b": {"id": "card_5cb0761c9c9b", "relpath": "sherlock-olympus/src/Kernel.sol", "char_start": 8885, "char_end": 10844, "peek_head": "    /// @notice Helper to get active policy quickly. Prevents need to loop through array.\n    mappin", "peek_tail": "nel) {\n            ensureContract(target_);\n            _migrateKernel(Kernel(target_));\n        }\n\n", "shingle_hash": "dc5fc9d4d34887c6", "top_tokens": ["target", "policy", "action", "actions", "ensurecontract", "else", "executor", "kernel", "module", "notice"], "content": "    /// @notice Helper to get active policy quickly. Prevents need to loop through array.\n    mapping(Policy => uint256) public getPolicyIndex;\n\n    //============================================================================================//\n    //                                       CORE FUNCTIONS                                       //\n    //============================================================================================//\n\n    constructor() {\n        executor = msg.sender;\n    }\n\n    /// @notice Modifier to check if caller is the executor.\n    modifier onlyExecutor() {\n        if (msg.sender != executor) revert Kernel_OnlyExecutor(msg.sender);\n        _;\n    }\n\n    function isPolicyActive(Policy policy_) public view returns (bool) {\n        return activePolicies.length > 0 && activePolicies[getPolicyIndex[policy_]] == policy_;\n    }\n\n    /// @notice Main kernel function. Initiates state changes to kernel depending on Action passed in.\n    function executeAction(Actions action_, address target_) external onlyExecutor {\n        if (action_ == Actions.InstallModule) {\n            ensureContract(target_);\n            ensureValidKeycode(Module(target_).KEYCODE());\n            _installModule(Module(target_));\n        } else if (action_ == Actions.UpgradeModule) {\n            ensureContract(target_);\n            ensureValidKeycode(Module(target_).KEYCODE());\n            _upgradeModule(Module(target_));\n        } else if (action_ == Actions.ActivatePolicy) {\n            ensureContract(target_);\n            _activatePolicy(Policy(target_));\n        } else if (action_ == Actions.DeactivatePolicy) {\n            ensureContract(target_);\n            _deactivatePolicy(Policy(target_));\n        } else if (action_ == Actions.ChangeExecutor) {\n            executor = target_;\n        } else if (action_ == Actions.MigrateKernel) {\n            ensureContract(target_);\n            _migrateKernel(Kernel(target_));\n        }\n\n"}, "card_0e65f0d506dd": {"id": "card_0e65f0d506dd", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultManagerLido.sol", "char_start": 2031, "char_end": 3225, "peek_head": "    /// @notice                         Mints OHM to the caller\n    /// @dev                        ", "peek_tail": "he amount of LP tokens to add to the total\n    function increaseTotalLp(uint256 amount_) external;\n\n", "shingle_hash": "925bb6dfa0298ddd", "top_tokens": ["the", "amount", "ohm", "vault", "notice", "caller", "dev", "can", "only", "called"], "content": "    /// @notice                         Mints OHM to the caller\n    /// @dev                            Can only be called by an approved vault\n    /// @param amount_                  The amount of OHM to mint\n    function mintOhmToVault(uint256 amount_) external;\n\n    /// @notice                         Burns OHM from the caller\n    /// @dev                            Can only be called by an approved vault. The caller must have an OHM approval for the MINTR.\n    /// @param amount_                  The amount of OHM to burn\n    function burnOhmFromVault(uint256 amount_) external;\n\n    //============================================================================================//\n    //                                     VAULT STATE MANAGEMENT                                 //\n    //============================================================================================//\n\n    /// @notice                         Increases the tracked value for totalLP\n    /// @dev                            Can only be called by an approved vault\n    /// @param amount_                  The amount of LP tokens to add to the total\n    function increaseTotalLp(uint256 amount_) external;\n\n"}, "card_860c7f47208c": {"id": "card_860c7f47208c", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol", "char_start": 7455, "char_end": 8491, "peek_head": "        // Calculate oracle expected wstETH received amount\n        // getTknOhmPrice returns the am", "peek_tail": "laim_) _sendRewards();\n\n        // Emit event\n        emit Withdraw(ohmAmountOut, wstethToReturn);\n\n", "shingle_hash": "a0a2941a3fc50f45", "top_tokens": ["the", "wsteth", "wstethtoreturn", "ohm", "ohmamountout", "wstethamountout", "oracle", "uint256", "expectedwstethamountout", "return"], "content": "        // Calculate oracle expected wstETH received amount\n        // getTknOhmPrice returns the amount of wstETH per 1 OHM based on the oracle price\n        uint256 wstethOhmPrice = manager.getTknOhmPrice();\n        uint256 expectedWstethAmountOut = (ohmAmountOut * wstethOhmPrice) / _OHM_DECIMALS;\n\n        // Take any arbs relative to the oracle price for the Treasury and return the rest to the owner\n        uint256 wstethToReturn = wstethAmountOut > expectedWstethAmountOut\n            ? expectedWstethAmountOut\n            : wstethAmountOut;\n        if (wstethAmountOut > wstethToReturn)\n            wsteth.safeTransfer(TRSRY(), wstethAmountOut - wstethToReturn);\n\n        // Burn OHM\n        ohm.increaseAllowance(MINTR(), ohmAmountOut);\n        manager.burnOhmFromVault(ohmAmountOut);\n\n        // Return wstETH to owner\n        wsteth.safeTransfer(msg.sender, wstethToReturn);\n\n        // Return rewards to owner\n        if (claim_) _sendRewards();\n\n        // Emit event\n        emit Withdraw(ohmAmountOut, wstethToReturn);\n\n"}, "card_05871aa67821": {"id": "card_05871aa67821", "relpath": "sherlock-olympus/src/Kernel.sol", "char_start": 14144, "char_end": 15181, "peek_head": "        uint256 policiesLen = activePolicies.length;\n        for (uint256 j; j < policiesLen; ) {\n  ", "peek_tail": "uests_[i];\n            modulePermissions[request.keycode][policy_][request.funcSelector] = grant_;\n\n", "shingle_hash": "d1189e74a7bd51cb", "top_tokens": ["policy", "uint256", "keycode", "length", "for", "memory", "dependents", "requests", "request", "policieslen"], "content": "        uint256 policiesLen = activePolicies.length;\n        for (uint256 j; j < policiesLen; ) {\n            Policy policy = activePolicies[j];\n\n            // Deactivate before changing kernel\n            policy.changeKernel(newKernel_);\n            unchecked {\n                ++j;\n            }\n        }\n    }\n\n    function _reconfigurePolicies(Keycode keycode_) internal {\n        Policy[] memory dependents = moduleDependents[keycode_];\n        uint256 depLength = dependents.length;\n\n        for (uint256 i; i < depLength; ) {\n            dependents[i].configureDependencies();\n\n            unchecked {\n                ++i;\n            }\n        }\n    }\n\n    function _setPolicyPermissions(\n        Policy policy_,\n        Permissions[] memory requests_,\n        bool grant_\n    ) internal {\n        uint256 reqLength = requests_.length;\n        for (uint256 i = 0; i < reqLength; ) {\n            Permissions memory request = requests_[i];\n            modulePermissions[request.keycode][policy_][request.funcSelector] = grant_;\n\n"}, "card_817a9b5c3a5a": {"id": "card_817a9b5c3a5a", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 13285, "char_end": 14870, "peek_head": "        uint256 numExtraRewards = auraPool.extraRewardsLength();\n        address[] memory rewardToke", "peek_tail": "           rewardRate = extraRewardPool.rewardRate();\n                    break;\n                }\n\n", "shingle_hash": "2fb008652080728c", "top_tokens": ["rewardrate", "aurapool", "rewardtoken", "uint256", "iaurarewardpool", "numextrarewards", "rewardtokens", "extrarewardpool", "aura", "address"], "content": "        uint256 numExtraRewards = auraPool.extraRewardsLength();\n        address[] memory rewardTokens = new address[](numExtraRewards + 2);\n        rewardTokens[0] = aura;\n        rewardTokens[1] = auraPool.rewardToken();\n        for (uint256 i; i < numExtraRewards; ) {\n            IAuraRewardPool extraRewardPool = IAuraRewardPool(auraPool.extraRewards(i));\n            rewardTokens[i + 2] = extraRewardPool.rewardToken();\n\n            unchecked {\n                ++i;\n            }\n        }\n        return rewardTokens;\n    }\n\n    /// @inheritdoc IBLVaultManagerLido\n    function getRewardRate(\n        address rewardToken_\n    ) external view override returns (uint256 rewardRate) {\n        IAuraRewardPool auraPool = IAuraRewardPool(auraData.auraRewardPool);\n\n        if (rewardToken_ == bal) {\n            // If reward token is Bal, return rewardRate from Aura Pool\n            rewardRate = auraPool.rewardRate();\n        } else if (rewardToken_ == aura) {\n            // If reward token is Aura, calculate rewardRate from AuraMiningLib\n            uint256 balRewardRate = auraPool.rewardRate();\n            rewardRate = auraMiningLib.convertCrvToCvx(balRewardRate);\n        } else {\n            uint256 numExtraRewards = auraPool.extraRewardsLength();\n            for (uint256 i; i < numExtraRewards; ) {\n                IAuraRewardPool extraRewardPool = IAuraRewardPool(auraPool.extraRewards(i));\n                if (rewardToken_ == extraRewardPool.rewardToken()) {\n                    rewardRate = extraRewardPool.rewardRate();\n                    break;\n                }\n\n"}, "card_d7fd473e2b24": {"id": "card_d7fd473e2b24", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol", "char_start": 0, "char_end": 1026, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity >=0.8.0;\n\nstruct RewardsData {\n    address", "peek_tail": "   function deposit(uint256 amount_, uint256 minLpAmount_) external returns (uint256 lpAmountOut);\n\n", "shingle_hash": "55fbbfd913c12a59", "top_tokens": ["the", "amount", "uint256", "wsteth", "deposit", "only", "liquidity", "ohm", "and", "param"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity >=0.8.0;\n\nstruct RewardsData {\n    address rewardToken;\n    uint256 outstandingRewards;\n}\n\ninterface IBLVaultLido {\n    //============================================================================================//\n    //                                      LIQUIDITY FUNCTIONS                                   //\n    //============================================================================================//\n\n    /// @notice                 Mints OHM against a wstETH deposit and uses the OHM and wstETH to add liquidity to a Balancer pool\n    /// @dev                    Can only be called by the owner of the vault\n    /// @param amount_          The amount of wstETH to deposit\n    /// @param minLpAmount_     The minimum acceptable amount of LP tokens to receive back\n    /// @return lpAmountOut     The amount of LP tokens received by the transaction\n    function deposit(uint256 amount_, uint256 minLpAmount_) external returns (uint256 lpAmountOut);\n\n"}, "card_4a7ab07bf4a1": {"id": "card_4a7ab07bf4a1", "relpath": "sherlock-olympus/src/modules/MINTR/MINTR.v1.sol", "char_start": 0, "char_end": 1102, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {OlympusERC20Token as OHM}", "peek_tail": "-> amount. Infinite approval is max(uint256).\n    mapping(address => uint256) public mintApproval;\n\n", "shingle_hash": "e340a032b38009fc", "top_tokens": ["address", "indexed", "uint256", "ohm", "event", "policy", "notice", "minting", "amount", "error"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {OlympusERC20Token as OHM} from \"src/external/OlympusERC20.sol\";\nimport \"src/Kernel.sol\";\n\n/// @notice Wrapper for minting and burning functions of OHM token.\nabstract contract MINTRv1 is Module {\n    // =========  EVENTS ========= //\n\n    event IncreaseMintApproval(address indexed policy_, uint256 newAmount_);\n    event DecreaseMintApproval(address indexed policy_, uint256 newAmount_);\n    event Mint(address indexed policy_, address indexed to_, uint256 amount_);\n    event Burn(address indexed policy_, address indexed from_, uint256 amount_);\n\n    // ========= ERRORS ========= //\n\n    error MINTR_NotApproved();\n    error MINTR_ZeroAmount();\n    error MINTR_NotActive();\n\n    // =========  STATE ========= //\n\n    OHM public ohm;\n\n    /// @notice Status of the minter. If false, minting and burning OHM is disabled.\n    bool public active;\n\n    /// @notice Mapping of who is approved for minting.\n    /// @dev    minter -> amount. Infinite approval is max(uint256).\n    mapping(address => uint256) public mintApproval;\n\n"}, "card_734fa0e6f7c4": {"id": "card_734fa0e6f7c4", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 6343, "char_end": 7619, "peek_head": "    //============================================================================================//", "peek_tail": "urrentFee\n        );\n        BLVaultLido clone = BLVaultLido(address(implementation).clone(data));\n\n", "shingle_hash": "b18c0d591e14bbe9", "top_tokens": ["vault", "address", "aura", "clone", "balancer", "auradata", "msg", "sender", "implementation", "data"], "content": "    //============================================================================================//\n    //                                        VAULT DEPLOYMENT                                    //\n    //============================================================================================//\n\n    /// @inheritdoc IBLVaultManagerLido\n    function deployVault() external override onlyWhileActive returns (address vault) {\n        if (address(userVaults[msg.sender]) != address(0))\n            revert BLManagerLido_VaultAlreadyExists();\n\n        // Create clone of vault implementation\n        bytes memory data = abi.encodePacked(\n            msg.sender, // Owner\n            this, // Vault Manager\n            address(TRSRY), // Treasury\n            address(MINTR), // Minter\n            ohm, // OHM\n            pairToken, // Pair Token (wstETH)\n            aura, // Aura\n            bal, // Balancer\n            balancerData.vault, // Balancer Vault\n            balancerData.liquidityPool, // Balancer Pool\n            auraData.pid, // Aura PID\n            auraData.auraBooster, // Aura Booster\n            auraData.auraRewardPool, // Aura Reward Pool\n            currentFee\n        );\n        BLVaultLido clone = BLVaultLido(address(implementation).clone(data));\n\n"}, "card_79b014c25604": {"id": "card_79b014c25604", "relpath": "sherlock-olympus/src/external/OlympusERC20.sol", "char_start": 30667, "char_end": 31622, "peek_head": "contract OlympusERC20Token is ERC20Permit, IOHM, OlympusAccessControlled {\n    using SafeMath for ui", "peek_tail": "    _approve(account_, msg.sender, decreasedAllowance_);\n        _burn(account_, amount_);\n    }\n}\n\n", "shingle_hash": "71710d58a658a1bd", "top_tokens": ["amount", "account", "uint256", "address", "function", "burn", "external", "override", "msg", "sender"], "content": "contract OlympusERC20Token is ERC20Permit, IOHM, OlympusAccessControlled {\n    using SafeMath for uint256;\n\n    constructor(address _authority)\n        ERC20(\"Olympus\", \"OHM\", 9)\n        ERC20Permit(\"Olympus\")\n        OlympusAccessControlled(IOlympusAuthority(_authority))\n    {}\n\n    function mint(address account_, uint256 amount_) external override onlyVault {\n        _mint(account_, amount_);\n    }\n\n    function burn(uint256 amount) external override {\n        _burn(msg.sender, amount);\n    }\n\n    function burnFrom(address account_, uint256 amount_) external override {\n        _burnFrom(account_, amount_);\n    }\n\n    function _burnFrom(address account_, uint256 amount_) internal {\n        uint256 decreasedAllowance_ = allowance(account_, msg.sender).sub(\n            amount_,\n            \"ERC20: burn amount exceeds allowance\"\n        );\n\n        _approve(account_, msg.sender, decreasedAllowance_);\n        _burn(account_, amount_);\n    }\n}\n"}, "card_38909b78fb36": {"id": "card_38909b78fb36", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 0, "char_end": 1047, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\n// Import system dependencies\nimp", "peek_tail": "s/IBLVaultManagerLido.sol\";\nimport {BLVaultLido} from \"policies/BoostedLiquidity/BLVaultLido.sol\";\n\n", "shingle_hash": "6a4b10e96e3cf001", "top_tokens": ["import", "sol", "from", "interfaces", "policies", "boostedliquidity", "src", "modules", "dependencies", "mintr"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\n// Import system dependencies\nimport {MINTRv1} from \"src/modules/MINTR/MINTR.v1.sol\";\nimport {ROLESv1, RolesConsumer} from \"src/modules/ROLES/OlympusRoles.sol\";\nimport {TRSRYv1} from \"src/modules/TRSRY/TRSRY.v1.sol\";\nimport {BLREGv1} from \"src/modules/BLREG/BLREG.v1.sol\";\nimport \"src/Kernel.sol\";\n\n// Import external dependencies\nimport {AggregatorV3Interface} from \"interfaces/AggregatorV2V3Interface.sol\";\nimport {IAuraRewardPool, IAuraMiningLib} from \"policies/BoostedLiquidity/interfaces/IAura.sol\";\nimport {JoinPoolRequest, IVault, IBasePool, IBalancerHelper} from \"policies/BoostedLiquidity/interfaces/IBalancer.sol\";\nimport {IWsteth} from \"policies/BoostedLiquidity/interfaces/ILido.sol\";\n\n// Import vault dependencies\nimport {RewardsData} from \"policies/BoostedLiquidity/interfaces/IBLVaultLido.sol\";\nimport {IBLVaultManagerLido} from \"policies/BoostedLiquidity/interfaces/IBLVaultManagerLido.sol\";\nimport {BLVaultLido} from \"policies/BoostedLiquidity/BLVaultLido.sol\";\n\n"}, "card_95b29d1d1098": {"id": "card_95b29d1d1098", "relpath": "sherlock-olympus/src/modules/ROLES/OlympusRoles.sol", "char_start": 1048, "char_end": 2065, "peek_head": "    /// @inheritdoc Module\n    function VERSION() external pure override returns (uint8 major, uint8", "peek_tail": "missioned {\n        if (!hasRole[addr_][role_]) revert ROLES_AddressDoesNotHaveRole(addr_, role_);\n\n", "shingle_hash": "2a9deaac98b1ce1c", "top_tokens": ["role", "addr", "inheritdoc", "function", "external", "override", "address", "hasrole", "uint8", "major"], "content": "    /// @inheritdoc Module\n    function VERSION() external pure override returns (uint8 major, uint8 minor) {\n        major = 1;\n        minor = 0;\n    }\n\n    //============================================================================================//\n    //                                       CORE FUNCTIONS                                       //\n    //============================================================================================//\n\n    /// @inheritdoc ROLESv1\n    function saveRole(bytes32 role_, address addr_) external override permissioned {\n        if (hasRole[addr_][role_]) revert ROLES_AddressAlreadyHasRole(addr_, role_);\n\n        ensureValidRole(role_);\n\n        // Grant role to the address\n        hasRole[addr_][role_] = true;\n\n        emit RoleGranted(role_, addr_);\n    }\n\n    /// @inheritdoc ROLESv1\n    function removeRole(bytes32 role_, address addr_) external override permissioned {\n        if (!hasRole[addr_][role_]) revert ROLES_AddressDoesNotHaveRole(addr_, role_);\n\n"}, "card_83ce8fb55800": {"id": "card_83ce8fb55800", "relpath": "sherlock-olympus/src/policies/RolesAdmin.sol", "char_start": 0, "char_end": 1122, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {ROLESv1} from \"src/module", "peek_tail": "  //============================================================================================//\n\n", "shingle_hash": "b8cb48ae2a7353c4", "top_tokens": ["roles", "address", "policy", "notice", "the", "newadmin", "public", "admin", "import", "rolesv1"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {ROLESv1} from \"src/modules/ROLES/ROLES.v1.sol\";\nimport \"src/Kernel.sol\";\n\n/// @notice The RolesAdmin Policy grants and revokes Roles in the ROLES module.\ncontract RolesAdmin is Policy {\n    // =========  EVENTS ========= //\n\n    event NewAdminPushed(address indexed newAdmin_);\n    event NewAdminPulled(address indexed newAdmin_);\n\n    // =========  ERRORS ========= //\n\n    error OnlyAdmin();\n    error OnlyNewAdmin();\n\n    // =========  STATE ========= //\n\n    /// @notice Special role that is responsible for assigning policy-defined roles to addresses.\n    address public admin;\n\n    /// @notice Proposed new admin. Address must call `pullRolesAdmin` to become the new roles admin.\n    address public newAdmin;\n\n    ROLESv1 public ROLES;\n\n    //============================================================================================//\n    //                                      POLICY SETUP                                          //\n    //============================================================================================//\n\n"}, "card_c129230dcb5a": {"id": "card_c129230dcb5a", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 7619, "char_end": 8639, "peek_head": "        // Initialize clone of vault implementation (for reentrancy state)\n        clone.initializeC", "peek_tail": "tingOhmBurned)\n            revert BLManagerLido_LimitViolation();\n\n        deployedOhm += amount_;\n\n", "shingle_hash": "2682b4b583be20d8", "top_tokens": ["clone", "vault", "msg", "sender", "address", "amount", "emit", "return", "deployedohm", "initialize"], "content": "        // Initialize clone of vault implementation (for reentrancy state)\n        clone.initializeClone();\n\n        // Set vault owner\n        vaultOwners[clone] = msg.sender;\n        userVaults[msg.sender] = clone;\n\n        // Emit event\n        emit VaultDeployed(address(clone), msg.sender, currentFee);\n\n        // Return vault address\n        return address(clone);\n    }\n\n    //============================================================================================//\n    //                                         OHM MANAGEMENT                                     //\n    //============================================================================================//\n\n    /// @inheritdoc IBLVaultManagerLido\n    function mintOhmToVault(uint256 amount_) external override onlyWhileActive onlyVault {\n        // Check that minting will not exceed limit\n        if (deployedOhm + amount_ > ohmLimit + circulatingOhmBurned)\n            revert BLManagerLido_LimitViolation();\n\n        deployedOhm += amount_;\n\n"}, "card_7c27514a3c72": {"id": "card_7c27514a3c72", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultManagerLido.sol", "char_start": 6738, "char_end": 7793, "peek_head": "    /// @notice                         Gets the number of OHM per 1 wstETH\n    /// @return uint256 ", "peek_tail": "_                The new OHM limit (9 decimals)\n    function setLimit(uint256 newLimit_) external;\n\n", "shingle_hash": "6a80cd0a2531b9bf", "top_tokens": ["ohm", "the", "uint256", "per", "wsteth", "notice", "decimals", "function", "external", "gets"], "content": "    /// @notice                         Gets the number of OHM per 1 wstETH\n    /// @return uint256                 OHM per 1 wstETH (9 decimals)\n    function getOhmTknPrice() external view returns (uint256);\n\n    /// @notice                         Gets the number of wstETH per 1 OHM\n    /// @return uint256                 wstETH per 1 OHM (18 decimals)\n    function getTknOhmPrice() external view returns (uint256);\n\n    //============================================================================================//\n    //                                        ADMIN FUNCTIONS                                     //\n    //============================================================================================//\n\n    /// @notice                         Updates the limit on minting OHM\n    /// @dev                            Can only be called by the admin. Cannot be set lower than the current outstanding minted OHM.\n    /// @param newLimit_                The new OHM limit (9 decimals)\n    function setLimit(uint256 newLimit_) external;\n\n"}, "card_aa68925315ea": {"id": "card_aa68925315ea", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 12204, "char_end": 13285, "peek_head": "        // Calculate OHM amount to mint\n        uint256 ohmTknPrice = getOhmTknPrice();\n        uint", "peek_tail": " (address[] memory) {\n        IAuraRewardPool auraPool = IAuraRewardPool(auraData.auraRewardPool);\n\n", "shingle_hash": "c4aed956c169dc83", "top_tokens": ["maxamountsin", "address", "assets", "uint256", "memory", "joinpoolrequest", "amount", "pool", "ohm", "ohmtknprice"], "content": "        // Calculate OHM amount to mint\n        uint256 ohmTknPrice = getOhmTknPrice();\n        uint256 ohmMintAmount = (amount_ * ohmTknPrice) / 1e18;\n\n        // Build join pool request\n        address[] memory assets = new address[](2);\n        assets[0] = ohm;\n        assets[1] = pairToken;\n\n        uint256[] memory maxAmountsIn = new uint256[](2);\n        maxAmountsIn[0] = ohmMintAmount;\n        maxAmountsIn[1] = amount_;\n\n        JoinPoolRequest memory joinPoolRequest = JoinPoolRequest({\n            assets: assets,\n            maxAmountsIn: maxAmountsIn,\n            userData: abi.encode(1, maxAmountsIn, 0),\n            fromInternalBalance: false\n        });\n\n        // Join pool query\n        (bptAmount, ) = balancerHelper.queryJoin(\n            pool.getPoolId(),\n            address(this),\n            address(this),\n            joinPoolRequest\n        );\n    }\n\n    /// @inheritdoc IBLVaultManagerLido\n    function getRewardTokens() external view override returns (address[] memory) {\n        IAuraRewardPool auraPool = IAuraRewardPool(auraData.auraRewardPool);\n\n"}, "card_3b03adf75408": {"id": "card_3b03adf75408", "relpath": "sherlock-olympus/src/Kernel.sol", "char_start": 11990, "char_end": 13121, "peek_head": "        // Add policy to list of active policies\n        activePolicies.push(policy_);\n        getPo", "peek_tail": " requests = policy_.requestPermissions();\n        _setPolicyPermissions(policy_, requests, false);\n\n", "shingle_hash": "e60c22a29c9931fc", "top_tokens": ["policy", "keycode", "dependencies", "permissions", "requests", "length", "memory", "activepolicies", "push", "module"], "content": "        // Add policy to list of active policies\n        activePolicies.push(policy_);\n        getPolicyIndex[policy_] = activePolicies.length - 1;\n\n        // Record module dependencies\n        Keycode[] memory dependencies = policy_.configureDependencies();\n        uint256 depLength = dependencies.length;\n\n        for (uint256 i; i < depLength; ) {\n            Keycode keycode = dependencies[i];\n\n            moduleDependents[keycode].push(policy_);\n            getDependentIndex[keycode][policy_] = moduleDependents[keycode].length - 1;\n\n            unchecked {\n                ++i;\n            }\n        }\n\n        // Grant permissions for policy to access restricted module functions\n        Permissions[] memory requests = policy_.requestPermissions();\n        _setPolicyPermissions(policy_, requests, true);\n    }\n\n    function _deactivatePolicy(Policy policy_) internal {\n        if (!isPolicyActive(policy_)) revert Kernel_PolicyNotActivated(address(policy_));\n\n        // Revoke permissions\n        Permissions[] memory requests = policy_.requestPermissions();\n        _setPolicyPermissions(policy_, requests, false);\n\n"}, "card_0649bb3d4978": {"id": "card_0649bb3d4978", "relpath": "sherlock-olympus/src/modules/TRSRY/OlympusTreasury.sol", "char_start": 1015, "char_end": 2242, "peek_head": "    /// @inheritdoc Module\n    function VERSION() external pure override returns (uint8 major, uint8", "peek_tail": "external override permissioned {\n        uint256 approval = withdrawApproval[withdrawer_][token_];\n\n", "shingle_hash": "005fd39b62dca2ec", "top_tokens": ["uint256", "withdrawer", "token", "amount", "approval", "inheritdoc", "function", "external", "override", "withdrawapproval"], "content": "    /// @inheritdoc Module\n    function VERSION() external pure override returns (uint8 major, uint8 minor) {\n        major = 1;\n        minor = 0;\n    }\n\n    //============================================================================================//\n    //                                       CORE FUNCTIONS                                       //\n    //============================================================================================//\n\n    /// @inheritdoc TRSRYv1\n    function increaseWithdrawApproval(\n        address withdrawer_,\n        ERC20 token_,\n        uint256 amount_\n    ) external override permissioned {\n        uint256 approval = withdrawApproval[withdrawer_][token_];\n\n        uint256 newAmount = type(uint256).max - approval <= amount_\n            ? type(uint256).max\n            : approval + amount_;\n        withdrawApproval[withdrawer_][token_] = newAmount;\n\n        emit IncreaseWithdrawApproval(withdrawer_, token_, newAmount);\n    }\n\n    /// @inheritdoc TRSRYv1\n    function decreaseWithdrawApproval(\n        address withdrawer_,\n        ERC20 token_,\n        uint256 amount_\n    ) external override permissioned {\n        uint256 approval = withdrawApproval[withdrawer_][token_];\n\n"}, "card_9989b1ae1e49": {"id": "card_9989b1ae1e49", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol", "char_start": 5326, "char_end": 6343, "peek_head": "        permissions = new Permissions[](5);\n        permissions[0] = Permissions(mintrKeycode, MINTR", "peek_tail": "ners[BLVaultLido(msg.sender)] == address(0)) revert BLManagerLido_InvalidVault();\n        _;\n    }\n\n", "shingle_hash": "140f7af50ce8ee8e", "top_tokens": ["permissions", "selector", "mintrkeycode", "mintr", "blregkeycode", "blreg", "modifier", "revert", "blmanagerlido", "new"], "content": "        permissions = new Permissions[](5);\n        permissions[0] = Permissions(mintrKeycode, MINTR.mintOhm.selector);\n        permissions[1] = Permissions(mintrKeycode, MINTR.burnOhm.selector);\n        permissions[2] = Permissions(mintrKeycode, MINTR.increaseMintApproval.selector);\n        permissions[3] = Permissions(blregKeycode, BLREG.addVault.selector);\n        permissions[4] = Permissions(blregKeycode, BLREG.removeVault.selector);\n    }\n\n    //============================================================================================//\n    //                                           MODIFIERS                                        //\n    //============================================================================================//\n\n    modifier onlyWhileActive() {\n        if (!isLidoBLVaultActive) revert BLManagerLido_Inactive();\n        _;\n    }\n\n    modifier onlyVault() {\n        if (vaultOwners[BLVaultLido(msg.sender)] == address(0)) revert BLManagerLido_InvalidVault();\n        _;\n    }\n\n"}, "card_d5f3bc1af258": {"id": "card_d5f3bc1af258", "relpath": "sherlock-olympus/src/Kernel.sol", "char_start": 10844, "char_end": 11990, "peek_head": "        emit ActionExecuted(action_, target_);\n    }\n\n    function _installModule(Module newModule_)", "peek_tail": "nal {\n        if (isPolicyActive(policy_)) revert Kernel_PolicyAlreadyActivated(address(policy_));\n\n", "shingle_hash": "a788c72ffb956204", "top_tokens": ["keycode", "newmodule", "address", "getmoduleforkeycode", "oldmodule", "policy", "function", "module", "internal", "revert"], "content": "        emit ActionExecuted(action_, target_);\n    }\n\n    function _installModule(Module newModule_) internal {\n        Keycode keycode = newModule_.KEYCODE();\n\n        if (address(getModuleForKeycode[keycode]) != address(0))\n            revert Kernel_ModuleAlreadyInstalled(keycode);\n\n        getModuleForKeycode[keycode] = newModule_;\n        getKeycodeForModule[newModule_] = keycode;\n        allKeycodes.push(keycode);\n\n        newModule_.INIT();\n    }\n\n    function _upgradeModule(Module newModule_) internal {\n        Keycode keycode = newModule_.KEYCODE();\n        Module oldModule = getModuleForKeycode[keycode];\n\n        if (address(oldModule) == address(0) || oldModule == newModule_)\n            revert Kernel_InvalidModuleUpgrade(keycode);\n\n        getKeycodeForModule[oldModule] = Keycode.wrap(bytes5(0));\n        getKeycodeForModule[newModule_] = keycode;\n        getModuleForKeycode[keycode] = newModule_;\n\n        newModule_.INIT();\n\n        _reconfigurePolicies(keycode);\n    }\n\n    function _activatePolicy(Policy policy_) internal {\n        if (isPolicyActive(policy_)) revert Kernel_PolicyAlreadyActivated(address(policy_));\n\n"}, "card_9e18e81332b8": {"id": "card_9e18e81332b8", "relpath": "sherlock-olympus/src/modules/TRSRY/OlympusTreasury.sol", "char_start": 0, "char_end": 1015, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {ERC20} from \"solmate/toke", "peek_tail": "nction KEYCODE() public pure override returns (Keycode) {\n        return toKeycode(\"TRSRY\");\n    }\n\n", "shingle_hash": "73e728db0ecbe3d1", "top_tokens": ["import", "sol", "from", "kernel", "erc20", "reentrancyguard", "transferhelper", "trsry", "module", "solmate"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport {ERC20} from \"solmate/tokens/ERC20.sol\";\nimport {ReentrancyGuard} from \"solmate/utils/ReentrancyGuard.sol\";\n\nimport {TransferHelper} from \"libraries/TransferHelper.sol\";\n\nimport {TRSRYv1} from \"src/modules/TRSRY/TRSRY.v1.sol\";\nimport \"src/Kernel.sol\";\n\n/// @notice Treasury holds all other assets under the control of the protocol.\ncontract OlympusTreasury is TRSRYv1, ReentrancyGuard {\n    using TransferHelper for ERC20;\n\n    //============================================================================================//\n    //                                      MODULE SETUP                                          //\n    //============================================================================================//\n\n    constructor(Kernel kernel_) Module(kernel_) {\n        active = true;\n    }\n\n    /// @inheritdoc Module\n    function KEYCODE() public pure override returns (Keycode) {\n        return toKeycode(\"TRSRY\");\n    }\n\n"}, "card_f8890c86754e": {"id": "card_f8890c86754e", "relpath": "sherlock-olympus/src/modules/BLREG/BLREG.v1.sol", "char_start": 0, "char_end": 1028, "peek_head": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport \"src/Kernel.sol\";\n\n/// @ti", "peek_tail": "lic activeVaultCount;\n\n    /// @notice Tracks all active vaults\n    address[] public activeVaults;\n\n", "shingle_hash": "2da855fc1c656b5d", "top_tokens": ["vault", "olympus", "boosted", "liquidity", "the", "registry", "notice", "module", "vaults", "for"], "content": "// SPDX-License-Identifier: AGPL-3.0-only\npragma solidity 0.8.15;\n\nimport \"src/Kernel.sol\";\n\n/// @title  Olympus Boosted Liquidity Vault Registry\n/// @notice Olympus Boosted Liquidity Vault Registry (Module) Contract\n/// @dev    The Olympus Boosted Liquidity Vault Registry Module tracks the boosted liquidity vaults\n///         that are approved to be used by the Olympus protocol. This allows for a single-soure\n///         of truth for reporting purposes around total OHM deployed and net emissions.\nabstract contract BLREGv1 is Module {\n    // ========= EVENTS ========= //\n\n    event VaultAdded(address indexed vault);\n    event VaultRemoved(address indexed vault);\n\n    // ========= STATE ========= //\n\n    /// @notice Count of active vaults\n    /// @dev    This is a useless variable in contracts but useful for any frontends or\n    ///         off-chain requests where the array is not easily accessible.\n    uint256 public activeVaultCount;\n\n    /// @notice Tracks all active vaults\n    address[] public activeVaults;\n\n"}, "card_27256ba13241": {"id": "card_27256ba13241", "relpath": "sherlock-olympus/src/Kernel.sol", "char_start": 6705, "char_end": 7812, "peek_head": "/// @notice Main contract that acts as a central component registry for the protocol.\n/// @dev    Th", "peek_tail": " in the kernel. Can be assigned to a multisig or governance contract.\n    address public executor;\n\n", "shingle_hash": "f8f2582cfb2505da", "top_tokens": ["kernel", "address", "the", "error", "keycode", "indexed", "policy", "contract", "actions", "executor"], "content": "/// @notice Main contract that acts as a central component registry for the protocol.\n/// @dev    The kernel manages modules and policies. The kernel is mutated via predefined Actions,\n/// @dev    which are input from any address assigned as the executor. The executor can be changed as needed.\ncontract Kernel {\n    // =========  EVENTS ========= //\n\n    event PermissionsUpdated(\n        Keycode indexed keycode_,\n        Policy indexed policy_,\n        bytes4 funcSelector_,\n        bool granted_\n    );\n    event ActionExecuted(Actions indexed action_, address indexed target_);\n\n    // =========  ERRORS ========= //\n\n    error Kernel_OnlyExecutor(address caller_);\n    error Kernel_ModuleAlreadyInstalled(Keycode module_);\n    error Kernel_InvalidModuleUpgrade(Keycode module_);\n    error Kernel_PolicyAlreadyActivated(address policy_);\n    error Kernel_PolicyNotActivated(address policy_);\n\n    // =========  PRIVILEGED ADDRESSES ========= //\n\n    /// @notice Address that is able to initiate Actions in the kernel. Can be assigned to a multisig or governance contract.\n    address public executor;\n\n"}, "card_d770cdb0edff": {"id": "card_d770cdb0edff", "relpath": "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IAura.sol", "char_start": 0, "char_end": 1073, "peek_head": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity >=0.8.0;\n\n// Define Booster Interface\ninterface", "peek_tail": " IAuraMiningLib {\n    function convertCrvToCvx(uint256 amount_) external view returns (uint256);\n}\n\n", "shingle_hash": "be282a8b968f8abc", "top_tokens": ["function", "uint256", "external", "returns", "view", "interface", "address", "bool", "define", "amount"], "content": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity >=0.8.0;\n\n// Define Booster Interface\ninterface IAuraBooster {\n    function deposit(\n        uint256 pid_,\n        uint256 amount_,\n        bool stake_\n    ) external returns (bool);\n}\n\n// Define Base Reward Pool interface\ninterface IAuraRewardPool {\n    function balanceOf(address account_) external view returns (uint256);\n\n    function earned(address account_) external view returns (uint256);\n\n    function rewardRate() external view returns (uint256);\n\n    function rewardToken() external view returns (address);\n\n    function extraRewardsLength() external view returns (uint256);\n\n    function extraRewards(uint256 index) external view returns (address);\n\n    function deposit(uint256 assets_, address receiver_) external;\n\n    function getReward(address account_, bool claimExtras_) external;\n\n    function withdrawAndUnwrap(uint256 amount_, bool claim_) external;\n}\n\n// Define Aura Mining Lib interface\ninterface IAuraMiningLib {\n    function convertCrvToCvx(uint256 amount_) external view returns (uint256);\n}\n"}};
+        
+        let currentGraph = null;
+        let currentGraphName = Object.keys(allGraphs)[0];
+        let simulation = null;
+        
+        // Professional color schemes with tech accent
+        const typeColors = {
+            // Common node types from graph generation
+            'contract': '#30a14e',         // GitHub green - main contracts
+            'interface': '#58a6ff',        // GitHub blue - interfaces
+            'library': '#a371f7',          // Purple - library contracts
+            'function': '#56d364',         // Light green - functions
+            'storage': '#f9826c',          // Warm orange - storage/state
+            'event': '#79c0ff',            // Light blue - events
+            'modifier': '#bc8cff',         // Light purple - modifiers
+            'external_actor': '#d29922',   // Gold - external entities
+            'role': '#ffa657',             // Orange - roles/permissions
+            
+            // Legacy/alternative types
+            'code': '#30a14e',             // GitHub green
+            'concept': '#58a6ff',          // GitHub blue
+            'invariant': '#f9826c',        // Warm orange
+            'observation': '#a371f7',      // Purple
+            'hypothesis': '#d29922',       // Gold
+            'issue': '#f85149',            // GitHub red
+            'pattern': '#56d364',          // Light green
+            'dataflow': '#79c0ff',         // Light blue
+            'control': '#ff7b72',          // Coral
+            'vulnerability': '#da3633',   // Danger red
+            'assumption': '#ffa657',       // Orange
+            'constraint': '#bc8cff',      // Light purple
+            'custom': '#8b949e'            // Gray - fallback
+        };
+        
+        // Edge type colors - expanded palette with more distinct colors
+        const edgeColors = {
+            // Primary relationships (high contrast)
+            'calls': '#30a14e',           // Green
+            'contains': '#58a6ff',         // Blue  
+            'depends_on': '#f9826c',       // Light red/orange
+            'references': '#a371f7',       // Purple
+            'uses': '#79c0ff',             // Light blue
+            'implements': '#56d364',       // Bright green
+            'extends': '#bc8cff',          // Light purple
+            'imports': '#d29922',          // Gold
+            
+            // Data flow (warm colors)
+            'dataflow': '#ffa657',         // Orange
+            'reads': '#39d353',            // Green
+            'writes': '#ff7b72',           // Coral
+            'modifies': '#f85149',         // Red
+            
+            // Control flow (cool colors)
+            'control': '#ffea7f',          // Yellow
+            'triggers': '#db61a2',         // Pink
+            'validates': '#2ea043',        // Dark green
+            'checks': '#539bf5',           // Sky blue
+            
+            // Security/Analysis (strong colors)
+            'violates': '#da3633',         // Danger red
+            'protects': '#1f6feb',         // Royal blue
+            'trusts': '#8957e5',           // Violet
+            'restricts': '#f778ba',        // Light pink
+            
+            // Structural (purple spectrum)
+            'inherits': '#986ee2',         // Lavender
+            'overrides': '#ff9492',        // Salmon
+            'delegates': '#56d4dd',        // Cyan
+            'aggregates': '#a475f9',       // Medium purple
+            
+            // Associations (varied)
+            'relates_to': '#8b949e',       // Gray (neutral)
+            'links_to': '#7ee787',         // Mint green
+            'connects': '#ffc680',         // Peach
+            'maps_to': '#c297ff',          // Light violet
+            
+            // State/Lifecycle (traffic light colors)
+            'initializes': '#3fb950',      // Green
+            'creates': '#58a6ff',          // Blue
+            'destroys': '#f85149',         // Red
+            'updates': '#d29922',          // Gold
+            
+            // Additional common relationships
+            'emits': '#ff6b6b',            // Light red
+            'listens': '#4ecdc4',          // Teal
+            'owns': '#95e1d3',             // Mint
+            'manages': '#f38181',          // Rose
+            'requires': '#aa96da',         // Soft purple
+            'provides': '#8fcaca',         // Soft cyan
+            'processes': '#ffd93d',        // Bright yellow
+            'handles': '#6bcf7f',          // Fresh green
+            
+            // Default fallback - will cycle through palette for unknowns
+            'custom': '#8b949e'            // Gray
+        };
+        
+        // Color palette for unknown edge types (will cycle through)
+        const fallbackColors = [
+            '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181', '#aa96da',
+            '#8fcaca', '#ffd93d', '#6bcf7f', '#ffbe76', '#ff7979',
+            '#badc58', '#dfe4ea', '#5f27cd', '#00d2d3', '#48dbfb',
+            '#0abde3', '#ee5a24', '#f368e0', '#feca57', '#ff9ff3'
+        ];
+        
+        // Function to get edge color (with fallback for unknown types)
+        function getEdgeColor(type) {
+            if (edgeColors[type]) {
+                return edgeColors[type];
+            }
+            // Generate consistent color for unknown types
+            let hash = 0;
+            for (let i = 0; i < type.length; i++) {
+                hash = ((hash << 5) - hash) + type.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return fallbackColors[Math.abs(hash) % fallbackColors.length];
+        }
+        
+        // Initialize
+        function init() {
+            loadGraph(currentGraphName);
+            setupEventListeners();
+            updateObservations();
+        }
+        
+        function loadGraph(graphName) {
+            currentGraphName = graphName;
+            currentGraph = allGraphs[graphName];
+            
+            // Clear existing graph
+            d3.select("#graph-container svg").remove();
+            
+            // Create new graph
+            createGraph(currentGraph);
+            updateStats();
+            updateTypeFilter();
+            updateLegend();
+        }
+        
+        function createGraph(graphData) {
+            const width = document.getElementById('graph-container').clientWidth;
+            const height = document.getElementById('graph-container').clientHeight;
+            
+            const svg = d3.select("#graph-container")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            const g = svg.append("g");
+            
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // Process nodes and edges
+            const nodes = graphData.nodes || [];
+            const edges = graphData.edges || [];
+            
+            // Create node ID set for validation
+            const nodeIds = new Set(nodes.map(n => n.id));
+            
+            // Create links data, filtering out invalid edges
+            const links = edges
+                .filter(e => {
+                    if (!nodeIds.has(e.source_id)) {
+                        console.warn(`Edge references non-existent source node: ${e.source_id}`);
+                        return false;
+                    }
+                    if (!nodeIds.has(e.target_id)) {
+                        console.warn(`Edge references non-existent target node: ${e.target_id}`);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(e => ({
+                    source: e.source_id,
+                    target: e.target_id,
+                    type: e.type,
+                    label: e.label,
+                    confidence: e.confidence || 1
+                }));
+            
+            // Create force simulation with better spacing
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(150))  // Increased distance
+                .force("charge", d3.forceManyBody().strength(-800))  // Stronger repulsion
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(50))  // Larger collision radius
+                .force("x", d3.forceX(width / 2).strength(0.05))  // Gentle centering
+                .force("y", d3.forceY(height / 2).strength(0.05));
+            
+            // Create arrow markers for edge types
+            const allEdgeTypes = [...new Set(edges.map(e => e.type))];
+            svg.append("defs").selectAll("marker")
+                .data(allEdgeTypes)
+                .enter().append("marker")
+                .attr("id", d => `arrow-${d}`)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 25)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", d => getEdgeColor(d));
+            
+            // Create link group for lines and labels
+            const linkGroup = g.append("g").attr("class", "links");
+            
+            // Create links with edge-specific colors
+            const link = linkGroup.selectAll("line")
+                .data(links)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("stroke", d => getEdgeColor(d.type))
+                .attr("stroke-width", d => 1 + Math.sqrt(d.confidence * 2))
+                .attr("marker-end", d => `url(#arrow-${d.type})`);
+            
+            // Create edge labels
+            const linkLabel = linkGroup.selectAll("text")
+                .data(links)
+                .enter().append("text")
+                .attr("class", "link-label")
+                .attr("font-size", "9px")
+                .attr("fill", d => getEdgeColor(d.type))
+                .attr("text-anchor", "middle")
+                .attr("opacity", 0.7)
+                .text(d => d.label || d.type);
+            
+            // Create nodes
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+            
+            node.append("circle")
+                .attr("r", d => {
+                    const confidence = d.confidence || 1;
+                    return 10 + confidence * 8;
+                })
+                .attr("fill", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("stroke", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("fill-opacity", 0.8);
+            
+            // Node label
+            node.append("text")
+                .attr("dx", 18)
+                .attr("dy", 4)
+                .text(d => d.label ? (d.label.length > 30 ? d.label.substring(0, 30) + "..." : d.label) : "")
+                .style("fill", "#e6edf3")
+                .style("font-size", "12px")
+                .style("font-weight", "500")
+                .style("text-shadow", "1px 1px 3px rgba(0,0,0,0.5)");
+            
+            // Add observations/assumptions box if they exist
+            node.each(function(d) {
+                const g = d3.select(this);
+                const hasObs = d.observations && d.observations.length > 0;
+                const hasAssump = d.assumptions && d.assumptions.length > 0;
+                
+                if (hasObs || hasAssump) {
+                    // Create background box
+                    const bbox = g.append("rect")
+                        .attr("x", 16)
+                        .attr("y", 10)
+                        .attr("rx", 3)
+                        .attr("ry", 3)
+                        .style("fill", "rgba(22, 27, 34, 0.8)")
+                        .style("stroke", "rgba(48, 54, 61, 0.8)")
+                        .style("stroke-width", "1px");
+                    
+                    let yOffset = 22;
+                    let maxWidth = 0;
+                    const textElements = [];
+                    
+                    // Add observations (up to 3)
+                    if (hasObs) {
+                        const obsToShow = d.observations
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 1) || 1;
+                                const confB = (typeof b === 'object' ? b.confidence : 1) || 1;
+                                return confB - confA;
+                            })
+                            .slice(0, 3);
+                        
+                        obsToShow.forEach(obs => {
+                            const obsText = typeof obs === 'object' ? 
+                                (obs.description || obs.content || '') : String(obs);
+                            if (obsText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("✓ " + (obsText.length > 25 ? obsText.substring(0, 25) + "..." : obsText))
+                                    .style("fill", "#30a14e")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Add assumptions (up to 2)
+                    if (hasAssump) {
+                        const assumToShow = d.assumptions
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 0.5) || 0.5;
+                                const confB = (typeof b === 'object' ? b.confidence : 0.5) || 0.5;
+                                return confB - confA;
+                            })
+                            .slice(0, 2);
+                        
+                        assumToShow.forEach(assum => {
+                            const assumText = typeof assum === 'object' ? 
+                                (assum.description || assum.content || '') : String(assum);
+                            if (assumText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("? " + (assumText.length > 25 ? assumText.substring(0, 25) + "..." : assumText))
+                                    .style("fill", "#d29922")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Calculate max width from text elements
+                    textElements.forEach(text => {
+                        const bbox = text.node().getBBox();
+                        maxWidth = Math.max(maxWidth, bbox.width);
+                    });
+                    
+                    // Update background box size
+                    bbox.attr("width", maxWidth + 8)
+                        .attr("height", yOffset - 14);
+                }
+            });
+            
+            // Tooltip
+            const tooltip = d3.select("#tooltip");
+            
+            node.on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                
+                let content = `<strong>${d.label}</strong><br/>`;
+                content += `Type: ${d.type}<br/>`;
+                if (d.confidence !== undefined) {
+                    content += `Confidence: ${(d.confidence * 100).toFixed(0)}%<br/>`;
+                }
+                if (d.description) {
+                    content += `<br/>${d.description}`;
+                }
+                if (d.observations && d.observations.length > 0) {
+                    content += `<br/><br/><strong style="color: #30a14e;">Observations:</strong><br/>`;
+                    d.observations.slice(0, 5).forEach(obs => {
+                        const obsText = typeof obs === 'object' ? 
+                            (obs.description || obs.content || JSON.stringify(obs)) : String(obs);
+                        content += `<span style="color: #30a14e;">✓</span> ${obsText}<br/>`;
+                    });
+                }
+                if (d.assumptions && d.assumptions.length > 0) {
+                    content += `<br/><strong style="color: #d29922;">Assumptions:</strong><br/>`;
+                    d.assumptions.slice(0, 3).forEach(assum => {
+                        const assumText = typeof assum === 'object' ? 
+                            (assum.description || assum.content || JSON.stringify(assum)) : String(assum);
+                        const conf = typeof assum === 'object' ? assum.confidence : 0.5;
+                        content += `<span style="color: #d29922;">?</span> ${assumText} <span style="opacity: 0.7;">(conf: ${conf})</span><br/>`;
+                    });
+                }
+                if (d.properties && Object.keys(d.properties).length > 0) {
+                    content += `<br/><br/>Properties:<br/>`;
+                    for (const [key, value] of Object.entries(d.properties)) {
+                        content += `${key}: ${value}<br/>`;
+                    }
+                }
+                
+                tooltip.html(content)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                showNodeDetails(d);
+            });
+            
+            // Update positions
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                linkLabel
+                    .attr("x", d => (d.source.x + d.target.x) / 2)
+                    .attr("y", d => (d.source.y + d.target.y) / 2);
+                
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function updateStats() {
+            const stats = currentGraph.stats || {};
+            let html = '';
+            
+            html += `<div class="stat"><span>Nodes</span><span class="stat-value">${stats.num_nodes || 0}</span></div>`;
+            html += `<div class="stat"><span>Edges</span><span class="stat-value">${stats.num_edges || 0}</span></div>`;
+            html += `<div class="stat"><span>Node Types</span><span class="stat-value">${(stats.node_types || []).length}</span></div>`;
+            html += `<div class="stat"><span>Edge Types</span><span class="stat-value">${(stats.edge_types || []).length}</span></div>`;
+            
+            document.getElementById('stats').innerHTML = html;
+        }
+        
+        function updateTypeFilter() {
+            const types = new Set();
+            (currentGraph.nodes || []).forEach(n => types.add(n.type));
+            
+            const select = document.getElementById('type-filter');
+            select.innerHTML = '<option value="all">All Types</option>';
+            
+            Array.from(types).sort().forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        }
+        
+        function updateLegend() {
+            // Get unique node types
+            const nodeTypes = new Set();
+            (currentGraph.nodes || []).forEach(n => nodeTypes.add(n.type));
+            
+            // Get unique edge types
+            const edgeTypes = new Set();
+            (currentGraph.edges || []).forEach(e => edgeTypes.add(e.type));
+            
+            let html = '<h4>Legend</h4>';
+            
+            // Node types section
+            if (nodeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Node Types</div>';
+                Array.from(nodeTypes).sort().forEach(type => {
+                    const color = typeColors[type?.toLowerCase()] || typeColors['custom'];
+                    html += `<div class="legend-item">
+                        <div class="legend-color" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Edge types section
+            if (edgeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Edge Types</div>';
+                Array.from(edgeTypes).sort().forEach(type => {
+                    const color = getEdgeColor(type);
+                    html += `<div class="legend-item">
+                        <div class="legend-line" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Add observations/assumptions legend
+            html += '<div class="legend-section">';
+            html += '<div class="legend-section-title">Annotations</div>';
+            html += '<div class="legend-item"><span style="color: #30a14e; font-weight: bold;">✓</span> <span>Verified observation</span></div>';
+            html += '<div class="legend-item"><span style="color: #d29922; font-weight: bold;">?</span> <span>Unverified assumption</span></div>';
+            html += '</div>';
+            
+            document.getElementById('legend').innerHTML = html;
+        }
+        
+        function showNodeDetails(node) {
+            const nodeColor = typeColors[node.type?.toLowerCase()] || typeColors['custom'];
+            let html = `<h4 style="margin: 0 0 10px 0; color: ${nodeColor};">${node.label}</h4>`;
+            html += `<div style="color: #8b949e;"><strong>Type:</strong> <span style="color: ${nodeColor};">${node.type}</span></div>`;
+            html += `<div style="color: #8b949e;"><strong>ID:</strong> <span style="color: #7d8590; font-family: 'JetBrains Mono', monospace; font-size: 11px;">${node.id}</span></div>`;
+            
+            if (node.confidence !== undefined) {
+                const confColor = node.confidence > 0.7 ? '#30a14e' : node.confidence > 0.4 ? '#d29922' : '#f9826c';
+                html += `<div style="color: #8b949e;"><strong>Confidence:</strong> <span style="color: ${confColor};">${(node.confidence * 100).toFixed(0)}%</span></div>`;
+            }
+            
+            if (node.created_by) {
+                html += `<div style="color: #8b949e;"><strong>Created:</strong> <span style="color: #7d8590;">${node.created_by}</span></div>`;
+            }
+            
+            if (node.description) {
+                html += `<div style="margin-top: 10px; color: #8b949e;"><strong>Description:</strong><br/><span style="color: #e6edf3;">${node.description}</span></div>`;
+            }
+            
+            // Observations (verified facts about the system)
+            if (node.observations && node.observations.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(48, 164, 78, 0.1); border-radius: 6px; border: 1px solid rgba(48, 164, 78, 0.3);">';
+                html += '<strong style="color: #30a14e; font-size: 11px; text-transform: uppercase;">✓ Verified Observations</strong>';
+                node.observations.forEach(obs => {
+                    let obsText, obsType = 'general', obsConf = 1.0;
+                    if (typeof obs === 'object') {
+                        obsText = obs.description || obs.content || JSON.stringify(obs);
+                        obsType = obs.type || 'general';
+                        obsConf = obs.confidence !== undefined ? obs.confidence : 1.0;
+                    } else {
+                        obsText = String(obs);
+                    }
+                    const typeLabel = obsType !== 'general' ? ` [${obsType}]` : '';
+                    const confLabel = obsConf < 1.0 ? ` (conf: ${obsConf.toFixed(1)})` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #30a14e; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${obsText}${typeLabel}${confLabel}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Assumptions (unverified, needs validation)
+            if (node.assumptions && node.assumptions.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(210, 153, 34, 0.1); border-radius: 6px; border: 1px solid rgba(210, 153, 34, 0.3);">';
+                html += '<strong style="color: #d29922; font-size: 11px; text-transform: uppercase;">? Unverified Assumptions</strong>';
+                node.assumptions.forEach(assum => {
+                    let assumText, assumType = 'general', assumConf = 0.5;
+                    if (typeof assum === 'object') {
+                        assumText = assum.description || assum.content || JSON.stringify(assum);
+                        assumType = assum.type || 'general';
+                        assumConf = assum.confidence !== undefined ? assum.confidence : 0.5;
+                    } else {
+                        assumText = String(assum);
+                    }
+                    const typeLabel = assumType !== 'general' ? ` [${assumType}]` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #d29922; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${assumText}${typeLabel} (conf: ${assumConf.toFixed(1)})</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (node.properties && Object.keys(node.properties).length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #58a6ff; font-size: 11px; text-transform: uppercase;">Properties</strong></div>';
+                for (const [key, value] of Object.entries(node.properties)) {
+                    html += `<div style="margin-left: 10px; color: #8b949e; font-size: 12px;">• ${key}: <span style="color: #7d8590;">${JSON.stringify(value)}</span></div>`;
+                }
+            }
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #56d364; font-size: 11px; text-transform: uppercase;">Source References</strong></div>';
+                node.source_refs.forEach(ref => {
+                    html += `<div style="margin-left: 10px; font-size: 10px; color: #7d8590; font-family: 'JetBrains Mono', monospace;">• ${ref}</div>`;
+                });
+            }
+            
+            document.getElementById('node-info').innerHTML = html;
+            
+            // Update card viewer
+            updateCardViewer(node);
+        }
+        
+        function updateCardViewer(node) {
+            const cardViewer = document.getElementById('card-viewer');
+            const noCards = document.getElementById('no-cards');
+            const cardSelector = document.getElementById('card-selector');
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                // Show card viewer
+                cardViewer.style.display = 'block';
+                noCards.style.display = 'none';
+                
+                // Clear and populate selector
+                cardSelector.innerHTML = '<option value="">Select a card to view code</option>';
+                
+                node.source_refs.forEach(cardId => {
+                    if (cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        const option = document.createElement('option');
+                        option.value = cardId;
+                        option.textContent = `${cardId} (${card.relpath || 'unknown file'})`;
+                        cardSelector.appendChild(option);
+                    }
+                });
+                
+                // Handle card selection
+                cardSelector.onchange = function() {
+                    const cardId = this.value;
+                    const cardContent = document.getElementById('card-content');
+                    
+                    if (cardId && cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        let content = '';
+                        
+                        // Show file path
+                        if (card.relpath) {
+                            content += `// File: ${card.relpath}\n`;
+                            if (card.char_start !== undefined && card.char_end !== undefined) {
+                                content += `// Characters: ${card.char_start}-${card.char_end}\n`;
+                            }
+                            content += '\n';
+                        }
+                        
+                        // Show actual code content
+                        if (card.content) {
+                            content += card.content;
+                        } else if (card.peek_head || card.peek_tail) {
+                            content += card.peek_head || '';
+                            if (card.peek_head && card.peek_tail) {
+                                content += '\n...\n';
+                            }
+                            content += card.peek_tail || '';
+                        } else {
+                            content = 'No content available for this card';
+                        }
+                        
+                        cardContent.textContent = content;
+                    } else {
+                        cardContent.innerHTML = '<em style="color: #888;">Select a card above to view its content</em>';
+                    }
+                };
+            } else {
+                // Hide card viewer
+                cardViewer.style.display = 'none';
+                noCards.style.display = 'block';
+            }
+        }
+        
+        function updateObservations() {
+            let html = '';
+            const recentObs = observations.slice(-10).reverse();
+            
+            recentObs.forEach(obs => {
+                html += `<div class="observation">${obs}</div>`;
+            });
+            
+            if (html === '') {
+                html = '<em style="color: #888;">No observations yet</em>';
+            }
+            
+            document.getElementById('observations').innerHTML = html;
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('graph-selector').addEventListener('change', (e) => {
+                loadGraph(e.target.value);
+            });
+            
+            document.getElementById('type-filter').addEventListener('change', (e) => {
+                filterNodesByType(e.target.value);
+            });
+            
+            document.getElementById('layout-selector').addEventListener('change', (e) => {
+                changeLayout(e.target.value);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                resetView();
+            });
+        }
+        
+        function filterNodesByType(type) {
+            d3.selectAll('.node').style('opacity', d => {
+                return type === 'all' || d.type === type ? 1 : 0.1;
+            });
+        }
+        
+        function changeLayout(layout) {
+            // Simplified - would implement different layout algorithms
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
+        
+        function resetView() {
+            const svg = d3.select("svg");
+            const width = svg.attr("width");
+            const height = svg.attr("height");
+            
+            svg.transition()
+                .duration(750)
+                .call(
+                    d3.zoom().transform,
+                    d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+                );
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

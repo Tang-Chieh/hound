@@ -1,0 +1,217 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_7b5a3a250cf1": {
+      "title": "Spot-based AMM LP valuation can be manipulated before collateral checks",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: AMM LP valuation is potentially based on instantaneous pool state without a time-weighted or independently bounded price source.\nATTACK VECTOR: Temporarily skew the underlying AMM reserves or balances, present the inflated LP token valuation to RiskEngine through OracleFacade, borrow or withdraw against overvalued collateral, and unwind the pool manipulation afterward.\nAFFECTED NODES: oracle_facade, univ2_lp_oracle, curve_oracle, balancer_lp_oracle, risk_engine, account_manager\nAFFECTED CODE: OracleFacade -> UniV2LPOracle pricing path, OracleFacade -> Stable2CurveOracle pricing path, OracleFacade -> WeightedBalancerLPOracle pricing path, RiskEngine collateral valuation\nSEVERITY: high\nREASONING: The architecture explicitly routes LP oracle prices through OracleFacade into the oracle-based RiskEngine. The loaded evidence identifies the relevant LP adapters but does not identify TWAP, deviation, liquidity, or observation-age protections. This is exploitable if the adapters use current AMM reserves or balances, which must be confirmed in their implementation.\nSUGGESTED MITIGATION: Use manipulation-resistant TWAP or external reference prices for underlying assets, enforce maximum deviation and liquidity/depth checks, reject prices outside bounded movement windows, and apply conservative collateral factors for LP tokens. Add fork tests that attempt flash-loan reserve manipulation during valuation.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_facade",
+        "univ2_lp_oracle",
+        "curve_oracle",
+        "balancer_lp_oracle",
+        "risk_engine",
+        "account_manager"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly routes LP oracle prices through OracleFacade into the oracle-based RiskEngine. The loaded evidence identifies the relevant LP adapters but does not identify TWAP, deviation, liquidity, or observation-age protections. This is exploitable if the adapters use current AMM reserves or balances, which must be confirmed in their implementation.",
+      "mitigation": "Use manipulation-resistant TWAP or external reference prices for underlying assets, enforce maximum deviation and liquidity/depth checks, reject prices outside bounded movement windows, and apply conservative collateral factors for LP tokens. Add fork tests that attempt flash-loan reserve manipulation during valuation.",
+      "finding_description": "The UniV2LPOracle, Stable2CurveOracle, and WeightedBalancerLPOracle are used by OracleFacade to value LP tokens, but the available component evidence does not show a TWAP, historical observation, liquidity bound, or manipulation-resistant pricing check. If these adapters derive LP value from current reserves, balances, or other spot state, an attacker can use a flash loan or temporary pool trade to distort the reported LP price during a deposit or borrow validation.",
+      "impact": "The attacker may obtain excess borrowing capacity or withdraw more assets than the LP collateral is worth, leaving the protocol with bad debt when the pool price returns to normal.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "oracle/src/balancer/IVault.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol",
+          "oracle/src/curve/Stable2CurveOracle.sol",
+          "oracle/src/balancer/IPool.sol",
+          "oracle/src/uniswap/UniV2LPOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "protocol/src/core/AccountManager.sol",
+          "oracle/src/balancer/WeightedBalancerLPOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_204028",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:44:25.025650",
+      "id": "hyp_7b5a3a250cf1",
+      "qa_comment": "Upon reviewing the alleged spot-based AMM LP valuation vulnerability in OracleFacade, UniV2LpOracle, Stable2CurveOracle, WeightedBalancerLPOracle, and RiskEngine, I determined this is not clearly exploitable as described. OracleFacade delegates directly to adapter getPrice functions, and RiskEngine uses those prices without additional validation, but the LP formulas are invariant-based rather than simple spot-price multiplication. UniV2LpOracle values liquidity using sqrt(r0 * r1 * p0 * p1) divided by totalSupply; a temporary Uniswap V2 reserve imbalance generally preserves the constant-product invariant, so skewing the spot price alone does not materially inflate the valuation. Stable2CurveOracle relies on Curve's get_virtual_price(), and WeightedBalancerLPOracle computes the pool invariant from vault balances and normalized weights, both of which are designed to reflect pooled liquidity rather than instantaneous exchange rates. The code lacks explicit TWAP, deviation, or liquidity checks, which is a hardening concern, but the supplied implementation does not demonstrate a reversible flash-loan attack that creates inflated collateral value. A separate issue could exist for donation, malicious, or otherwise nonstandard pools, but that is not established here."
+    },
+    "hyp_bb500b05aca3": {
+      "title": "ERC4626 share valuation is vulnerable to exchange-rate or donation manipulation",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The oracle relies on a live ERC4626 preview conversion that reflects mutable vault accounting and may not be protected against donation, exchange-rate, or underlying-price manipulation.\nATTACK VECTOR: Increase the vault's apparent assets or otherwise manipulate its exchange rate, obtain a high previewRedeem valuation through OracleFacade, deposit the shares or borrow against them, then remove or reverse the temporary distortion where possible.\nAFFECTED NODES: oracle_facade, erc4626_oracle, risk_engine, account_manager\nAFFECTED CODE: OracleFacade -> ERC4626Oracle recursive asset pricing, ERC4626Oracle previewRedeem valuation, RiskEngine collateral valuation\nSEVERITY: high\nREASONING: The graph explicitly states that ERC4626Oracle performs recursive asset pricing and uses previewRedeem. previewRedeem is a conversion quote, not inherently a manipulation-resistant price oracle. No donation handling, exchange-rate sanity bound, time delay, or independent vault accounting check is shown in the available evidence.\nSUGGESTED MITIGATION: Do not use previewRedeem alone for collateral valuation. Derive value from independently valued underlying assets and a bounded, validated share-to-asset exchange rate; reject abnormal exchange-rate changes, exclude unsupported vaults, account for withdrawal fees and liquidity, and impose conservative collateral factors and caps.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_facade",
+        "erc4626_oracle",
+        "risk_engine",
+        "account_manager"
+      ],
+      "evidence": [],
+      "reasoning": "The graph explicitly states that ERC4626Oracle performs recursive asset pricing and uses previewRedeem. previewRedeem is a conversion quote, not inherently a manipulation-resistant price oracle. No donation handling, exchange-rate sanity bound, time delay, or independent vault accounting check is shown in the available evidence.",
+      "mitigation": "Do not use previewRedeem alone for collateral valuation. Derive value from independently valued underlying assets and a bounded, validated share-to-asset exchange rate; reject abnormal exchange-rate changes, exclude unsupported vaults, account for withdrawal fees and liquidity, and impose conservative collateral factors and caps.",
+      "finding_description": "ERC4626Oracle recursively prices vault shares and uses previewRedeem. ERC4626 exchange rates can be changed by unsolicited underlying-asset donations, rebasing behavior, or temporary manipulation of the vault's asset balance. If previewRedeem is treated as authoritative collateral value without independent exchange-rate bounds or a trusted underlying valuation, an attacker can inflate the share price before a risk check and use the inflated shares to obtain credit.",
+      "impact": "The protocol can accept overvalued vault shares as collateral and issue loans or permit withdrawals exceeding recoverable value, producing bad debt after the vault exchange rate normalizes.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol",
+          "oracle/src/erc4626/ERC4626Oracle.sol",
+          "oracle/src/erc4626/IERC4626.sol",
+          "protocol/deployments/Deploy.sol",
+          "protocol/src/core/AccountManager.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_204028",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:44:30.957894",
+      "id": "hyp_bb500b05aca3"
+    },
+    "hyp_62ba2782c3dd": {
+      "title": "Yearn share price can be used as manipulable collateral valuation",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Yearn share valuation may trust a live vault exchange rate without independent validation of its freshness, provenance, or economic redeemability.\nATTACK VECTOR: Manipulate the Yearn vault's underlying asset valuation or share accounting around a deposit or borrowing transaction, obtain an inflated YTokenOracle price, and use the shares as collateral before the valuation returns to normal.\nAFFECTED NODES: oracle_facade, yearn_oracle, risk_engine, account_manager\nAFFECTED CODE: OracleFacade -> YTokenOracle share pricing, YTokenOracle Yearn share valuation, RiskEngine collateral valuation\nSEVERITY: medium\nREASONING: The architecture identifies Yearn share pricing as a direct OracleFacade source, but the available context does not expose whether the implementation uses pricePerShare, an independent oracle, or freshness and deviation protections. The issue is conditional on trusting mutable vault accounting without those protections and should be confirmed in the adapter code.\nSUGGESTED MITIGATION: Use a validated and time-bounded Yearn share price, cross-check the exchange rate against independently priced underlying assets and total supply, enforce deviation limits and liquidity-aware haircuts, and pause valuation when the vault reports stale or abnormal data.",
+      "vulnerability_type": "security_issue",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_facade",
+        "yearn_oracle",
+        "risk_engine",
+        "account_manager"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies Yearn share pricing as a direct OracleFacade source, but the available context does not expose whether the implementation uses pricePerShare, an independent oracle, or freshness and deviation protections. The issue is conditional on trusting mutable vault accounting without those protections and should be confirmed in the adapter code.",
+      "mitigation": "Use a validated and time-bounded Yearn share price, cross-check the exchange rate against independently priced underlying assets and total supply, enforce deviation limits and liquidity-aware haircuts, and pause valuation when the vault reports stale or abnormal data.",
+      "finding_description": "YTokenOracle provides Yearn share pricing through OracleFacade. If it values shares from the vault's current price-per-share or mutable total-assets/share accounting without a stale-price, deviation, or liquidity check, a temporary change in the vault's reported assets or underlying oracle price can inflate collateral value during RiskEngine validation.",
+      "impact": "The attacker may borrow against inflated Yearn shares and leave the protocol undercollateralized when the vault price or underlying asset valuation reverts.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/yearn/YTokenOracle.sol",
+          "oracle/src/core/OracleFacade.sol",
+          "protocol/deployments/Deploy.sol",
+          "protocol/src/core/AccountManager.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_204028",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:44:37.305521",
+      "id": "hyp_62ba2782c3dd"
+    },
+    "hyp_ae111fb88a45": {
+      "title": "Stale Chainlink rounds can remain trusted for collateral valuation",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The Chainlink adapter appears to validate only that the answer is non-negative, without enforcing freshness and round-integrity requirements.\nATTACK VECTOR: An attacker waits for the external market price to move while the Chainlink feed is stale or unavailable, then deposits collateral or borrows against the outdated favorable valuation before the protocol detects the stale feed.\nAFFECTED NODES: chainlink_oracle, chainlink_feed, oracle_facade, risk_engine, registry\nAFFECTED CODE: ChainlinkOracle.latestRoundData price consumption, OracleFacade asset-to-oracle price routing, RiskEngine oracle-based collateral valuation\nSEVERITY: high\nREASONING: The architecture explicitly identifies latestRoundData usage and negative-answer rejection, but does not identify timestamp, round, or heartbeat checks. Because RiskEngine relies on OracleFacade prices for health validation, a stale favorable feed directly affects borrowing and liquidation decisions.\nSUGGESTED MITIGATION: Require positive answer, valid round metadata, updatedAt greater than zero, answeredInRound at least roundId, and a configured per-feed maximum age. Revert or suspend valuation when freshness checks fail, and add deviation or fallback controls where appropriate.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "chainlink_oracle",
+        "chainlink_feed",
+        "oracle_facade",
+        "risk_engine",
+        "registry"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies latestRoundData usage and negative-answer rejection, but does not identify timestamp, round, or heartbeat checks. Because RiskEngine relies on OracleFacade prices for health validation, a stale favorable feed directly affects borrowing and liquidation decisions.",
+      "mitigation": "Require positive answer, valid round metadata, updatedAt greater than zero, answeredInRound at least roundId, and a configured per-feed maximum age. Revert or suspend valuation when freshness checks fail, and add deviation or fallback controls where appropriate.",
+      "finding_description": "ChainlinkOracle reads AggregatorV3Interface.latestRoundData and the available evidence only indicates rejection of negative answers. There is no demonstrated validation of updatedAt, answeredInRound, round completeness, or a maximum feed age before OracleFacade and RiskEngine consume the result.",
+      "impact": "The attacker may obtain excess borrowing capacity or avoid liquidation using an outdated price, creating undercollateralized debt and losses for lenders.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "oracle/src/chainlink/AggregatorV3Interface.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol",
+          "oracle/src/chainlink/ChainlinkOracle.sol",
+          "protocol/src/interface/core/IRegistry.sol",
+          "protocol/src/core/Registry.sol",
+          "protocol/deployments/Deploy.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_204028",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:49:21.040501",
+      "id": "hyp_ae111fb88a45",
+      "qa_comment": "Upon reviewing the ChainlinkOracle implementation in oracle/src/chainlink/ChainlinkOracle.sol, I confirmed that price data is accepted without freshness or round-integrity validation. In getPrice(), the contract destructures latestRoundData() while discarding roundId, updatedAt, and answeredInRound, then rejects only answers below zero before converting the result against getEthPrice(). The getEthPrice() function applies the same limited negative-answer check to the ETH/USD feed and likewise ignores all metadata. There is no updatedAt != 0 requirement, maximum-age or heartbeat enforcement, answeredInRound >= roundId validation, or protection against a zero answer. OracleFacade forwards the configured oracle price directly, and RiskEngine._valueInWei() uses that price for all collateral and debt health calculations, so a stale favorable feed can authorize borrowing or delay liquidation. The deployment uses ArbiChainlinkOracle, whose implementation is not included; however, unless it overrides getPrice() with equivalent freshness checks, it inherits this vulnerable logic. The shown code therefore establishes a clear exploitable stale-price path."
+    },
+    "hyp_7a4f4966aac0": {
+      "title": "Privileged Registry/oracle mapping changes can replace trusted prices without transition safeguards",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Oracle selection is an address-based administrative trust boundary; the mapping path does not show code-level enforcement that replacement adapters implement bounded, validated pricing behavior or that changes are delayed before use.\nATTACK VECTOR: A compromised administrator, governance execution error, or malicious deployment configuration registers an attacker-controlled oracle for a collateral asset. The attacker then deposits minimal assets and borrows against the fabricated valuation before the mapping is corrected.\nAFFECTED NODES: registry, oracle_facade, risk_engine, deployment_script\nAFFECTED CODE: Registry oracle/configuration lookup used by RiskEngine, OracleFacade administrator-controlled oracle mapping, deployment_script oracle and Registry configuration\nSEVERITY: high\nREASONING: The graph confirms that RiskEngine reads Registry configuration and that OracleFacade administrators set oracle mappings. The available component evidence does not establish validation, timelocks, or bounded transition controls, so this is a conditional privileged price-manipulation risk rather than a confirmed permissionless exploit.\nSUGGESTED MITIGATION: Restrict oracle changes to hardened governance, require adapter allowlisting and interface/behavior validation, emit and monitor mapping-change events, enforce a timelock or delayed activation for replacements, and support pausing affected markets while a new oracle is reviewed.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "registry",
+        "oracle_facade",
+        "risk_engine",
+        "deployment_script"
+      ],
+      "evidence": [],
+      "reasoning": "The graph confirms that RiskEngine reads Registry configuration and that OracleFacade administrators set oracle mappings. The available component evidence does not establish validation, timelocks, or bounded transition controls, so this is a conditional privileged price-manipulation risk rather than a confirmed permissionless exploit.",
+      "mitigation": "Restrict oracle changes to hardened governance, require adapter allowlisting and interface/behavior validation, emit and monitor mapping-change events, enforce a timelock or delayed activation for replacements, and support pausing affected markets while a new oracle is reviewed.",
+      "finding_description": "RiskEngine obtains oracle configuration through Registry and OracleFacade, while OracleFacade is described as allowing an administrator to set asset-to-oracle mappings. If the privileged authority is compromised or misconfigured, it can replace a trusted adapter with an arbitrary oracle returning inflated collateral prices, with no evidenced validation, timelock, or emergency delay in the configuration path.",
+      "impact": "Collateral can be materially overvalued, allowing unrestricted or substantially excessive borrowing and potentially making the lending pool insolvent.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol",
+          "protocol/src/interface/core/IRegistry.sol",
+          "protocol/src/core/Registry.sol",
+          "protocol/deployments/Deploy.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_204028",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:49:27.767998",
+      "id": "hyp_7a4f4966aac0"
+    }
+  },
+  "metadata": {
+    "total": 5,
+    "confirmed": 1,
+    "last_modified": "2026-10-12T20:49:27.769260"
+  }
+}

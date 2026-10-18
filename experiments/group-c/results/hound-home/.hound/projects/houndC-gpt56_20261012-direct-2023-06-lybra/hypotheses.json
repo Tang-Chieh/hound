@@ -1,0 +1,636 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_bb8d0afd8e46": {
+      "title": "Liquidation allows collateral extraction beyond the borrower\u2019s outstanding debt",
+      "description": "VULNERABILITY TYPE: economic_exploit\nROOT CAUSE: The liquidation path does not require assetAmount * assetPrice to be no greater than the borrower\u2019s debt, while _repay silently caps repayment and liquidation still applies the full collateral reduction.\nATTACK VECTOR: Target an undercollateralized borrower with relatively low remaining debt, approve the vault for the capped repayment, and call liquidation with an oversized assetAmount up to the 50% collateral limit.\nAFFECTED NODES: eusd_vault_base, actor_liquidators, collateral_tokens\nAFFECTED CODE: contracts/lybra/pools/base/LybraEUSDVaultBase.sol:liquidation, contracts/lybra/pools/base/LybraEUSDVaultBase.sol:_repay\nSEVERITY: high\nREASONING: The shown liquidation code calculates repayment from assetAmount, calls _repay, and then removes reducedAsset unconditionally. The shown _repay logic explicitly sets amount to the lesser of requested amount and borrowed plus fees, creating a mismatch whenever the requested liquidation value exceeds debt.\nSUGGESTED MITIGATION: Require the requested collateral value to be no greater than the borrower\u2019s outstanding principal and accrued fees, or cap assetAmount to the amount actually repaid before calculating reducedAsset and rewards. Reject zero or fully repaid positions explicitly.",
+      "vulnerability_type": "economic_exploit",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "eusd_vault_base",
+        "actor_liquidators",
+        "collateral_tokens"
+      ],
+      "evidence": [],
+      "reasoning": "The shown liquidation code calculates repayment from assetAmount, calls _repay, and then removes reducedAsset unconditionally. The shown _repay logic explicitly sets amount to the lesser of requested amount and borrowed plus fees, creating a mismatch whenever the requested liquidation value exceeds debt.",
+      "mitigation": "Require the requested collateral value to be no greater than the borrower\u2019s outstanding principal and accrued fees, or cap assetAmount to the amount actually repaid before calculating reducedAsset and rewards. Reject zero or fully repaid positions explicitly.",
+      "finding_description": "liquidation computes eusdAmount from the requested assetAmount, but _repay caps repayment at the borrower\u2019s debt when the requested amount exceeds debt. The function then unconditionally removes and transfers 110% of the requested collateral amount. A liquidator can therefore select an assetAmount whose value exceeds the borrower\u2019s remaining debt, pay only the capped debt, and receive collateral worth substantially more than the repayment.",
+      "impact": "A liquidator can drain excess collateral from borrowers and make the vault undercollateralized, causing direct loss of collateral and protocol bad debt.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/pools/base/LybraEUSDVaultBase.sol",
+          "contract": "LybraEUSDVaultBase",
+          "function": "liquidation(address,address,uint256)"
+        },
+        {
+          "file": "contracts/lybra/pools/base/LybraEUSDVaultBase.sol",
+          "contract": "LybraEUSDVaultBase",
+          "function": "_repay(address,address,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/pools/base/LybraEUSDVaultBase.sol",
+          "contracts/lybra/pools/LybraRETHVault.sol",
+          "contracts/lybra/pools/LybraWstETHVault.sol",
+          "contracts/lybra/pools/LybraWbETHVault.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:46:04.045230",
+      "id": "hyp_bb8d0afd8e46",
+      "qa_comment": "Upon reviewing the liquidation and _repay functions in LybraEUSDVaultBase.sol, I determined that the alleged oversized-repayment mismatch is not exploitable through the shown liquidation path. Although _repay caps the repayment amount to borrowed[onBehalfOf], liquidation requires the borrower\u2019s collateral ratio to be below 150% and restricts assetAmount to at most 50% of depositedAsset[onBehalfOf]. Given the ratio check, collateral value is less than 1.5 times the borrower\u2019s debt; therefore, the requested liquidation value, assetAmount * assetPrice, is less than 75% of the debt and cannot exceed borrowed[onBehalfOf]. Consequently, _repay does not silently reduce a larger requested repayment in any eligible liquidation, and reducedAsset (110% of assetAmount) is not based on an over-large assetAmount relative to debt. The allowance check is weak because it only requires a positive allowance, but EUSD.burn still must burn the capped amount and does not create the hypothesized excess-collateral condition. The zero-debt case also cannot pass the ratio calculation."
+    },
+    "hyp_af679c406664": {
+      "title": "Deployer retains direct DAO authority over critical configurator controls",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: The timelock constructor grants the custom DAO role to the deployment EOA, and configurator DAO checks do not restrict execution to the timelock contract or enforce a delay.\nATTACK VECTOR: The deployment key, or an operationally compromised deployer account, calls DAO-only configurator functions directly instead of submitting a timelocked governance operation.\nAFFECTED NODES: governance_timelock, configurator, governance_dao\nAFFECTED CODE: contracts/lybra/governance/GovernanceTimelock.sol:constructor, contracts/lybra/configuration/LybraConfigurator.sol:onlyRole(DAO) functions\nSEVERITY: high\nREASONING: The constructor visibly executes _grantRole(DAO, msg.sender), and checkOnlyRole delegates to hasRole without excluding the deployer. Configurator DAO-only setters therefore accept the deployment account directly and bypass the timelock delay.\nSUGGESTED MITIGATION: Do not grant DAO to the deployment EOA, or revoke that grant after initialization. Ensure privileged configurator operations can only be executed by the timelock/governance executor and are subject to the intended delay.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "governance_timelock",
+        "configurator",
+        "governance_dao"
+      ],
+      "evidence": [],
+      "reasoning": "The constructor visibly executes _grantRole(DAO, msg.sender), and checkOnlyRole delegates to hasRole without excluding the deployer. Configurator DAO-only setters therefore accept the deployment account directly and bypass the timelock delay.",
+      "mitigation": "Do not grant DAO to the deployment EOA, or revoke that grant after initialization. Ensure privileged configurator operations can only be executed by the timelock/governance executor and are subject to the intended delay.",
+      "finding_description": "GovernanceTimelock grants DAO to both the timelock itself and msg.sender in its constructor, while configurator functions protected by onlyRole(DAO) use checkOnlyRole and therefore accept the deployer directly without requiring timelock execution. The deployer can directly modify mint-vault activation, mint caps, token initialization and other DAO-controlled settings.",
+      "impact": "A compromised or malicious deployer can enable arbitrary vaults, raise mint caps, alter core token configuration or change risk parameters, enabling unauthorized token inflation and protocol insolvency.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/governance/GovernanceTimelock.sol",
+          "contract": "GovernanceTimelock",
+          "function": "constructor(uint256,address[],address[],address)"
+        },
+        {
+          "file": "contracts/lybra/governance/GovernanceTimelock.sol",
+          "contract": "GovernanceTimelock",
+          "function": "checkOnlyRole(bytes32,address)"
+        },
+        {
+          "file": "contracts/lybra/configuration/LybraConfigurator.sol",
+          "contract": "LybraConfigurator",
+          "function": "setMintVault(address,bool)"
+        },
+        {
+          "file": "contracts/lybra/configuration/LybraConfigurator.sol",
+          "contract": "LybraConfigurator",
+          "function": "setMintVaultMaxSupply(address,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/governance/GovernanceTimelock.sol",
+          "contracts/lybra/configuration/LybraConfigurator.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:46:04.060618",
+      "id": "hyp_af679c406664",
+      "qa_comment": "Upon reviewing the GovernanceTimelock constructor and Configurator access-control modifiers, I confirmed that the hypothesized privilege bypass exists, and the implementation contains an even broader flaw. GovernanceTimelock.sol grants DAO to both address(this) and msg.sender via _grantRole(DAO, ...), so the deployer receives DAO authority without any timelock delay. Configurator's onlyRole(DAO) modifier calls checkOnlyRole(DAO, msg.sender), which merely returns hasRole(role, _sender) and does not revert when false; the returned boolean is ignored. Consequently, initToken, setMintVault, setMintVaultMaxSupply, and setBadCollateralRatio are callable by any address, including the deployer directly, without governance execution or delay. The same issue affects the checkRole modifier and all TIMELOCK/ADMIN-protected functions because GovernanceTimelock.checkRole also returns a boolean without enforcing it, while Configurator ignores that result. Therefore, no effective guard prevents direct calls, and the deployer-specific hypothesis is confirmed, although the actual vulnerability is not limited to the deployment account and permits arbitrary callers to modify protected configuration."
+    },
+    "hyp_f79e1ab5e53c": {
+      "title": "Protocol reward distributions are permanently stranded when no esLBR holders are staked",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: The zero-stake early return occurs after token transfer and does not preserve pending rewards or return the funds.\nATTACK VECTOR: Ensure the protocol rewards pool has zero staked esLBR, then trigger a vault repayment or another path that invokes configurator.distributeRewards while the configurator holds the reward threshold amount.\nAFFECTED NODES: protocol_rewards, configurator, eusd_vault_base\nAFFECTED CODE: contracts/lybra/configuration/LybraConfigurator.sol:distributeRewards, contracts/lybra/miner/ProtocolRewardsPool.sol:notifyRewardAmount\nSEVERITY: medium\nREASONING: The configurator transfers the full balance to the rewards pool before notification. The rewards pool code checks totalStaked()==0 and returns without updating rewardPerTokenStored or retaining a pending distribution balance.\nSUGGESTED MITIGATION: Check totalStaked before transferring, or record pending rewards when there are no stakers and distribute them on the next valid notification. Verify transfer amounts and maintain explicit liabilities for undistributed rewards.",
+      "vulnerability_type": "accounting_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "protocol_rewards",
+        "configurator",
+        "eusd_vault_base"
+      ],
+      "evidence": [],
+      "reasoning": "The configurator transfers the full balance to the rewards pool before notification. The rewards pool code checks totalStaked()==0 and returns without updating rewardPerTokenStored or retaining a pending distribution balance.",
+      "mitigation": "Check totalStaked before transferring, or record pending rewards when there are no stakers and distribute them on the next valid notification. Verify transfer amounts and maintain explicit liabilities for undistributed rewards.",
+      "finding_description": "distributeRewards transfers eUSD or PeUSD to ProtocolRewardsPool before calling notifyRewardAmount. notifyRewardAmount immediately returns when totalStaked() is zero, without recording the distribution or refunding the transferred tokens. Any distribution performed while the pool has no stake becomes unaccounted balance that cannot be allocated through the reward-per-token mechanism.",
+      "impact": "Protocol-generated eUSD/PeUSD rewards can become permanently unclaimable, causing loss of rewards intended for future stakers and inaccurate reward accounting.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/configuration/LybraConfigurator.sol",
+          "contract": "LybraConfigurator",
+          "function": "distributeRewards()"
+        },
+        {
+          "file": "contracts/lybra/miner/ProtocolRewardsPool.sol",
+          "contract": "ProtocolRewardsPool",
+          "function": "notifyRewardAmount(uint256,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/pools/base/LybraEUSDVaultBase.sol",
+          "contracts/lybra/configuration/LybraConfigurator.sol",
+          "contracts/lybra/miner/ProtocolRewardsPool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:46:04.073416",
+      "id": "hyp_f79e1ab5e53c",
+      "qa_comment": "Upon reviewing Configurator.distributeRewards and ProtocolRewardsPool.notifyRewardAmount, I confirmed the accounting vulnerability exists. distributeRewards transfers the thresholded peUSD or eUSD balance to the rewards pool before invoking notifyRewardAmount, without checking whether esLBR.totalSupply() is nonzero and without validating that notification succeeded. In notifyRewardAmount, the require(msg.sender == address(configurator)) check passes, but the function immediately returns when totalStaked() == 0, leaving rewardPerTokenStored and any pending-reward accounting unchanged. Because the transfer has already occurred, the tokens remain in ProtocolRewardsPool but are not assigned to current or future stakers through the reward-per-token mechanism. distributeRewards is externally callable, so an actor can invoke it whenever the configurator holds a threshold balance while no esLBR is staked; any protocol path that invokes it has the same effect. The rewards pool has no visible recovery or pending-distribution mechanism, and later notifications account only for newly notified amounts. Thus, the funds are effectively stranded from the intended distribution accounting, although they remain held by the pool."
+    },
+    "hyp_75e1a02a125c": {
+      "title": "sendAndCall attributes transferred funds to the approved caller instead of the token owner",
+      "description": "VULNERABILITY TYPE: authorization_logic\nROOT CAUSE: The source identity encoded for the destination callback is derived from msg.sender rather than the address whose tokens were debited.\nATTACK VECTOR: A user grants allowance to an operator; the operator calls sendAndCall with the user's address as _from and a callback-enabled destination. The destination callback uses the supplied source identity and credits or authorizes the operator.\nAFFECTED NODES: oft_core, peusd_token, remote_oft\nAFFECTED CODE: contracts/OFT/OFTCoreV2.sol:sendAndCall, contracts/lybra/token/PeUSD.sol:_debitFrom, contracts/OFT/OFTCoreV2.sol:_encodeSendAndCallPayload\nSEVERITY: medium\nREASONING: The code comment confirms that msg.sender is deliberately encoded instead of _from, while _debitFrom permits an approved spender to debit _from. This creates an identity mismatch across the asynchronous destination callback; exploitability depends on destination receivers trusting the reported source identity.\nSUGGESTED MITIGATION: Define and document the intended callback identity. If the callback is meant to identify the owner whose balance was debited, encode _from and ensure destination receivers use that value. If the caller identity is intentional, destination callback contracts must not treat it as ownership of the debited tokens or grant owner-based benefits without separate authorization.",
+      "vulnerability_type": "authorization_logic",
+      "severity": "medium",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "oft_core",
+        "peusd_token",
+        "remote_oft"
+      ],
+      "evidence": [],
+      "reasoning": "The code comment confirms that msg.sender is deliberately encoded instead of _from, while _debitFrom permits an approved spender to debit _from. This creates an identity mismatch across the asynchronous destination callback; exploitability depends on destination receivers trusting the reported source identity.",
+      "mitigation": "Define and document the intended callback identity. If the callback is meant to identify the owner whose balance was debited, encode _from and ensure destination receivers use that value. If the caller identity is intentional, destination callback contracts must not treat it as ownership of the debited tokens or grant owner-based benefits without separate authorization.",
+      "finding_description": "sendAndCall debits tokens from the caller-supplied _from address, but explicitly encodes msg.sender into the cross-chain payload instead of _from. An approved spender can therefore transfer another user's tokens while causing destination contracts to observe the spender as the source identity. Any destination callback that authorizes rewards, accounting, or ownership based on the reported source can credit the spender rather than the actual token owner.",
+      "impact": "Approved spenders can misattribute cross-chain transfers and potentially capture destination-side rewards, entitlements, or authorization-dependent assets associated with the token owner.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/OFT/OFTCoreV2.sol",
+          "contract": "OFTCoreV2",
+          "function": "sendAndCall"
+        },
+        {
+          "file": "contracts/OFT/OFTCoreV2.sol",
+          "contract": "OFTCoreV2",
+          "function": "_encodeSendAndCallPayload"
+        },
+        {
+          "file": "contracts/lybra/token/PeUSD.sol",
+          "contract": "PeUSD",
+          "function": "_debitFrom"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/token/PeUSDMainnetStableVision.sol",
+          "contracts/lybra/token/PeUSD.sol",
+          "contracts/OFT/lzApp/LzApp.sol",
+          "contracts/OFT/OFTCoreV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:46:49.177114",
+      "id": "hyp_75e1a02a125c"
+    },
+    "hyp_db7d99def3b4": {
+      "title": "Boosted rewards can be applied retroactively",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: Reward accrual stores only a single user checkpoint timestamp while the boost multiplier is evaluated at checkpoint time rather than at each reward interval or at the moment the boost changed.\nATTACK VECTOR: A user stakes or otherwise creates an uncheckpointed reward interval, obtains or increases an esLBR lock near the end of that interval, then calls getReward, stake, withdraw, or another updateReward-triggering function.\nAFFECTED NODES: staking_rewards, eslbr_boost\nAFFECTED CODE: contracts/lybra/miner/stakerewardV2pool.sol:getBoost, contracts/lybra/miner/stakerewardV2pool.sol:earned, contracts/lybra/miner/stakerewardV2pool.sol:getReward\nSEVERITY: high\nREASONING: The shown formula multiplies the complete uncheckpointed reward interval by the current boost, while the boost dependency is queried using the prior checkpoint timestamp. Unless the boost contract independently checkpoints every change, the calculation is temporally inconsistent and permits end-of-period boost timing.\nSUGGESTED MITIGATION: Checkpoint staking rewards before any boost or lock status change, or calculate rewards over discrete intervals using historical boost state. Do not apply a newly observed boost to reward time preceding its activation.",
+      "vulnerability_type": "accounting_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "staking_rewards",
+        "eslbr_boost"
+      ],
+      "evidence": [],
+      "reasoning": "The shown formula multiplies the complete uncheckpointed reward interval by the current boost, while the boost dependency is queried using the prior checkpoint timestamp. Unless the boost contract independently checkpoints every change, the calculation is temporally inconsistent and permits end-of-period boost timing.",
+      "mitigation": "Checkpoint staking rewards before any boost or lock status change, or calculate rewards over discrete intervals using historical boost state. Do not apply a newly observed boost to reward time preceding its activation.",
+      "finding_description": "The earned() calculation applies getBoost(_account) to the entire rewardPerToken() delta since userUpdatedAt[_account]. Because the boost contract is queried only when the staking account is checkpointed and boost changes are not synchronized with the pool, a user can establish or increase a lock shortly before calling a pool function and have the higher boost applied to rewards accrued before the lock or boost change.",
+      "impact": "The attacker can claim more LBR than the boost was active for, diluting other stakers and increasing minted reward supply beyond the intended allocation.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/miner/stakerewardV2pool.sol",
+          "contract": "StakingRewardsV2Pool",
+          "function": "getBoost(address)"
+        },
+        {
+          "file": "contracts/lybra/miner/stakerewardV2pool.sol",
+          "contract": "StakingRewardsV2Pool",
+          "function": "earned(address)"
+        },
+        {
+          "file": "contracts/lybra/miner/stakerewardV2pool.sol",
+          "contract": "StakingRewardsV2Pool",
+          "function": "getReward()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/miner/esLBRBoost.sol",
+          "contracts/lybra/miner/stakerewardV2pool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:47:32.224195",
+      "id": "hyp_db7d99def3b4",
+      "qa_comment": "Upon reviewing the updateReward modifier, getBoost, earned, and esLBRBoost.getUserBoost implementations, I confirmed that the accounting error is exploitable. updateReward records only one userUpdatedAt timestamp and earned() computes the entire uncheckpointed reward-per-token delta using the boost returned at claim or another update time. After a user stakes, the user can call esLBRBoost.setLockStatus near the end of the accrual period without any corresponding checkpoint in StakingRewardsV2. getBoost then passes the old userUpdatedAt to getUserBoost, which observes the newly created lock. While the lock remains active, getUserBoost returns the full miningBoost, causing earned() to multiply rewards accrued before the lock by the newly obtained boost. Calling getReward, stake, or withdraw then permanently checkpoints this inflated amount. There is no callback, access-control relationship, or synchronization mechanism forcing staking rewards to be checkpointed before setLockStatus, and the boost contract does not retain historical lock states. Therefore, the implementation permits retroactive application of a boost to previously accrued rewards."
+    },
+    "hyp_cd997ea22442": {
+      "title": "Reward duration accepts zero and reward scheduling truncates emissions",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Missing duration lower-bound validation and unchecked integer truncation in reward-rate construction.\nATTACK VECTOR: The owner or an incorrectly configured governance executor sets duration to zero, causing subsequent notifyRewardAmount calls to revert due to division by zero. For non-divisible amounts, repeated scheduling leaves residual rewards permanently unallocated.\nAFFECTED NODES: staking_rewards\nAFFECTED CODE: contracts/lybra/miner/stakerewardV2pool.sol:setRewardsDuration, contracts/lybra/miner/stakerewardV2pool.sol:notifyRewardAmount\nSEVERITY: low\nREASONING: The displayed code directly assigns duration without requiring it to be nonzero, then performs division by duration. Solidity integer division also demonstrably truncates both reward-rate calculations.\nSUGGESTED MITIGATION: Require duration > 0 and enforce an appropriate minimum duration. Track and explicitly handle division remainders, or use fixed-point accounting so the full scheduled amount is either distributed or deliberately returned.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "low",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "staking_rewards"
+      ],
+      "evidence": [],
+      "reasoning": "The displayed code directly assigns duration without requiring it to be nonzero, then performs division by duration. Solidity integer division also demonstrably truncates both reward-rate calculations.",
+      "mitigation": "Require duration > 0 and enforce an appropriate minimum duration. Track and explicitly handle division remainders, or use fixed-point accounting so the full scheduled amount is either distributed or deliberately returned.",
+      "finding_description": "setRewardsDuration() accepts any duration, including zero, and notifyRewardAmount() divides by duration without validating it. In addition, integer division in _amount / duration and (_amount + remainingRewards) / duration silently discards remainder tokens from each schedule.",
+      "impact": "Reward scheduling can be made temporarily unavailable until governance repairs the duration, and users can receive fewer rewards than the amounts announced, with the cumulative shortfall retained outside the reward accounting.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/miner/stakerewardV2pool.sol",
+          "contract": "StakingRewardsV2Pool",
+          "function": "setRewardsDuration(uint256)"
+        },
+        {
+          "file": "contracts/lybra/miner/stakerewardV2pool.sol",
+          "contract": "StakingRewardsV2Pool",
+          "function": "notifyRewardAmount(uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/miner/stakerewardV2pool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:47:32.240595",
+      "id": "hyp_cd997ea22442",
+      "qa_comment": "Upon reviewing the StakingRewardsV2 contract, I confirmed the reported issue in setRewardsDuration and notifyRewardAmount. setRewardsDuration accepts any uint256 value, including zero, and only checks that the prior reward period has ended; it does not enforce a positive or minimum duration. Once the owner sets duration to zero, a later notifyRewardAmount call reaches either _amount / duration or (_amount + remainingRewards) / duration, causing a Solidity division-by-zero panic before the reward-ratio validation and preventing new rewards from being scheduled. The onlyOwner modifier limits this to the owner or compromised/misconfigured governance, but it does not eliminate the operational denial-of-service risk. Additionally, both reward-rate calculations use integer division, so amounts that are not evenly divisible by duration are truncated. The resulting rewardRatio multiplied by duration can be less than the scheduled amount, with no remainder tracking or refund mechanism; sufficiently small amounts can produce rewardRatio == 0 and revert. Therefore, the hypothesis is supported by the implementation."
+    },
+    "hyp_cce300e5fdf9": {
+      "title": "Stablecoin reward accounting uses token decimals as a divisor instead of decimal scaling",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: Incorrect conversion of stablecoin amounts using the numeric decimals value rather than 10 raised to the decimal difference from 18.\nATTACK VECTOR: A configured stablecoin is distributed through configurator.distributeRewards, after which esLBR holders claim rewards calculated from the inflated rewardPerTokenStored value.\nAFFECTED NODES: protocol_rewards, configurator, stable_token, eslbr_token\nAFFECTED CODE: contracts/lybra/miner/ProtocolRewardsPool.sol:notifyRewardAmount\nSEVERITY: high\nREASONING: The arithmetic visibly divides by token.decimals() rather than applying a power-of-ten conversion. This produces orders-of-magnitude errors for standard 6- or 8-decimal stablecoins.\nSUGGESTED MITIGATION: Convert amounts with an explicit decimal factor, such as amount * 10**(18 - tokenDecimals) when tokenDecimals <= 18, and reject unsupported decimal configurations. Add invariant tests comparing accounted rewards with actual transferred value.",
+      "vulnerability_type": "accounting_error",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "protocol_rewards",
+        "configurator",
+        "stable_token",
+        "eslbr_token"
+      ],
+      "evidence": [],
+      "reasoning": "The arithmetic visibly divides by token.decimals() rather than applying a power-of-ten conversion. This produces orders-of-magnitude errors for standard 6- or 8-decimal stablecoins.",
+      "mitigation": "Convert amounts with an explicit decimal factor, such as amount * 10**(18 - tokenDecimals) when tokenDecimals <= 18, and reject unsupported decimal configurations. Add invariant tests comparing accounted rewards with actual transferred value.",
+      "finding_description": "ProtocolRewardsPool.notifyRewardAmount handles tokenType 1 by computing `(amount * 1e36 / token.decimals()) / totalStaked()`. ERC-20 decimals are exponents such as 6 or 18, not scaling factors. For a 6-decimal token, this credits approximately amount * 1e36 / 6 instead of amount * 1e12, massively overstating rewards per esLBR and allowing claims far exceeding the tokens received.",
+      "impact": "The reward pool can become insolvent and claimants can receive disproportionate rewards, potentially draining available stablecoin/eUSD reserves or causing later claims to revert.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/miner/ProtocolRewardsPool.sol",
+          "contract": "ProtocolRewardsPool",
+          "function": "notifyRewardAmount"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/configuration/LybraConfigurator.sol",
+          "contracts/lybra/miner/ProtocolRewardsPool.sol",
+          "contracts/lybra/token/esLBR.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:48:22.493800",
+      "id": "hyp_cce300e5fdf9",
+      "qa_comment": "Upon reviewing the alleged decimal-conversion vulnerability in ProtocolRewardsPool.notifyRewardAmount and getReward, I determined this is a false positive. For tokenType == 1, notifyRewardAmount computes rewardPerTokenStored using (amount * 1e36 / token.decimals()) / totalStaked(). Although token.decimals() is numerically used as a divisor, the preceding 1e36 factor makes this mathematically equivalent to converting the raw token amount into 18-decimal accounting units (amount * 1e18 / 10**decimals) and then applying the standard 1e18 reward-per-token scale. In getReward, the inverse conversion is explicitly performed as (reward - eUSDShare - peUSDBalance) * token.decimals() / 1e18. For a 6-decimal token, the accounting factor is therefore 1e36 / 6 in the first expression and multiplied by 6 / 1e18 during redemption, with the numeric decimals factor canceling consistently across the system. Consequently, distributing a token through Configurator.distributeRewards does not inherently inflate rewards as alleged. The implementation may be less readable than using powers of ten, but the claimed exploitable accounting error is not present."
+    },
+    "hyp_02fa2949ad42": {
+      "title": "LBR oracle result is used without zero, sign, or freshness validation during reward buyout",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: Missing validation of Chainlink round completeness, timestamp freshness, positive price, and bounded value before converting and using the oracle answer.\nATTACK VECTOR: When the LBR feed returns zero, stale, incomplete, or negative data, an eligible user invokes purchaseOtherEarnings(..., true) and either buys out rewards for no EUSD fee or causes the buyout path to revert.\nAFFECTED NODES: eusd_mining, lbr_price_oracle, eslbr_token\nAFFECTED CODE: contracts/lybra/miner/EUSDMiningIncentives.sol:purchaseOtherEarnings\nSEVERITY: medium\nREASONING: The loaded code destructures latestRoundData but ignores round identifiers, updatedAt, answeredInRound, and positivity; it casts the signed answer directly to uint256 and performs no nonzero check.\nSUGGESTED MITIGATION: Require a positive answer, valid round metadata, and an acceptable updatedAt age before conversion. Define a bounded price sanity range and revert or disable the buyout when the feed is invalid.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "eusd_mining",
+        "lbr_price_oracle",
+        "eslbr_token"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded code destructures latestRoundData but ignores round identifiers, updatedAt, answeredInRound, and positivity; it casts the signed answer directly to uint256 and performs no nonzero check.",
+      "mitigation": "Require a positive answer, valid round metadata, and an acceptable updatedAt age before conversion. Define a bounded price sanity range and revert or disable the buyout when the feed is invalid.",
+      "finding_description": "EUSDMiningIncentives.purchaseOtherEarnings obtains lbrPrice from latestRoundData and immediately casts it to uint256 and uses it in the buyout fee calculation. A zero answer makes the EUSD bidding fee zero, while a negative answer becomes a huge uint256 and can revert through arithmetic or token transfer. Stale or invalid rounds are also accepted.",
+      "impact": "A zero-price feed can allow free acquisition of esLBR rewards; invalid or stale data can disable EUSD reward buyouts and disrupt reward operations.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/miner/EUSDMiningIncentives.sol",
+          "contract": "EUSDMiningIncentives",
+          "function": "purchaseOtherEarnings"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/miner/EUSDMiningIncentives.sol",
+          "contracts/lybra/token/esLBR.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:48:22.518642",
+      "id": "hyp_02fa2949ad42",
+      "qa_comment": "Upon reviewing the oracle-dependent functions in EUSDMiningIncentives.sol, I confirmed the reported oracle-validation weakness is exploitable. In purchaseOtherEarnings, the LBR feed result from latestRoundData() is destructured while roundId, updatedAt, answeredInRound, and validity of the signed answer are ignored. The code directly converts lbrPrice to uint256 and calculates the EUSD bidding fee without checking that the answer is positive, nonzero, complete, or fresh. A zero answer therefore reduces the fee to zero, allowing an otherwise eligible user to receive esLBR rewards without paying the intended EUSD cost. Negative answers can produce an invalid large unsigned value and commonly cause arithmetic overflow or transfer failure, creating a denial-of-service or reverted buyout path. Additionally, stakedLBRLpValue, used by isOtherEarningsClaimable, independently consumes the same unvalidated LBR oracle result, so zero or malformed data can also affect eligibility or revert. The isEUSDBuyoutAllowed flag only enables or disables the entire payment mode and does not validate oracle data."
+    },
+    "hyp_bfdcbdc685b8": {
+      "title": "Exact-role authorization can block governance administrators from required privileged operations",
+      "description": "VULNERABILITY TYPE: authorization_logic\nROOT CAUSE: Authorization checks require an exact operational role instead of consistently recognizing the role administrator or a deliberate role hierarchy.\nATTACK VECTOR: A governance action is submitted by the GOV administrator or through the timelock without the exact target role; the checkOnlyRole-style validation reverts the operation, preventing configuration or governance maintenance actions.\nAFFECTED NODES: governance_timelock, governance_dao, configurator, governance_module\nAFFECTED CODE: GovernanceTimelock exact-role authorization checks, GovernanceTimelock custom-role administration, Configurator governance-controlled operations\nSEVERITY: medium\nREASONING: The architecture explicitly records exact-role checking and separate GOV administration of custom roles. Without confirming that GOV is also granted every operational role, this separation creates a concrete authorization/availability risk; exact function-level behavior and role assignments should be verified in source.\nSUGGESTED MITIGATION: Define and document the intended role hierarchy; either grant GOV the required operational roles, make role-admin authorization explicit where appropriate, or provide a timelocked role-management path that guarantees administrators can execute necessary governance operations without weakening least privilege.",
+      "vulnerability_type": "authorization_logic",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "governance_timelock",
+        "governance_dao",
+        "configurator",
+        "governance_module"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records exact-role checking and separate GOV administration of custom roles. Without confirming that GOV is also granted every operational role, this separation creates a concrete authorization/availability risk; exact function-level behavior and role assignments should be verified in source.",
+      "mitigation": "Define and document the intended role hierarchy; either grant GOV the required operational roles, make role-admin authorization explicit where appropriate, or provide a timelocked role-management path that guarantees administrators can execute necessary governance operations without weakening least privilege.",
+      "finding_description": "GovernanceTimelock is documented as using exact-role checks, while GOV administers custom roles. If GOV is only the administrator of a custom operational role and is not itself granted that exact role, role-gated timelock or configuration functions reject GOV even though it is authorized to manage the role. This can prevent authorized governance actions until an additional role grant is performed, and may become a denial of service if role-management paths are themselves constrained.",
+      "impact": "Authorized governance operations can be permanently or indefinitely blocked, including configuration changes, role rotation, or recovery actions, causing protocol administration denial of service.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/governance/LybraGovernance.sol",
+          "contracts/lybra/governance/GovernanceTimelock.sol",
+          "contracts/lybra/configuration/LybraConfigurator.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:49:09.930393",
+      "id": "hyp_bfdcbdc685b8",
+      "qa_comment": "Upon reviewing the authorization logic in GovernanceTimelock, LybraGovernance._execute, and LybraConfigurator, I determined that the alleged vulnerability is not demonstrated as an exploitable authorization or availability flaw. GovernanceTimelock.checkOnlyRole intentionally requires the specified operational role, while checkRole explicitly implements the intended hierarchy by allowing either the requested role or DAO. Consequently, Configurator functions protected by checkRole(TIMELOCK) or checkRole(ADMIN) remain callable by the DAO through the timelock, which is granted DAO in the GovernanceTimelock constructor. DAO-only Configurator functions similarly correctly require DAO. Although GOV is not automatically treated as an operational role, GOV is configured as the admin of DAO, TIMELOCK, and ADMIN, allowing a GOV holder to grant the necessary operational role through inherited AccessControl role-management functions. The LybraGovernance._execute checkOnlyRole(TIMELOCK) is restrictive by design and requires the deployment to assign TIMELOCK to the intended executor; the constructor's omission is a configuration concern, not proof that GOV administrators must perform that operation directly. The hypothesis therefore conflates role administration with operational authorization."
+    },
+    "hyp_c2ce7ede294e": {
+      "title": "PeUSD collateral valuation may accept stale or invalid oracle prices",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: Vault risk checks depend directly on configurator-selected oracle output without demonstrated freshness, completeness, sign, and nonzero validation.\nATTACK VECTOR: Manipulate or wait for a stale oracle answer, then call PeUSD minting or collateral withdrawal functions using the inflated collateral valuation.\nAFFECTED NODES: peusd_vault_base, price_oracle, configurator, actor_users, actor_liquidators\nAFFECTED CODE: LybraPeUSDVaultBase collateral valuation and debt-ratio checks, Configured collateral price oracle reads\nSEVERITY: high\nREASONING: The architecture explicitly identifies the PeUSD vault as oracle-dependent, while no oracle validation behavior is documented for this vault. This is distinct from the existing finding concerning the LBR oracle used by EUSD mining.\nSUGGESTED MITIGATION: Validate oracle answers before use: require a nonzero positive value, complete and valid round data, bounded staleness, and an appropriate deviation limit; reject operations when validation fails and use a conservative fallback or pause mechanism.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "peusd_vault_base",
+        "price_oracle",
+        "configurator",
+        "actor_users",
+        "actor_liquidators"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies the PeUSD vault as oracle-dependent, while no oracle validation behavior is documented for this vault. This is distinct from the existing finding concerning the LBR oracle used by EUSD mining.",
+      "mitigation": "Validate oracle answers before use: require a nonzero positive value, complete and valid round data, bounded staleness, and an appropriate deviation limit; reject operations when validation fails and use a conservative fallback or pause mechanism.",
+      "finding_description": "LybraPeUSDVaultBase relies on the configured collateral price oracle for minting, withdrawal, and solvency calculations, but the available component evidence does not show validation of oracle freshness, round completeness, or nonzero/positive answers. An attacker can exploit a stale or abnormally high collateral price to mint excessive PeUSD or withdraw collateral while remaining apparently solvent; a stale low price can also trigger unwarranted liquidations.",
+      "impact": "The vault can become undercollateralized, causing PeUSD insolvency and losses for PeUSD holders or enabling unfair collateral liquidations.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/pools/LybraRETHVault.sol",
+          "contracts/lybra/pools/LybraWstETHVault.sol",
+          "contracts/lybra/token/PeUSDMainnetStableVision.sol",
+          "contracts/lybra/pools/base/LybraEUSDVaultBase.sol",
+          "contracts/lybra/pools/base/LybraPeUSDVaultBase.sol",
+          "contracts/OFT/OFTCoreV2.sol",
+          "contracts/lybra/configuration/LybraConfigurator.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:50:11.091689",
+      "id": "hyp_c2ce7ede294e"
+    },
+    "hyp_5bcb91895c97": {
+      "title": "Governance proposals can pass without an affirmative majority",
+      "description": "VULNERABILITY TYPE: authorization_logic\nROOT CAUSE: The proposal-success predicate appears to compare against-votes with quorum instead of enforcing forVotes > againstVotes (or an equivalent affirmative-majority rule).\nATTACK VECTOR: A proposer coordinates enough voting power to reach the one-third quorum while keeping opposing votes below quorum, including a tied or weakly supported vote, then executes the proposal through the governance timelock.\nAFFECTED NODES: governance_module, governance_timelock, governance_dao\nAFFECTED CODE: governance_module: proposal quorum and success evaluation, governance_timelock: execution of successful governance proposals\nSEVERITY: high\nREASONING: The architecture explicitly records that quorum is one-third of supply and that against votes determine success. That combination is unsafe if it omits an affirmative-majority requirement: reaching quorum alone must not allow a proposal to pass when for-votes do not exceed against-votes.\nSUGGESTED MITIGATION: Require both quorum and a strict affirmative majority, such as forVotes > againstVotes, before marking a proposal successful. Add tests for zero-for, tie, and minority-for vote distributions and ensure the timelock can execute only proposals satisfying both conditions.",
+      "vulnerability_type": "authorization_logic",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "governance_module",
+        "governance_timelock",
+        "governance_dao"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records that quorum is one-third of supply and that against votes determine success. That combination is unsafe if it omits an affirmative-majority requirement: reaching quorum alone must not allow a proposal to pass when for-votes do not exceed against-votes.",
+      "mitigation": "Require both quorum and a strict affirmative majority, such as forVotes > againstVotes, before marking a proposal successful. Add tests for zero-for, tie, and minority-for vote distributions and ensure the timelock can execute only proposals satisfying both conditions.",
+      "finding_description": "The governance module is annotated as determining proposal success from against-vote thresholds rather than requiring affirmative votes to exceed opposing votes. If quorum is reached with equal or otherwise insufficient for-votes, a proposal may still be accepted whenever against-votes remain below quorum.",
+      "impact": "An attacker or minority coalition could pass malicious configuration or treasury actions without majority support, potentially changing protocol parameters, upgrading components, or transferring governed assets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/governance/LybraGovernance.sol",
+          "contracts/lybra/governance/GovernanceTimelock.sol",
+          "contracts/lybra/configuration/LybraConfigurator.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:50:58.940269",
+      "id": "hyp_5bcb91895c97",
+      "qa_comment": "Upon reviewing the proposal evaluation logic in LybraGovernance, I determined that the alleged affirmative-majority vulnerability is a false positive. The overridden _quorumReached function requires supportVotes[1] plus supportVotes[2] to reach one-third of the snapshot supply, while _voteSucceeded independently requires supportVotes[1] to be strictly greater than supportVotes[0]. Under OpenZeppelin Governor Bravo counting conventions, support value 0 is Against, 1 is For, and 2 is Abstain; therefore, the success predicate does enforce a strict affirmative majority and does not allow quorum alone to pass a proposal. The proposals() view function labels these indexes inconsistently, reporting index 0 as forVotes and index 1 as againstVotes, which may have caused the hypothesis, but this presentation does not alter the underlying decision logic. A zero-for or tied vote fails _voteSucceeded, and a minority-for vote also fails even if quorum is reached. The separate _execute override hardcodes proposal ID 1, but that is outside the reviewed hypothesis."
+    },
+    "hyp_684d80e5ca6a": {
+      "title": "Proxy upgrades are controlled outside the timelocked governance path",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Upgradeable proxy administration is separated from the protocol governance and timelock controls, leaving implementation replacement dependent on an independently controlled privileged account.\nATTACK VECTOR: Compromise or misuse the LybraProxyAdmin owner, then invoke the proxy upgrade function with a malicious implementation and optionally execute an initializer through upgrade-and-call.\nAFFECTED NODES: proxy_admin, proxy, governance_timelock, configurator\nAFFECTED CODE: LybraProxyAdmin proxy upgrade and admin-management functions, LybraProxy transparent proxy administration path\nSEVERITY: high\nREASONING: The system graph explicitly assigns proxy configuration to LybraProxyAdmin but does not connect that administrator to GovernanceTimelock, whereas other critical configuration paths are governance-linked. This creates an independent privileged upgrade path capable of overriding all proxy implementation-level security controls.\nSUGGESTED MITIGATION: Transfer proxy-admin ownership to a governance-timelock-controlled administrator, require a transparent upgrade delay and explicit governance approval, and emit and monitor upgrade events. Restrict upgrade-and-call usage and validate proposed implementations before execution.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "proxy_admin",
+        "proxy",
+        "governance_timelock",
+        "configurator"
+      ],
+      "evidence": [],
+      "reasoning": "The system graph explicitly assigns proxy configuration to LybraProxyAdmin but does not connect that administrator to GovernanceTimelock, whereas other critical configuration paths are governance-linked. This creates an independent privileged upgrade path capable of overriding all proxy implementation-level security controls.",
+      "mitigation": "Transfer proxy-admin ownership to a governance-timelock-controlled administrator, require a transparent upgrade delay and explicit governance approval, and emit and monitor upgrade events. Restrict upgrade-and-call usage and validate proposed implementations before execution.",
+      "finding_description": "LybraProxyAdmin has authority to configure LybraProxy, but the architecture shows no governance-timelock control or mandatory delay over the proxy-admin authority. A compromised, misconfigured, or retained proxy-admin owner could upgrade the proxy to arbitrary implementation code and bypass configurator, vault, and token authorization checks.",
+      "impact": "The attacker can replace protocol logic, bypass access controls, mint or transfer protocol assets, alter accounting, and permanently compromise users interacting with the proxy.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/governance/GovernanceTimelock.sol",
+          "contracts/lybra/Proxy/LybraProxy.sol",
+          "contracts/lybra/configuration/LybraConfigurator.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:51:43.264926",
+      "id": "hyp_684d80e5ca6a"
+    },
+    "hyp_c8a4e742e100": {
+      "title": "StETH rebasing can make recorded collateral exceed the vault\u2019s actual collateral",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: Collateral accounting is based on stored stETH token amounts rather than rebasing-aware share amounts or the vault\u2019s current redeemable stETH value.\nATTACK VECTOR: A borrower deposits stETH and mints the maximum permitted debt before an adverse stETH rebase, then withdraws or abandons the position. The vault\u2019s recorded collateral remains unchanged while its actual stETH backing decreases; liquidators may be unable to recover the outstanding debt.\nAFFECTED NODES: steth_vault, eusd_vault_base, collateral_tokens, actor_users, actor_liquidators\nAFFECTED CODE: steth_vault:deposit, steth_vault:depositEtherToStETH, eusd_vault_base:collateral-ratio calculation, eusd_vault_base:withdraw, eusd_vault_base:liquidation\nSEVERITY: medium\nREASONING: stETH is a rebasing collateral asset and the loaded architecture identifies balance-delta collateral accounting. Unless the implementation stores shares or recomputes collateral from current redeemable value, adverse rebases create a mismatch between recorded collateral and actual assets. The exact source locations were not available in the loaded context.\nSUGGESTED MITIGATION: Track stETH shares or compute each position\u2019s current redeemable stETH amount using a rebasing-aware representation. Use the same current-value calculation for borrowing limits, collateral ratios, withdrawals, and liquidation, and add tests covering negative and positive rebases.",
+      "vulnerability_type": "accounting_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "steth_vault",
+        "eusd_vault_base",
+        "collateral_tokens",
+        "actor_users",
+        "actor_liquidators"
+      ],
+      "evidence": [],
+      "reasoning": "stETH is a rebasing collateral asset and the loaded architecture identifies balance-delta collateral accounting. Unless the implementation stores shares or recomputes collateral from current redeemable value, adverse rebases create a mismatch between recorded collateral and actual assets. The exact source locations were not available in the loaded context.",
+      "mitigation": "Track stETH shares or compute each position\u2019s current redeemable stETH amount using a rebasing-aware representation. Use the same current-value calculation for borrowing limits, collateral ratios, withdrawals, and liquidation, and add tests covering negative and positive rebases.",
+      "finding_description": "The stETH vault appears to account for deposited collateral using fixed raw stETH amounts while stETH balances are rebasing. A negative stETH rebase, such as one caused by validator losses or protocol slashing, reduces the vault\u2019s actual token balance without reducing depositedAsset or totalDepositedAsset. Debt and collateral-ratio calculations can therefore continue treating the vault as fully collateralized even though less stETH is available for withdrawal or liquidation.",
+      "impact": "The protocol can permit undercollateralized borrowing and incur bad debt after an adverse stETH rebase, with withdrawals and liquidations potentially exceeding the vault\u2019s remaining stETH backing.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/pools/LybraRETHVault.sol",
+          "contracts/lybra/pools/LybraWbETHVault.sol",
+          "contracts/lybra/pools/LybraWstETHVault.sol",
+          "contracts/lybra/token/PeUSDMainnetStableVision.sol",
+          "contracts/lybra/pools/base/LybraEUSDVaultBase.sol",
+          "contracts/lybra/pools/base/LybraPeUSDVaultBase.sol",
+          "contracts/OFT/OFTCoreV2.sol",
+          "contracts/lybra/pools/LybraStETHVault.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:54:59.508766",
+      "id": "hyp_c8a4e742e100",
+      "qa_comment": "Upon reviewing LybraStETHDepositVault and LybraEUSDVaultBase, I confirmed the accounting mismatch is present and can become exploitable after an adverse stETH rebase. In depositEtherToMint, the vault records msg.value in both totalDepositedAsset and depositedAsset[msg.sender], even though Lido returns sharesAmount and the vault\u2019s actual stETH balance is subject to rebasing. Similarly, depositAssetToMint records the nominal token amount rather than a share-based entitlement. The collateral-ratio checks in _checkHealth, liquidation, superLiquidation, rigidRedemption, and _withdraw all use depositedAsset, while getAssetPrice returns only the ETH oracle price in the stETH vault. Consequently, a negative rebase reduces collateralAsset.balanceOf(address(this)) without reducing recorded collateral or debt capacity. Withdrawals and liquidation may then attempt to transfer more stETH than the vault possesses and revert, leaving undercollateralized debt effectively unrecoverable. The positive-rebase excessIncomeDistribution path does not correct negative rebases. This is therefore a genuine accounting and insolvency risk, although exploitation depends on an adverse rebase occurring."
+    },
+    "hyp_c5218b824f5b": {
+      "title": "Cross-chain OFT amount encoding can truncate or reject oversized transfers",
+      "description": "VULNERABILITY TYPE: cross_chain_accounting\nROOT CAUSE: Cross-chain amount serialization is constrained to uint64 without a demonstrated precondition that the converted amount fits the representable range.\nATTACK VECTOR: A user or integrated application submits a PeUSD cross-chain transfer above the uint64 shared-unit limit, causing truncation, permanent value loss, or transfer failure; an attacker could also grief integrations by deliberately supplying oversized amounts.\nAFFECTED NODES: peusd_token, oft_core, layerzero_service, remote_oft\nAFFECTED CODE: peusd_token, oft_core\nSEVERITY: medium\nREASONING: The architecture explicitly identifies dust removal before debit and uint64 amount encoding. Without an explicit max-range check before debit and serialization, the source amount and destination amount can diverge for values exceeding uint64 shared units. Exact source locations were not available in the loaded context, so no line locations are asserted.\nSUGGESTED MITIGATION: Convert the amount to shared units and validate that it is nonzero and less than or equal to type(uint64).max before burning, debiting, or constructing the LayerZero payload. Use checked casts such as SafeCast and ensure all failure paths occur before any state-changing debit; add boundary tests for max uint64, max uint64 plus one shared unit, and dust-adjusted values.",
+      "vulnerability_type": "cross_chain_accounting",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "peusd_token",
+        "oft_core",
+        "layerzero_service",
+        "remote_oft"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies dust removal before debit and uint64 amount encoding. Without an explicit max-range check before debit and serialization, the source amount and destination amount can diverge for values exceeding uint64 shared units. Exact source locations were not available in the loaded context, so no line locations are asserted.",
+      "mitigation": "Convert the amount to shared units and validate that it is nonzero and less than or equal to type(uint64).max before burning, debiting, or constructing the LayerZero payload. Use checked casts such as SafeCast and ensure all failure paths occur before any state-changing debit; add boundary tests for max uint64, max uint64 plus one shared unit, and dust-adjusted values.",
+      "finding_description": "PeUSD cross-chain transfers use OFT shared-decimal amounts encoded as uint64. The available implementation metadata does not indicate an explicit upper-bound check before encoding. A transfer whose shared-unit amount exceeds uint64 capacity may be truncated on the wire or revert after source-side processing, creating asymmetric source debiting and destination crediting or a denial of service for otherwise valid balances.",
+      "impact": "Users may have more PeUSD debited or burned on the source chain than is credited on the destination, causing permanent loss and cross-chain supply inconsistency; oversized transfers may also be unusable.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/token/PeUSD.sol",
+          "contracts/OFT/interfaces/ILayerZeroEndpoint.sol",
+          "contracts/lybra/token/PeUSDMainnetStableVision.sol",
+          "contracts/OFT/lzApp/LzApp.sol",
+          "contracts/OFT/OFTCoreV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_234517",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:57:40.187646",
+      "id": "hyp_c5218b824f5b",
+      "qa_comment": "Upon reviewing OFTCoreV2._send, _sendAndCall, and _ld2sd, I determined this hypothesis is a false positive for value truncation or permanent loss. The implementation removes dust, invokes _debitFrom, and then encodes the shared-unit amount through _ld2sd. Although _ld2sd converts to uint64, it explicitly requires amountSD <= type(uint64).max before performing the cast; oversized amounts therefore revert rather than truncate. In addition, the check occurs in the same transaction after _debitFrom, so any burn performed by PeUSD._debitFrom or PeUSDMainnet._debitFrom is atomically reverted when the overflow requirement fails. The same applies to send-and-call flows. Amounts at or below the maximum are safely encoded, while amounts above the limit fail before LayerZero submission. An application can intentionally submit an oversized transfer and incur a failed transaction, but the reviewed code provides no mechanism to force another user\u2019s debit or create permanent accounting divergence. Accordingly, the alleged loss and truncation path is mitigated by the explicit checked conversion and EVM transaction atomicity."
+    }
+  },
+  "metadata": {
+    "total": 14,
+    "confirmed": 6,
+    "last_modified": "2026-10-12T23:57:40.188329"
+  }
+}

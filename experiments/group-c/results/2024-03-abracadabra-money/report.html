@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2024-03-abracadabra-money</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Abracadabra Money</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2024-03-abracadabra-money<br>
+                <strong>Date:</strong> October 13, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the Abracadabra Money protocol and its Blast-specific integrations, with emphasis on custody, lending, liquidation, oracle pricing, swaps, staking, rewards, and deployment controls.</p>
+<p>The review covered the high-level system architecture, including DegenBox custody and share accounting; Cauldron collateral, borrowing, repayment, solvency, and liquidation flows; oracle and MagicLP pricing; MIM and collateral interfaces; MagicLP routers and factories; staking and reward distribution; Blast onboarding, yield, and points integrations; and deployment and testing tooling.</p>
+<p>Our team identified several material security and resilience concerns. The principal risks involve stale or invalid oracle rates being accepted by Cauldron solvency checks, malformed MagicLP aggregator inputs causing oracle-dependent operations to revert, staking and reward accounting for fee-on-transfer or rebasing tokens, and whitelist removal failing to revoke existing master-contract authority. Overall, the system contains strong modular controls and explicit authorization boundaries, but oracle validation, emergency revocation, and non-standard-token handling require remediation before the affected components can be considered robust.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The Hound team analyzed DegenBox as the protocol's custody and share-accounting layer. DegenBox maintains token balances, totals, strategy state, and share conversions, while withdrawal and transfer flows interact with MasterContractManager authorization. Master contracts can operate on behalf of users through stored associations and approvals, creating a critical trust boundary around approval state and emergency revocation. Our analysis revealed that disabling a master contract in the whitelist does not clear existing associations or approvals, so previously authorized contracts may retain the ability to withdraw, transfer, or deposit for users. This finding was confirmed by openai-codex/gpt-5.6-luna.</p>
+<p>CauldronV4 uses DegenBox for collateral custody and MIM borrowing, with position state tracking collateral shares, borrow parts, accrued interest, and exchange rates. Borrowing, repayment, collateral removal, liquidation, and cook operations are coupled to solvency checks and oracle updates. The oracle path caches the prior exchange rate when an update fails, without a freshness bound or borrowing restriction, and also accepts a successful zero rate without a protocol-level sanity check. These behaviors can permit risk-increasing actions against stale or invalid collateral valuations. The related findings were confirmed by openai-codex/gpt-5.6-luna.</p>
+<p>The oracle architecture includes ProxyOracle and MagicLpAggregator, with MagicLP pool data and underlying aggregator answers feeding collateral valuation. We reviewed the data flow from external price sources through the aggregator into CauldronV4's exchange-rate state. The MagicLP aggregator does not adequately validate negative feed answers, excessive decimals, arithmetic bounds, or zero total supply; resulting reverts can propagate into borrowing, liquidation, collateral removal, and other oracle-dependent operations. This denial-of-service concern was confirmed by openai-codex/gpt-5.6-luna.</p>
+<p>The system also includes MagicLP pools, Router and Factory components, fee-rate models, LockingMultiRewards, and Blast-specific contracts such as BlastBox, BlastMagicLP, BlastCauldronV4, BlastGovernor, BlastDapp, and onboarding components. Staking and reward flows use nominal transfer amounts rather than verified balance deltas, allowing fee-on-transfer or rebasing assets to create liabilities exceeding actual holdings. BlastDapp additionally performs an unconditional call to a hardcoded points endpoint during construction, creating deployment fragility on unsupported or incompatible networks. These issues were confirmed by openai-codex/gpt-5.6-luna.</p>
+<p>Our analysis also examined deployment libraries, scripts, toolkits, and tests as operational trust boundaries. The architecture relies on owner-controlled configuration for reward tokens, Blast integrations, fee recipients, oracle components, and master-contract whitelists. These controls provide flexibility but increase the importance of validated configuration, fail-closed oracle behavior, explicit asset compatibility restrictions, and revocation mechanisms that invalidate already-established authority. Remediation should prioritize Cauldron oracle safeguards and master-contract emergency disablement, followed by robust token accounting and defensive validation in MagicLP and Blast deployment paths.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">7</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">3</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">3</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">1</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 0,1 168.39,215.10 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L168.39,215.10 A100,100 0 0,1 46.82,62.65 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L46.82,62.65 A100,100 0 0,1 125.00,25.00 Z" 
+                      fill="#28a745" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">7</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">3</div>
+                    <div style="color: #64738c; font-size: 12px;">(42.9%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">3</div>
+                    <div style="color: #64738c; font-size: 12px;">(42.9%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #28a745;"></div>
+                    <div class="legend-text">Low</div>
+                    <div class="legend-count">1</div>
+                    <div style="color: #64738c; font-size: 12px;">(14.3%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Stale oracle price is trusted during oracle failure, enabling undercollateralized borrowing</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle-failure logic error causes the protocol to treat an unsuccessful oracle update as a valid valuation. When the oracle does not provide an updated rate, the Cauldron reuses the previously cached exchange rate without imposing a freshness limit, validity window, or other protective constraint. Solvency checks and borrowing operations then continue using a potentially outdated collateral valuation.</p>
+<p>After a material decline in the collateral price, an attacker can borrow additional funds or increase an existing position while the oracle reports that no update is available. The stale, higher exchange rate may allow the position to pass the solvency check even though it is undercollateralized at the current market price. The resulting debt may become unrecoverable before liquidation can occur, creating a direct risk of protocol losses.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the CauldronV4 contract, specifically the updateExchangeRate(), _isSolvent(), solvent(), and borrow/repay logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing CauldronV4.sol, I confirmed the oracle-failure vulnerability is exploitable. In updateExchangeRate(), the contract assigns the oracle result to (updated, rate), but when updated is false it explicitly replaces rate with the cached exchangeRate without recording freshness, imposing a validity window, or disabling risk-increasing actions. The borrow() function uses the solvent modifier, which executes the borrow first and then calls updateExchangeRate() before checking _isSolvent(msg.sender, _exchangeRate). Consequently, if the oracle fails after a collateral price decline, borrowing is evaluated against the stale, higher cached rate and can increase an already undercollateralized position. The same issue affects cook() when ACTION_BORROW is used, because its final solvency check also accepts the fallback rate. isSolvent() independently relies on the cached exchangeRate. Although liquidations intentionally support oracle failure, the implementation provides no equivalent guard preventing borrowing during that condition. Therefore, an oracle outage combined with a price decline creates a clear path to undercollateralized debt.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Track the timestamp or validity window of the cached rate and reject new borrowing or other risk-increasing operations when the rate is stale. Alternatively, use a conservative fallback valuation and preserve liquidation availability without allowing additional debt under an invalid price.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/cauldrons/CauldronV4.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 183-200</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function _isSolvent(address user, uint256 _exchangeRate) virtual internal view returns (bool) {
+    // accrue must have already been called!
+    uint256 borrowPart = userBorrowPart[user];
+    if (borrowPart == 0) return true;
+    uint256 collateralShare = userCollateralShare[user];
+    if (collateralShare == 0) return false;
+
+    Rebase memory _totalBorrow = totalBorrow;
+
+    return
+        bentoBox.toAmount(
+            collateral,
+            collateralShare.mul(EXCHANGE_RATE_PRECISION / COLLATERIZATION_RATE_PRECISION).mul(COLLATERIZATION_RATE),
+            false
+        ) &gt;=
+        // Moved exchangeRate here instead of dividing the other side to preserve more precision
+        borrowPart.mul(_totalBorrow.elastic).mul(_exchangeRate) / _totalBorrow.base;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The solvency check directly uses the supplied exchange rate to value collateral debt, so an outdated rate can make an undercollateralized borrower appear solvent.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/cauldrons/CauldronV4.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 217-230</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function updateExchangeRate() public returns (bool updated, uint256 rate) {
+    (updated, rate) = oracle.get(oracleData);
+
+    if (updated) {
+        exchangeRate = rate;
+        emit LogExchangeRate(rate);
+    } else {
+        // Return the old rate if fetching wasn&#39;t successful
+        rate = exchangeRate;
+    }
+}
+
+/// @dev Helper function to move tokens.
+/// @param token The ERC-20 token.</code></pre></div>
+            </div>
+            <div class="code-explanation">When the oracle reports no update, the function assigns the cached exchangeRate to rate without any freshness, validity-window, or staleness check.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Cauldron accepts a zero exchange rate from a successful oracle update</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle-validation flaw allows the Cauldron to store and use an exchange rate of zero when the oracle reports a successful update. The update path assigns the returned rate directly to storage without enforcing a nonzero value or checking whether the rate falls within a safe and expected range.</p>
+<p>If a misconfigured or compromised oracle, or an unexpected oracle failure mode, returns updated=true with rate=0, the Cauldron may accept the value as authoritative. The solvency calculation uses the exchange rate when determining the collateral required for a position; a zero rate can therefore reduce the calculated debt requirement to zero and allow borrowing against collateral that cannot support the resulting liability.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the CauldronV4 contract, specifically updateExchangeRate() and _isSolvent(), together with position accounting and borrow/repay logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing CauldronV4.updateExchangeRate, _isSolvent, borrow, and the cook borrow path, I confirmed the oracle-validation vulnerability. updateExchangeRate directly assigns exchangeRate = rate whenever oracle.get(oracleData) returns updated = true, without checking that rate is nonzero or within a sane range. _isSolvent then multiplies the debt requirement by _exchangeRate, so a zero rate makes the right-hand side zero; any account with nonzero collateral and debt is consequently considered solvent. The borrow function&#39;s solvent modifier calls updateExchangeRate after executing the borrow, and the final solvency check therefore accepts a zero oracle rate. The cook path behaves similarly when borrowing and performing its final solvency check. Although ACTION_UPDATE_EXCHANGE_RATE can impose a caller-selected rate bound, this is not a protocol-level safeguard and direct updateExchangeRate and borrow calls do not enforce it. Thus, a misconfigured or compromised oracle returning updated=true and rate=0 can enable borrowing against inadequately valued collateral.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Reject zero and out-of-range rates, validate the oracle response before updating storage, and retain the last known-good rate or enter a fail-closed mode when sanity checks fail.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/cauldrons/CauldronV4.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 217-234</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function updateExchangeRate() public returns (bool updated, uint256 rate) {
+    (updated, rate) = oracle.get(oracleData);
+
+    if (updated) {
+        exchangeRate = rate;
+        emit LogExchangeRate(rate);
+    } else {
+        // Return the old rate if fetching wasn&#39;t successful
+        rate = exchangeRate;
+    }
+}
+
+/// @dev Helper function to move tokens.
+/// @param token The ERC-20 token.
+/// @param share The amount in shares to add.
+/// @param total Grand total amount to deduct from this contract&#39;s balance. Only applicable if `skim` is True.
+/// Only used for accounting checks.
+/// @param skim If True, only does a balance check on this contract.</code></pre></div>
+            </div>
+            <div class="code-explanation">The oracle result is trusted whenever updated is true: the returned rate is assigned directly to exchangeRate without checking that it is nonzero or within an expected range.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/cauldrons/CauldronV4.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 183-200</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function _isSolvent(address user, uint256 _exchangeRate) virtual internal view returns (bool) {
+    // accrue must have already been called!
+    uint256 borrowPart = userBorrowPart[user];
+    if (borrowPart == 0) return true;
+    uint256 collateralShare = userCollateralShare[user];
+    if (collateralShare == 0) return false;
+
+    Rebase memory _totalBorrow = totalBorrow;
+
+    return
+        bentoBox.toAmount(
+            collateral,
+            collateralShare.mul(EXCHANGE_RATE_PRECISION / COLLATERIZATION_RATE_PRECISION).mul(COLLATERIZATION_RATE),
+            false
+        ) &gt;=
+        // Moved exchangeRate here instead of dividing the other side to preserve more precision
+        borrowPart.mul(_totalBorrow.elastic).mul(_exchangeRate) / _totalBorrow.base;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Solvency calculation multiplies the borrow requirement by the supplied exchange rate. If the cached or freshly returned rate is zero, the required debt value becomes zero and the solvency check can incorrectly pass.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Whitelisting revocation does not disable existing master-contract associations</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control flaw makes master-contract revocation ineffective for associations that were established before the revocation. The whitelist is checked when a master contract is registered, but removing that contract from the whitelist does not appear to clear existing user associations or invalidate related approvals. DegenBox authorization can therefore continue to rely on stale masterContractOf state.</p>
+<p>If an approved master contract is compromised, the owner may attempt to disable it by removing it from the whitelist, while the compromised contract remains authorized for users who previously associated with it. The contract may continue initiating permitted transfers or withdrawals on behalf of those users, defeating the intended emergency revocation mechanism and potentially enabling unauthorized asset movement.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the MasterContractManager and DegenBox contracts, specifically whitelist and masterContractOf state, the allowed() authorization path, and withdraw()/transfer authorization logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing MasterContractManager.whitelistMasterContract, registerProtocol, setMasterContractApproval, and DegenBox.allowed, I confirmed that whitelist removal does not revoke existing master-contract authority. whitelistMasterContract only updates whitelistedMasterContracts and emits an event; it does not clear masterContractOf entries or masterContractApproved approvals. The whitelist is checked only in the unsigned-approval branch of setMasterContractApproval, while signed approvals can remain valid regardless of the whitelist state. Subsequently, DegenBox.allowed obtains masterContractOf[msg.sender] and checks only masterContractApproved[masterContract][from], without verifying whitelistedMasterContracts[masterContract] or any revocation epoch. Therefore, a registered master contract or clone whose address remains associated can continue invoking withdraw, transfer, transferMultiple, and deposit on behalf of users who previously approved it after the owner sets its whitelist status to false. No owner-controlled function in the reviewed code invalidates those associations or approvals, so whitelist removal is not an effective emergency disable mechanism for a compromised master contract.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Make DegenBox authorization require that the associated master contract remains currently whitelisted, or maintain a per-master-contract revocation epoch checked by DegenBox. Provide an owner-controlled mechanism to invalidate existing associations and approvals when a master contract is disabled.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/DegenBox.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 239-257</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function withdraw(
+    IERC20 token_,
+    address from,
+    address to,
+    uint256 amount,
+    uint256 share
+) public allowed(from) returns (uint256 amountOut, uint256 shareOut) {
+    // Checks
+    require(to != address(0), &quot;BentoBox: to not set&quot;); // To avoid a bad UI from burning funds
+
+    // Effects
+    IERC20 token = token_ == USE_ETHEREUM ? wethToken : token_;
+    Rebase memory total = totals[token];
+    if (share == 0) {
+        // value of the share paid could be lower than the amount paid due to rounding, in that case, add a share (Always round up)
+        share = total.toBase(amount, true);
+    } else {
+        // amount may be lower than the value of share due to rounding, that&#39;s ok
+        amount = total.toElastic(share, false);</code></pre></div>
+            </div>
+            <div class="code-explanation">Relevant function &#39;withdraw&#39; referenced by the finding.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Malformed MagicLP aggregator responses can permanently block oracle-dependent Cauldron operations</h3>
+                <div class="vulnerability-description">
+                    <p>This denial-of-service vulnerability arises because the MagicLP price aggregator does not adequately validate underlying feed answers, token decimals, pool supply, or arithmetic bounds before calculating the LP token price. Signed or otherwise invalid feed values may be converted into unsigned integers, while zero total supply and unsafe scaling operations can cause arithmetic failures under Solidity 0.8.</p>
+<p>An invalid or malformed response from an underlying feed, an uninitialized or depleted pool, or an input that exceeds the supported arithmetic range can cause the aggregator to revert. Because the aggregator is used during Cauldron exchange-rate updates, the failure can propagate to borrowing, liquidation, and solvency checks, potentially preventing users and keepers from performing oracle-dependent operations.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the MagicLpAggregator contract, specifically latestAnswer(), and the CauldronV4 contract, specifically updateExchangeRate() and the oracle-rate calculation</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing MagicLpAggregator.latestAnswer and CauldronV4.updateExchangeRate, I confirmed a denial-of-service path when the configured oracle or MagicLP pair enters an invalid state. latestAnswer explicitly casts baseOracle.latestAnswer() and quoteOracle.latestAnswer() from int256 to uint256 without checking positivity; a negative answer reverts under Solidity 0.8. The expressions 10 ** (WAD - decimals) can also revert when decimals exceed 18, and the unchecked-by-validation multiplications, addition, and final int256 conversion may overflow. Most directly, division by pair.totalSupply() reverts when totalSupply is zero. These failures propagate through oracle.get() into updateExchangeRate(), which has no try/catch or fallback. Consequently, borrow and solvency-checking paths, including borrow, removeCollateral, cook post-checks, and the liquidate path, can revert whenever they query the malformed aggregator. The source also contains an apparent _getReserves defect: it reads reserves into local variables but never returns them, causing default zero reserves, although this does not eliminate the division-by-zero and malformed-feed failure modes. No relevant guards exist in either contract.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require positive and fresh underlying answers, validate decimals and bounded magnitudes, reject zero totalSupply before division, use checked intermediate bounds, and define a non-reverting fallback or emergency oracle path for invalid pool/feed states.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/oracles/aggregators/MagicLpAggregator.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 37-47</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>37
+38
+39
+40
+41
+42
+43
+44
+45
+46</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function latestAnswer() public view override returns (int256) {
+    uint256 baseAnswerNomalized = uint256(baseOracle.latestAnswer()) * (10 ** (WAD - baseOracle.decimals()));
+    uint256 quoteAnswerNormalized = uint256(quoteOracle.latestAnswer()) * (10 ** (WAD - quoteOracle.decimals()));
+    uint256 minAnswer = baseAnswerNomalized &lt; quoteAnswerNormalized ? baseAnswerNomalized : quoteAnswerNormalized;
+
+    (uint256 baseReserve, uint256 quoteReserve) = _getReserves();
+    baseReserve = baseReserve * (10 ** (WAD - baseDecimals));
+    quoteReserve = quoteReserve * (10 ** (WAD - quoteDecimals));
+    return int256(minAnswer * (baseReserve + quoteReserve) / pair.totalSupply());
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The aggregator casts signed oracle answers to uint256 without validating them, performs unchecked decimal scaling and arithmetic, and divides by pair.totalSupply() without guarding against zero supply. Any malformed feed value, unsupported decimals, depleted pool, or arithmetic overflow can revert latestAnswer().</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/cauldrons/CauldronV4.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 217-234</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function updateExchangeRate() public returns (bool updated, uint256 rate) {
+    (updated, rate) = oracle.get(oracleData);
+
+    if (updated) {
+        exchangeRate = rate;
+        emit LogExchangeRate(rate);
+    } else {
+        // Return the old rate if fetching wasn&#39;t successful
+        rate = exchangeRate;
+    }
+}
+
+/// @dev Helper function to move tokens.
+/// @param token The ERC-20 token.
+/// @param share The amount in shares to add.
+/// @param total Grand total amount to deduct from this contract&#39;s balance. Only applicable if `skim` is True.
+/// Only used for accounting checks.
+/// @param skim If True, only does a balance check on this contract.</code></pre></div>
+            </div>
+            <div class="code-explanation">Cauldron exchange-rate updates directly invoke oracle.get(oracleData) and do not catch oracle reverts. A reverting MagicLP aggregator therefore propagates into exchange-rate updates and can block oracle-dependent operations.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Fee-on-transfer staking tokens can make internal principal accounting exceed actual holdings</h3>
+                <div class="vulnerability-description">
+                    <p>This accounting error can occur when the LockingMultiRewards contract records the nominal staking amount without verifying the amount actually received. Fee-on-transfer tokens may transfer less than the requested amount, while rebasing tokens may later reduce the contract’s balance after staking. If the contract does not use balance-delta accounting or restrict unsupported token types, its internal principal records can exceed the tokens it actually holds.</p>
+<p>An attacker or administrator can configure a non-standard staking token and cause users to stake amounts that are credited in full despite a transfer fee or subsequent balance reduction. Across multiple deposits and withdrawals, the contract may then be unable to satisfy recorded principal claims, causing withdrawal shortfalls, insolvency, or unfair losses among users.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the LockingMultiRewards contract, specifically staking-token transfer handling and stake/_stakeFor() accounting</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the staking and withdrawal paths in `src/staking/LockingMultiRewards.sol`, I confirmed the accounting vulnerability. In `_stakeFor` (approximately lines 377-398), the contract calls `stakingToken.safeTransferFrom(msg.sender, address(this), amount)` and then unconditionally increments `stakingTokenBalance`, the user balance, and either `unlockedSupply` or `lockedSupply` by the nominal `amount`. It never measures the contract’s staking-token balance before and after the transfer. Consequently, a fee-on-transfer token can cause the contract to receive less than the amount credited internally, while a rebasing token can later reduce the actual balance without adjusting accounting. The `withdraw` function (approximately lines 166-183) similarly transfers and decrements the nominal amount, so withdrawals may revert once recorded liabilities exceed actual holdings, leaving user funds inaccessible; the issue can also affect subsequent users. No staking-token compatibility restriction or balance-delta validation exists in the constructor or staking path. `recover` does not mitigate this and may itself underflow when actual holdings are below `stakingTokenBalance`.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Either restrict stakingToken to known non-rebasing, non-fee-on-transfer tokens or calculate the received amount from pre- and post-transfer balances and use that actual amount consistently in total-supply, user-balance, and withdrawal accounting.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/staking/LockingMultiRewards.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 458-475</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">function _stakeFor(address account, uint256 amount, bool lock_) internal {
+    if (amount == 0) {
+        revert ErrZeroAmount();
+    }
+
+    // This staking contract isn&#39;t using balanceOf, so it&#39;s safe to transfer immediately
+    stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+    stakingTokenBalance += amount;
+
+    _updateRewardsForUser(account);
+
+    if (lock_) {
+        _createLock(account, amount);
+    } else {
+        _balances[account].unlocked += amount;
+        unlockedSupply += amount;
+
+        emit LogStaked(account, amount);</code></pre></div>
+            </div>
+            <div class="code-explanation">The function transfers the requested staking amount but never measures the recipient&#39;s balance before and after the transfer. It then credits the full nominal amount to stakingTokenBalance and the user&#39;s internal unlocked or locked principal, allowing fee-on-transfer tokens to make internal accounting exceed actual holdings.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Fee-on-transfer reward tokens can create unpayable reward liabilities</h3>
+                <div class="vulnerability-description">
+                    <p>This accounting error can arise when reward liabilities are calculated from the nominal amount specified during reward notification rather than the amount actually received by the contract. A fee-on-transfer reward token may deliver less than the notified amount, and a rebasing token may subsequently reduce the balance available for distribution. Without balance-delta validation or explicit token compatibility restrictions, the contract can record rewards that it does not possess.</p>
+<p>An administrator can configure an unsupported reward token and notify a reward amount that exceeds the contract’s actual receipt. Users will accrue claims based on the nominal value, but later reward transfers may fail or leave the contract unable to pay all accrued liabilities. The issue can therefore cause claim failures, underpayment, or insolvency of the reward pool.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the LockingMultiRewards contract, specifically reward-token configuration and the addReward()/notifyRewardAmount() funding and accounting logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the reward-token configuration and funding flow in LockingMultiRewards, I confirmed the accounting vulnerability. The owner may register arbitrary ERC20-compatible tokens through addReward, and notifyRewardAmount accepts any registered token without compatibility checks. In notifyRewardAmount, the contract records the requested amount, transfers it using rewardToken.safeTransferFrom, and then calculates rewardRate from that same nominal amount. SafeTransferLib validates transfer execution but does not measure the contract&#39;s balance before and after the transfer. Consequently, a fee-on-transfer token can deliver less than amount while the full nominal value is scheduled for distribution. Likewise, a rebasing token can reduce the contract&#39;s balance after notification. The existing-period remainder is also added using accounting values rather than verified token balances. As rewards accrue, users can receive liabilities exceeding the tokens held by the contract; eventual safeTransfer calls in _getRewards may revert or become economically insufficient. No balance-delta validation, token whitelist, or rejection of fee-on-transfer/rebasing assets is present. The issue depends on selecting such a token, but the code provides a clear exploitable deployment/configuration path.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Measure the reward-token balance delta when funding and calculate the reward schedule from the actual received amount; alternatively reject fee-on-transfer and rebasing reward tokens during configuration.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/staking/LockingMultiRewards.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 361-378</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function notifyRewardAmount(address rewardToken, uint256 amount, uint minRemainingTime) public onlyOperators {
+    if (!_rewardData[rewardToken].exists) {
+        revert ErrInvalidTokenAddress();
+    }
+
+    _updateRewards();
+    rewardToken.safeTransferFrom(msg.sender, address(this), amount);
+
+    Reward storage reward = _rewardData[rewardToken];
+
+    uint256 _nextEpoch = nextEpoch();
+    uint256 _remainingRewardTime = _nextEpoch - block.timestamp;
+
+    if (_remainingRewardTime &lt; minRemainingTime) {
+        revert ErrInsufficientRemainingTime();
+    }
+
+    // Take the remainder of the current rewards and add it to the amount for the next period</code></pre></div>
+            </div>
+            <div class="code-explanation">The reward notification accepts an arbitrary token and transfers the nominal `amount` without measuring the contract&#39;s balance delta. The same nominal amount is then used by subsequent reward accounting, allowing fee-on-transfer tokens to create liabilities exceeding the tokens actually received.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding low">
+                <span class="severity-badge severity-low">low</span>
+                <h3>Hardcoded Blast Points endpoint can make deployments fail outside Blast</h3>
+                <div class="vulnerability-description">
+                    <p>This availability issue results from the BlastDapp constructor making an unconditional external call to a hardcoded, chain-specific Blast Points endpoint. The deployment path does not appear to verify the chain ID, confirm that the target contains compatible contract code, or accept a validated endpoint configuration for other supported environments.</p>
+<p>If the contract is deployed on a non-Blast network, an unsupported fork, or a network where the hardcoded address is absent or incompatible, the constructor call can revert and deployment will fail atomically. Although the issue does not directly compromise funds, it can prevent deployments and complicate testing or reuse of the contract outside the intended network.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the BlastDapp contract constructor and the BlastPoints library, specifically configure()</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the BlastDapp constructor in src/blast/BlastDapp.sol and BlastPoints.configure in src/blast/libraries/BlastPoints.sol, I confirmed the deployment-fragility issue. The constructor unconditionally invokes BlastPoints.configure(), which performs an external call to the hardcoded BLAST_POINTS address 0x2536...d800 and passes the hardcoded operator address 0xD102...ff28. There is no chain ID validation, code-existence check, configurable endpoint, or error handling around this call. Consequently, deploying BlastDapp on a chain where that address contains incompatible code, implements a reverting function, or otherwise rejects configurePointsOperator will cause the constructor transaction to revert and the deployment to fail atomically. An address with no code may not itself cause a revert for a no-return call, so failure is not guaranteed solely by deploying on another chain; however, the implementation provides no protection against endpoint incompatibility and assumes the Blast deployment environment unconditionally. This is therefore a valid low-severity availability and portability issue, primarily affecting deployments and unsupported networks rather than an already-deployed contract.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Restrict deployment to the intended Blast chain, validate the chain ID and target code before calling, and make the points endpoint an immutable constructor parameter selected from a deployment-time allowlist. If points configuration is optional, separate it from construction and handle failure explicitly.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/blast/libraries/BlastPoints.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 10-14</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-10').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>10
+11
+12
+13</pre></div>
+                <div class="code-content"><pre id="code-block-10"><code class="language-solidity">    function configure() internal {
+        BLAST_POINTS.configurePointsOperator(BLAST_POINTS_OPERATOR);
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Relevant function &#39;configure&#39; referenced by the finding.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

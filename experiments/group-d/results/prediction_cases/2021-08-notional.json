@@ -1,0 +1,18 @@
+{
+  "repo_id": "2021-08-notional",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_edcfd0350bd4",
+      "title": "Stale oracle prices can be used to manipulate collateral valuation and liquidation outcomes",
+      "description": "ExchangeRate reads the AggregatorV2V3Interface for collateral valuation, while the available evidence only indicates a positive-rate check. There is no visible validation of updatedAt, round completeness, heartbeat, or maximum age before the rate is consumed by FreeCollateral and downstream liquidation paths. An attacker can transact while the oracle remains stale during market movement, causing assets to be overvalued for borrowing or undervalued for liquidation.",
+      "impact": "Accounts may obtain excess borrowing capacity or avoid liquidation, creating protocol bad debt; alternatively, liquidators may seize collateral at materially incorrect values and transfer losses to borrowers or the protocol.",
+      "vulnerable_code": [],
+      "mitigation": "Require a complete and successful oracle round, reject zero or negative answers, enforce updatedAt/max-age and heartbeat checks, and fail closed when the feed is stale or incomplete. Consider conservative fallback pricing and circuit breakers for abnormal deviations.",
+      "severity": "high"
+    }
+  ]
+}

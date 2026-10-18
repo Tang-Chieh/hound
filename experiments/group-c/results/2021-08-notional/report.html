@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2021-08-notional</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Notional</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2021-08-notional<br>
+                <strong>Date:</strong> October 12, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the Notional lending protocol, reviewing its externally accessible contracts, internal accounting and valuation libraries, proxy and upgrade mechanisms, governance controls, token adapters, and liquidation flows.</p>
+<p>Our review covered the high-level system architecture, including user and integration entry points, ERC1967/UUPS proxy routing, governance and pause controls, account and portfolio state management, trading and settlement operations, market and nToken functionality, liquidation processes, and oracle and token trust boundaries.</p>
+<p>The protocol has a modular architecture with centralized governance and reusable accounting libraries, but our team identified several material security and integrity weaknesses. Confirmed issues include stale and improperly scaled Chainlink prices, insufficient validation of external asset rates, nominal crediting for non-exact ERC20 transfers, unsafe approval lifecycle management, incorrect token metadata and ERC20 event reporting, and liquidation or upgrade paths that require stronger defensive controls. The overall security posture is therefore high risk until oracle validation, token handling, administrative lifecycle, and accounting-integrity issues are remediated and comprehensively tested.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The Hound team analyzed Notional's proxy-based execution architecture, centered on nProxy, ERC1967Proxy, Proxy, ERC1967Upgrade, and UUPSUpgradeable. External calls are routed through action and router components while implementation logic operates against proxy storage defined by StorageLayoutV1. This design supports upgradeability but makes initialization, authorization of upgrades, storage-layout compatibility, and governance-controlled implementation changes critical security boundaries.</p>
+<p>The Router and PausedRouter expose functionality through modules such as AccountAction, BatchAction, TradingAction, ERC1155Action, nTokenAction, InitializeMarketsAction, liquidation actions, and SettleAssetsExternal. These modules coordinate with AccountContextHandler, BalanceHandler, PortfolioHandler, Market, nTokenHandler, TransferAssets, and settlement libraries. Account balances, cash and nToken state, portfolios, bitmap assets, market parameters, and account context are updated across multiple execution paths, making consistency between balance writes, portfolio mutations, collateral checks, and external token transfers essential.</p>
+<p>Valuation and risk decisions depend on ExchangeRate, AssetRate, FreeCollateral, Market, and CashGroup. ExchangeRate reads Chainlink-compatible AggregatorV2V3Interface feeds, while AssetRate interacts with AssetRateAdapter and external CashMarketInterface implementations. Our analysis revealed that these trust boundaries require strict freshness, decimal, range, round-validity, and economic-sanity checks before rates are used for collateral valuation, trading, settlement, redemption, or liquidation. FreeCollateral propagates these values into solvency and liquidation decisions.</p>
+<p>The Hound team also reviewed token movement and integration paths through TokenHandler, Incentives, TransferAssets, CompoundToNotionalV2, and nTokenERC20Proxy. These components transfer currency and underlying tokens, update account state, expose ERC20-compatible behavior, and interact with external protocols. The principal security mechanisms include governance authorization, pause routing, account-context checks, free-collateral validation, portfolio bounds, and proxy upgrade controls; however, the reviewed architecture indicates that exact-transfer assumptions, allowance revocation, event correctness, callback resistance, and atomic state-transition guarantees require substantial strengthening.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">9</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">5</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">4</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 1,1 90.80,218.97 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L90.80,218.97 A100,100 0 0,1 125.00,25.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">9</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">5</div>
+                    <div style="color: #64738c; font-size: 12px;">(55.6%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">4</div>
+                    <div style="color: #64738c; font-size: 12px;">(44.4%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Stale Chainlink prices are accepted during collateral checks and trade settlement</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle-validation vulnerability arises because external Chainlink responses are used without validating freshness or round integrity. The exchange-rate logic retrieves the latest answer but does not adequately verify metadata such as updatedAt, roundId, or answeredInRound before the value is used by FreeCollateral for solvency and collateral calculations.</p>
+<p>During an oracle outage, delayed update, or otherwise incomplete round, an account may borrow or execute trades using an obsolete and inflated collateral price. Conversely, liquidation calculations may use an obsolete depressed price, causing premature or excessive liquidation. The resulting valuation errors can lead to undercollateralized positions and financial losses.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the TradingAction contract, the FreeCollateral and ExchangeRate libraries, specifically ExchangeRate.buildExchangeRate() and FreeCollateral._updateNetETHValue(), and the AggregatorV2V3Interface oracle</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing ExchangeRate.buildExchangeRate in contracts/internal/valuation/ExchangeRate.sol and its callers in FreeCollateral._updateNetETHValue, I confirmed the oracle-validation vulnerability. For every non-ETH currency, buildExchangeRate calls AggregatorV2V3Interface.latestRoundData() but discards roundId, startedAt, updatedAt, and answeredInRound, retaining only the answer and requiring merely that rate &gt; 0. Consequently, a valid but obsolete Chainlink answer remains acceptable indefinitely when the feed is delayed, paused, or otherwise not updating. The resulting rate is applied by FreeCollateral.getFreeCollateralStateful, getFreeCollateralView, and getLiquidationFactors to convert balances and portfolio values into ETH, affecting solvency checks, borrowing/trading eligibility, and liquidation decisions. No maximum-age, nonzero-updatedAt, round-consistency, or incomplete-round validation is present in the reviewed code. ETH itself is hardcoded and is not relevant to this issue. Although external Chainlink infrastructure or governance may monitor feeds, those controls do not prevent the contract from accepting stale data, so the stated attack path is technically exploitable during an oracle outage or delayed update.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require a nonzero updatedAt, enforce an acceptable maximum oracle age, validate answeredInRound against roundId where applicable, and reject incomplete or otherwise invalid rounds before using the price.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/valuation/ExchangeRate.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 60-77</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function buildExchangeRate(uint256 currencyId) internal view returns (ETHRate memory) {
+    bytes32 slot = keccak256(abi.encode(currencyId, ETH_RATE_STORAGE_SLOT));
+    bytes32 data;
+
+    assembly {
+        data := sload(slot)
+    }
+
+    int256 rateDecimals;
+    int256 rate;
+    if (currencyId == Constants.ETH_CURRENCY_ID) {
+        // ETH rates will just be 1e18, but will still have buffers, haircuts,
+        // and liquidation discounts
+        rateDecimals = Constants.ETH_DECIMALS;
+        rate = Constants.ETH_DECIMALS;
+    } else {
+        address rateOracle = address(bytes20(data &lt;&lt; 96));
+        // prettier-ignore</code></pre></div>
+            </div>
+            <div class="code-explanation">buildExchangeRate obtains the configured external Chainlink oracle and begins consuming latestRoundData without showing any freshness, roundId, or answeredInRound validation.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/valuation/FreeCollateral.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 194-208</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function _updateNetETHValue(
+    uint256 currencyId,
+    int256 netLocalAssetValue,
+    FreeCollateralFactors memory factors
+) private view returns (ETHRate memory) {
+    ETHRate memory ethRate = ExchangeRate.buildExchangeRate(currencyId);
+    factors.netETHValue = factors.netETHValue.add(
+        ethRate.convertToETH(factors.assetRate.convertToUnderlying(netLocalAssetValue))
+    );
+
+    return ethRate;
+}
+
+/// @notice Stateful version of get free collateral, returns the total net ETH value and true or false if the account
+/// context needs to be updated.</code></pre></div>
+            </div>
+            <div class="code-explanation">_updateNetETHValue converts local collateral values using the exchange rate returned by buildExchangeRate, making the unvalidated oracle result directly affect free-collateral and solvency calculations.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>ExchangeRate may fail to normalize oracle decimals before collateral valuation</h3>
+                <div class="vulnerability-description">
+                    <p>This financial-logic vulnerability may cause ExchangeRate to use an oracle answer without normalizing it to the decimal precision expected by collateral valuation. The exchange-rate path reads a value from an AggregatorV2V3Interface feed but does not establish or enforce a compatible scale before passing the result to FreeCollateral and other valuation logic.</p>
+<p>If governance configures a feed with incompatible decimals, or an adapter returns a differently scaled value, even a fresh and positive price can be materially incorrect. Borrowing, liquidation, present-value, and risk-adjusted valuation operations may consequently overstate or understate collateral and create significant financial exposure.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the ExchangeRate library, the AggregatorV2V3Interface oracle, the FreeCollateral library, and the AccountPortfolio component, specifically their oracle-based valuation paths</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing ExchangeRate.buildExchangeRate in contracts/internal/valuation/ExchangeRate.sol, I confirmed that oracle precision is assumed rather than validated or normalized. For non-ETH currencies, the function obtains only the signed answer from latestRoundData(), requires that it is positive, and independently derives rateDecimals from the packed governance field rateDecimalPlaces using 10**rateDecimalPlaces. It never calls AggregatorV2V3Interface.decimals(), compares the feed’s declared precision with the configured precision, or rescales the returned answer. Consequently, a fresh positive answer from a feed with a different decimal scale is interpreted at the configured scale, and the same incorrect scale propagates through convertToETH, convertETHTo, and exchangeRate. The inversion branch also assumes the configured scale matches the oracle scale. FreeCollateral._updateNetETHValue invokes this path for collateral and debt valuation, while liquidation calculations use it as well. The positive-rate check and haircut/buffer logic do not prevent a systematic decimal-factor error. Exploitation requires governance or an oracle configuration path to select an incompatible feed, but the missing invariant is clearly present.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Define the required exchange-rate scale, read and validate the oracle&#39;s decimals or adapter metadata, normalize answers explicitly with checked arithmetic, and reject feeds whose precision or scale is incompatible with the valuation formula.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/valuation/ExchangeRate.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 60-77</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function buildExchangeRate(uint256 currencyId) internal view returns (ETHRate memory) {
+    bytes32 slot = keccak256(abi.encode(currencyId, ETH_RATE_STORAGE_SLOT));
+    bytes32 data;
+
+    assembly {
+        data := sload(slot)
+    }
+
+    int256 rateDecimals;
+    int256 rate;
+    if (currencyId == Constants.ETH_CURRENCY_ID) {
+        // ETH rates will just be 1e18, but will still have buffers, haircuts,
+        // and liquidation discounts
+        rateDecimals = Constants.ETH_DECIMALS;
+        rate = Constants.ETH_DECIMALS;
+    } else {
+        address rateOracle = address(bytes20(data &lt;&lt; 96));
+        // prettier-ignore</code></pre></div>
+            </div>
+            <div class="code-explanation">The exchange-rate construction reads the oracle through latestRoundData but does not retrieve the feed&#39;s decimals. The subsequent scaling relies on a separately stored rateDecimalPlaces configuration, allowing incompatible oracle precision to pass through.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/valuation/FreeCollateral.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 194-208</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function _updateNetETHValue(
+    uint256 currencyId,
+    int256 netLocalAssetValue,
+    FreeCollateralFactors memory factors
+) private view returns (ETHRate memory) {
+    ETHRate memory ethRate = ExchangeRate.buildExchangeRate(currencyId);
+    factors.netETHValue = factors.netETHValue.add(
+        ethRate.convertToETH(factors.assetRate.convertToUnderlying(netLocalAssetValue))
+    );
+
+    return ethRate;
+}
+
+/// @notice Stateful version of get free collateral, returns the total net ETH value and true or false if the account
+/// context needs to be updated.</code></pre></div>
+            </div>
+            <div class="code-explanation">Collateral valuation obtains an ETHRate from ExchangeRate.buildExchangeRate and immediately converts the local asset value using that rate, making any oracle decimal mismatch directly affect free-collateral calculations.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Nominal ERC20 transfer amounts may be credited without validating actual tokens received</h3>
+                <div class="vulnerability-description">
+                    <p>This financial-logic vulnerability results from assuming that an ERC20 transferFrom call delivers the exact amount requested. The token-transfer and accounting paths do not appear to reconcile the recipient's balance before and after the transfer or otherwise restrict supported tokens to those with exact-transfer behavior.</p>
+<p>A fee-on-transfer or otherwise non-standard token can therefore cause the protocol to credit the nominal amount while receiving fewer tokens. The resulting unbacked balance may be used for withdrawals, collateral valuation, settlement, or incentive calculations, allowing users to extract value or leaving the protocol exposed to a shortfall.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the TokenHandler library, the AccountBalances state component, the AccountAction contract, and the asset-settlement paths in SettleAssetsExternal and Incentives</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing TokenHandler.setToken, _deposit, transfer, and BalanceHandler.depositAssetToken, I confirmed that nominal-credit accounting remains possible for supported tokens whose actual receipt differs from the requested amount. Although _deposit measures the contract balance delta when token.hasTransferFee is true, setToken accepts arbitrary nonzero ERC20 addresses and only records a governance-supplied boolean; it does not verify exact-transfer behavior or enforce the flag. When hasTransferFee is false, _deposit calls safeTransferIn and returns int256(amount) without checking the contract&#39;s pre- and post-transfer balances. AccountAction.depositAssetToken invokes depositAssetToken with forceTransfer=true, which reaches this path and causes the returned nominal amount to be added to balanceState.netCashChange and ultimately stored as cash credit. An ERC20 that returns success while transferring fewer tokens, or whose behavior changes after listing, can therefore create unbacked account balances that may later be withdrawn or used as collateral. The fee-aware path mitigates correctly configured fee tokens, but it is only a configuration convention and not a protocol-enforced invariant.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">For inbound transfers, measure the recipient balance before and after transferFrom and credit only the actual received amount, or explicitly restrict currency listings to tokens with exact-transfer behavior and enforce that invariant during governance configuration.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/external/actions/AccountAction.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 93-110</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function depositAssetToken(
+    address account,
+    uint16 currencyId,
+    uint256 amountExternalPrecision
+) external returns (uint256) {
+    require(msg.sender != address(this)); // dev: no internal call to deposit asset
+
+    AccountContext memory accountContext = AccountContextHandler.getAccountContext(account);
+    BalanceState memory balanceState;
+    balanceState.loadBalanceState(account, currencyId, accountContext);
+
+    // Int conversion overflow check done inside this method call. msg.sender
+    // is used as the account in deposit to allow for other accounts to deposit
+    // on behalf of the given account.
+    int256 assetTokensReceivedInternal = balanceState.depositAssetToken(
+        msg.sender,
+        int256(amountExternalPrecision),
+        true // force transfer to ensure that msg.sender does the transfer, not account</code></pre></div>
+            </div>
+            <div class="code-explanation">The public deposit path accepts the requested amount and forwards it to the balance accounting routine; the actual token balance reconciliation is not visible at this call site.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/balances/TokenHandler.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 189-205</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function _deposit(
+    Token memory token,
+    address account,
+    uint256 amount
+) private returns (int256) {
+    if (token.hasTransferFee) {
+        // Must deposit from the token and calculate the net transfer
+        uint256 startingBalance = IERC20(token.tokenAddress).balanceOf(address(this));
+        safeTransferIn(IERC20(token.tokenAddress), account, amount);
+        uint256 endingBalance = IERC20(token.tokenAddress).balanceOf(address(this));
+
+        return int256(endingBalance.sub(startingBalance));
+    }
+
+    safeTransferIn(IERC20(token.tokenAddress), account, amount);
+    return int256(amount);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Deposits reconcile pre- and post-transfer balances only when token.hasTransferFee is enabled; otherwise the code credits the nominal requested amount even if transferFrom delivers less.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>AssetRate accepts economically implausible positive exchange rates</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle-validation vulnerability treats positivity as sufficient validation for externally sourced asset exchange rates. The AssetRate library accepts values from the configured AssetRateAdapter or external cash market without enforcing economically reasonable bounds, scale checks, deviation limits, or other market invariants.</p>
+<p>An adapter compromise, market-manipulation condition, or configuration error could produce an extreme but positive rate. Borrowing, collateral checks, portfolio settlement, and redemptions would then use an incorrect valuation, potentially transferring value to an attacker or causing arithmetic overflow, insolvency, or prolonged disruption.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the AssetRate library, the AssetRateAdapter oracle, the CashMarketInterface external market, and the SettlePortfolioAssets and FreeCollateral valuation paths</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the AssetRate library, I confirmed an oracle-validation weakness. In _getAssetRateView and _getAssetRateStateful in contracts/internal/markets/AssetRate.sol, externally returned exchange rates are accepted solely through require(rate &gt; 0); there are no bounds, decimal-scale checks, deviation limits, or underlying-market invariant checks. The only upper-bound validation appears in buildSettlementRateStateful, and it applies only when first persisting a settlement rate, not to ordinary valuation paths. Consequently, a compromised, misconfigured, or manipulable AssetRateAdapter can provide an economically implausible but positive rate. That value is consumed by convertToUnderlying and convertFromUnderlying and propagated into FreeCollateral valuation, liquidation calculations, and SettlePortfolioAssets settlement conversions. SafeInt256 protects against arithmetic overflow by reverting, but it does not detect moderate incorrect rates and may instead create denial of service for extreme values. The attack requires influence over the configured adapter or its underlying market, so it is not universally permissionless, but the code clearly treats positivity as sufficient validity and lacks the proposed economic safeguards.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Validate the returned rate against configured bounds, expected decimal scale, prior-rate deviation limits, and any available underlying-market invariants. Reject abnormal values and pause or fall back safely when the rate exceeds those limits; ensure downstream arithmetic cannot overflow on accepted rates.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/markets/AssetRate.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 87-104</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function _getAssetRateView(uint256 currencyId)
+    private
+    view
+    returns (
+        int256,
+        address,
+        uint8
+    )
+{
+    (address rateOracle, uint8 underlyingDecimalPlaces) = _getAssetRateStorage(currencyId);
+
+    int256 rate;
+    if (rateOracle == address(0)) {
+        // If no rate oracle is set, then set this to the identity
+        rate = ASSET_RATE_DECIMAL_DIFFERENCE;
+        underlyingDecimalPlaces = 0;
+    } else {
+        rate = AssetRateAdapter(rateOracle).getExchangeRateView();</code></pre></div>
+            </div>
+            <div class="code-explanation">The rate is sourced from storage or an external adapter, but this snippet shows no bounds, scale, deviation, or market-invariant validation before the externally supplied value is used.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/valuation/FreeCollateral.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 194-208</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">function _updateNetETHValue(
+    uint256 currencyId,
+    int256 netLocalAssetValue,
+    FreeCollateralFactors memory factors
+) private view returns (ETHRate memory) {
+    ETHRate memory ethRate = ExchangeRate.buildExchangeRate(currencyId);
+    factors.netETHValue = factors.netETHValue.add(
+        ethRate.convertToETH(factors.assetRate.convertToUnderlying(netLocalAssetValue))
+    );
+
+    return ethRate;
+}
+
+/// @notice Stateful version of get free collateral, returns the total net ETH value and true or false if the account
+/// context needs to be updated.</code></pre></div>
+            </div>
+            <div class="code-explanation">The configured asset rate is applied directly to convert local asset values into underlying values and then into ETH collateral values, allowing an extreme positive rate to distort collateral calculations.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/settlement/SettlePortfolioAssets.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 77-88</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function _settleLiquidityToken(
+    PortfolioAsset memory asset,
+    AssetRateParameters memory settlementRate
+) private view returns (int256, SettlementMarket memory) {
+    (int256 assetCash, int256 fCash, SettlementMarket memory market) =
+        _calculateMarketStorage(asset);
+
+    assetCash = assetCash.add(settlementRate.convertFromUnderlying(fCash));
+    return (assetCash, market);
+}
+
+/// @notice Settles a liquidity token to idiosyncratic fCash, this occurs when the maturity is still in the future</code></pre></div>
+            </div>
+            <div class="code-explanation">Settlement uses the supplied settlement rate directly to convert fCash into asset cash, so an economically implausible positive rate can transfer value during portfolio settlement.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Previous token approvals remain active after Compound adapter approval changes</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability results from incomplete management of ERC20 approvals when the Compound integration changes its configured spender. A new spender can be approved without first revoking the allowance granted to the previous spender, and the approval flow does not appear to enforce a permanently validated spender set.</p>
+<p>If a previous spender is compromised or no longer trusted, it may retain the ability to call transferFrom on tokens held by the integration contract after configuration has moved to another spender. The resulting unauthorized transfer can drain assets held by the integration. The risk is increased when approvals are broad or remain active indefinitely.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the CompoundToNotionalV2 integration, specifically its owner-controlled token approval logic; the BatchAction contract; and the TokenHandlerTokens component</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing CompoundToNotionalV2.enableToken and the token-transfer flows, I confirmed that the approval lifecycle is insufficiently controlled and can leave superseded allowances exploitable. enableToken is owner-only, but it directly calls CTokenInterface(token).approve(spender, type(uint256).max) without recording the spender, validating it against an allowlist, or revoking any previously approved spender. Consequently, if the owner first approves spender A and later approves spender B, the ERC20 allowance for A remains active because changing or adding an approval for B does not modify A&#39;s allowance. A compromised spender A can then call transferFrom on the relevant cToken and drain any cTokens held by the adapter, including balances retained because of operational dust or interrupted workflows. The owner-only check protects only the approval-setting operation and does not restrict an already approved spender&#39;s later use. The adapter&#39;s notionalCallback authentication does not affect direct ERC20 allowance exploitation. TokenHandler.setToken also grants effectively unlimited approvals, although those token addresses are immutable after configuration and are a separate risk. No revoke function or zero-before-rotation logic exists.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">When changing an approved spender, first set the previous spender&#39;s allowance to zero and verify the operation before granting the new allowance. Prefer immutable, allowlisted spenders, exact per-operation approvals, and explicit revoke functions; use safe-approval handling for tokens that require zero-before-nonzero updates.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/balances/TokenHandler.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 52-69</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-10').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69</pre></div>
+                <div class="code-content"><pre id="code-block-10"><code class="language-solidity">function setToken(
+    uint256 currencyId,
+    bool underlying,
+    TokenStorage memory tokenStorage
+) internal {
+    bytes32 slot = _getSlot(currencyId, underlying);
+
+    if (tokenStorage.tokenType == TokenType.Ether &amp;&amp; currencyId == Constants.ETH_CURRENCY_ID) {
+        // Specific storage for Ether token type
+        bytes32 etherData =
+            ((bytes32(bytes20(address(0))) &gt;&gt; 96) |
+                (bytes32(bytes1(Constants.BOOL_FALSE)) &gt;&gt; 88) |
+                bytes32(uint256(18) &lt;&lt; 168) |
+                bytes32(uint256(TokenType.Ether) &lt;&lt; 176));
+
+        assembly {
+            sstore(slot, etherData)
+        }</code></pre></div>
+            </div>
+            <div class="code-explanation">The Compound token configuration path is implemented in setToken. It validates that the token address is either unset or unchanged, but this setup flow does not revoke any previously granted allowance when spender configuration is considered.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Currency rate view returns the asset token as the underlying token</h3>
+                <div class="vulnerability-description">
+                    <p>This logic error causes the currency-rate view to return the asset token address as the underlying token address. The getCurrencyAndRates() function passes the same selector when loading both tokens, even though TokenHandler.getToken() distinguishes between the configured asset and underlying token.</p>
+<p>Integrations and users relying on the returned underlying token may therefore approve, deposit, withdraw, or value the wrong address. This can result in failed operations, incorrect risk calculations, or assets being directed to an unintended token whenever a currency is configured with distinct asset and underlying tokens.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the Views contract, specifically getCurrencyAndRates(), and the TokenHandler library and TokenHandlerTokens component, specifically getToken()</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing Views.getCurrencyAndRates in contracts/external/Views.sol, I confirmed the reported logic error. The function loads assetToken with TokenHandler.getToken(currencyId, false), which correctly selects the asset-token storage slot, but then loads underlyingToken using the same false selector rather than true. TokenHandler.getToken and its _getSlot implementation in contracts/internal/balances/TokenHandler.sol explicitly use the boolean argument to select separate asset and underlying configurations. Consequently, for currencies such as cToken-based markets where the configured asset and underlying addresses differ, getCurrencyAndRates returns the asset token twice and misrepresents the underlying token. There are no checks or guards correcting this result; the function is an external view consumed by integrations and users, who may use the returned underlyingToken for approvals, transfers, deposits, withdrawals, or calculations. This is primarily an integrity and integration-risk issue rather than a direct unauthorized-funds exploit, but the incorrect output is demonstrably present and exploitable by dependent callers. The analogous getCurrency function correctly uses true, further indicating the getCurrencyAndRates call is erroneous.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Load underlyingToken with TokenHandler.getToken(currencyId, true), and add regression tests asserting distinct configured asset and underlying addresses for currencies that have both.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/external/Views.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 69-86</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-11').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86</pre></div>
+                <div class="code-content"><pre id="code-block-11"><code class="language-solidity">function getCurrencyAndRates(uint16 currencyId)
+    external
+    view
+    override
+    returns (
+        Token memory assetToken,
+        Token memory underlyingToken,
+        ETHRate memory ethRate,
+        AssetRateParameters memory assetRate
+    )
+{
+    assetToken = TokenHandler.getToken(currencyId, false);
+    underlyingToken = TokenHandler.getToken(currencyId, false);
+    ethRate = ExchangeRate.buildExchangeRate(currencyId);
+    assetRate = AssetRate.buildAssetRateView(currencyId);
+}
+
+/// @notice Returns cash group settings for a currency</code></pre></div>
+            </div>
+            <div class="code-explanation">The view correctly loads the asset token with selector false, but incorrectly uses false again for the underlying token, causing both returned token values to reference the asset-token storage.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/balances/TokenHandler.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 30-38</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-12').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>30
+31
+32
+33
+34
+35
+36
+37
+38</pre></div>
+                <div class="code-content"><pre id="code-block-12"><code class="language-solidity">function getToken(uint256 currencyId, bool underlying) internal view returns (Token memory) {
+    bytes32 slot = _getSlot(currencyId, underlying);
+    bytes32 data;
+
+    assembly {
+        data := sload(slot)
+    }
+    address tokenAddress = address(bytes20(data &lt;&lt; 96));
+    bool tokenHasTransferFee = bytes1(data &lt;&lt; 88) != Constants.BOOL_FALSE;</code></pre></div>
+            </div>
+            <div class="code-explanation">getToken accepts an underlying selector and passes it to _getSlot, demonstrating that false and true select distinct asset and underlying token storage entries.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Annualized supply-rate validation is ineffective and permits unbounded oracle output</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle-validation vulnerability makes annualized supply-rate validation ineffective because the implementation applies a non-negativity check to an unsigned value. As a result, every uint256 value satisfies the check, and the protocol does not enforce an upper bound on rates returned by the external asset-rate adapter.</p>
+<p>A compromised, misconfigured, or maliciously upgraded adapter can therefore provide an extreme positive supply rate. The resulting value may distort implied market rates and asset valuations or trigger arithmetic failures during trades involving the affected currency, potentially causing incorrect financial outcomes or denial of service.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the TradingAction contract, the AssetRate library, specifically getSupplyRate() and _getAssetRateStateful(), the AssetRateAdapter oracle, and the Market library</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing AssetRate.getSupplyRate in contracts/internal/markets/AssetRate.sol, I confirmed that the alleged validation weakness exists. The function obtains an annualized supply rate from the externally configured AssetRateAdapter and applies require(rate &gt;= 0), but rate is uint256, making this condition universally true. No upper bound, protocol-range check, or adapter-output sanity check is performed before the value is returned. The adapter address is loaded from storage and invoked directly, so a compromised, misconfigured, or maliciously upgraded adapter can return an arbitrarily large value. The returned rate is subsequently used by market/oracle calculations through the affected market and trading paths; extreme values can produce invalid exponentiation or arithmetic behavior in Market.getExchangeRateFromImpliedRate and related calculations, potentially causing trades or rate queries to revert or producing materially distorted rates. Existing checks on exchange rates and eventual uint32 market storage fields do not constrain the supply rate at the point it is consumed and may only convert the issue into a denial of service. Therefore, the hypothesis is valid, subject to adapter-control assumptions.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Define and enforce a governance-approved maximum annualized supply rate, reject values outside the supported protocol range, and validate adapter identity and returned rates before using them in market calculations.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/internal/markets/AssetRate.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 59-68</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-13').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>59
+60
+61
+62
+63
+64
+65
+66
+67</pre></div>
+                <div class="code-content"><pre id="code-block-13"><code class="language-solidity">function getSupplyRate(AssetRateParameters memory ar) internal view returns (uint256) {
+    // If the rate oracle is not set, the asset is not interest bearing and has an oracle rate of zero.
+    if (ar.rateOracle == address(0)) return 0;
+
+    uint256 rate = AssetRateAdapter(ar.rateOracle).getAnnualizedSupplyRate();
+    require(rate &gt;= 0); // dev: invalid supply rate
+
+    return rate;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The function obtains the annualized supply rate from an external adapter as a uint256, then applies the tautological check `rate &gt;= 0`. Consequently, no upper bound or meaningful validation is enforced, allowing arbitrarily large oracle outputs.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Transfer event is emitted even when delegated transfer fails</h3>
+                <div class="vulnerability-description">
+                    <p>This logic error allows the nToken ERC20 adapter to emit a Transfer event even when the delegated transferFrom operation reports failure. The adapter captures the delegated call's boolean result but emits the event before confirming success and does not revert when the result is false.</p>
+<p>A caller can submit a transfer with an invalid allowance, insufficient balance, or another failing condition and cause an event to be emitted without any token state change. Event-driven indexers and integrations may interpret the fabricated event as evidence of a completed payment, which can lead to inaccurate balances, erroneous accounting, or acceptance of an unpaid transfer.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the nTokenERC20Proxy adapter, specifically transferFrom(), and the nTokenERC20 token component</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the nTokenERC20Proxy.transferFrom function in contracts/external/adapters/nTokenERC20Proxy.sol, I confirmed the reported logic error. The function calls proxy.nTokenTransferFrom(...) and stores its returned success flag, but it unconditionally emits Transfer(from, to, amount) before returning success. It also emits Approval regardless of whether the delegated transfer succeeded. Because the nTokenERC20 interface explicitly defines nTokenTransferFrom as returning (bool, uint256), a false-returning failure is a supported execution path rather than necessarily a transaction revert. In that case, the adapter transaction completes, the fabricated Transfer event remains in the receipt, and no corresponding token movement may have occurred. Any indexer, payment verifier, or integration relying on ERC20 Transfer events rather than the returned boolean can therefore incorrectly record the transfer as successful. A reverting delegated call would roll back the events, but there is no guard for the distinct false-return case. The related transfer function also emits before delegation, although transferFrom alone is sufficient to substantiate the hypothesis.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Only emit Transfer after confirming success; alternatively revert whenever the delegated call reports false. Ensure all callers and wrappers consistently treat unsuccessful delegated transfers as failed operations.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/external/adapters/nTokenERC20Proxy.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 90-105</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-14').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105</pre></div>
+                <div class="code-content"><pre id="code-block-14"><code class="language-solidity">function transferFrom(
+    address from,
+    address to,
+    uint256 amount
+) external override returns (bool) {
+    (bool success, uint256 newAllowance) =
+        proxy.nTokenTransferFrom(currencyId, msg.sender, from, to, amount);
+
+    // Emit transfer events here so they come from the correct contract
+    emit Transfer(from, to, amount);
+    emit Approval(msg.sender, from, newAllowance);
+
+    return success;
+}
+
+/// @notice Returns the present value of the nToken&#39;s assets denominated in asset tokens</code></pre></div>
+            </div>
+            <div class="code-explanation">The delegated transferFrom result is captured in success, but Transfer and Approval events are emitted unconditionally before success is checked or enforced. A false result is returned without reverting, allowing a fabricated Transfer event despite no state change.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Approval event uses reversed owner and spender fields</h3>
+                <div class="vulnerability-description">
+                    <p>This logic error reverses the owner and spender addresses in the Approval event emitted during delegated transfers. The implementation supplies msg.sender as the owner and from as the spender, although the ERC20 event requires the ordering Approval(owner, spender, amount); in this context, from is the token owner and msg.sender is the spender.</p>
+<p>As a result, indexers that reconstruct allowances from events may associate allowance changes with the wrong accounts. A caller may also submit a failing transferFrom call with an arbitrary from address to inject misleading Approval events, causing further divergence between event-derived state and the actual on-chain allowance.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the nTokenERC20Proxy adapter, specifically transferFrom(), and the nTokenERC20 token component</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the nTokenERC20Proxy.transferFrom implementation, I confirmed the alleged logic error. The function calls proxy.nTokenTransferFrom(currencyId, msg.sender, from, to, amount), where the interface explicitly defines msg.sender as the spender and from as the owner. However, after receiving the delegated allowance result, it emits Approval(msg.sender, from, newAllowance). Because the inherited IERC20 event follows Approval(owner, spender, amount), these indexed addresses are reversed: the spender is recorded as owner and the token owner is recorded as spender. This creates incorrect allowance data for event-based indexers and monitoring systems. The function also emits the event regardless of the returned success value, so if the router reports failure without reverting, a caller may potentially generate misleading Approval logs, subject to the router&#39;s internal validation behavior. No guard in the adapter corrects the ordering or suppresses the event on failure. The source therefore clearly demonstrates the role-mapping vulnerability, although the impact is primarily integrity and interoperability of off-chain allowance reconstruction rather than unauthorized token spending.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Emit Approval(from, msg.sender, newAllowance) only when the delegated allowance mutation succeeds, and ensure event consumers use on-chain allowance state where correctness is security-critical.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/external/adapters/nTokenERC20Proxy.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 90-105</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-15').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105</pre></div>
+                <div class="code-content"><pre id="code-block-15"><code class="language-solidity">function transferFrom(
+    address from,
+    address to,
+    uint256 amount
+) external override returns (bool) {
+    (bool success, uint256 newAllowance) =
+        proxy.nTokenTransferFrom(currencyId, msg.sender, from, to, amount);
+
+    // Emit transfer events here so they come from the correct contract
+    emit Transfer(from, to, amount);
+    emit Approval(msg.sender, from, newAllowance);
+
+    return success;
+}
+
+/// @notice Returns the present value of the nToken&#39;s assets denominated in asset tokens</code></pre></div>
+            </div>
+            <div class="code-explanation">The transferFrom function correctly identifies from as the token owner and msg.sender as the spender when calling the proxy, but emits Approval with those two addresses reversed: Approval(msg.sender, from, newAllowance) instead of Approval(from, msg.sender, newAllowance).</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

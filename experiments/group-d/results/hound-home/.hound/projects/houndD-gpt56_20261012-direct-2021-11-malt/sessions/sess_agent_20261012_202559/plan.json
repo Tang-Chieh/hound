@@ -1,0 +1,164 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_3c1b058a7b0c": {
+      "frame_id": "frame_3c1b058a7b0c",
+      "session_id": "sess_agent_20261012_202559",
+      "question": "Vulnerability analysis of PoolTransferVerification",
+      "artifact_refs": [
+        "Pool outflow price-gate calculations and target-price comparisons",
+        "Reliance on spot, average, or externally supplied price data",
+        "Whitelist bypass paths that can avoid price validation",
+        "Admin-configured thresholds and verifier authorization affecting manipulation resistance"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:26:05.082642",
+      "updated_at": "2026-10-12T20:26:39.315836",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:26:05.082852",
+          "status": "planned",
+          "rationale": "WHY NOW: This unvisited component directly enforces pool transfer price gates and is explicitly documented as comparing an average against a target, making it a primary price-manipulation control. Its whitelist and admin-configured threshold paths may allow manipulated pool state or privileged bypasses to authorize mispriced transfers. EXIT CRITERIA: Trace every price input to its source and update path, verify whether an attacker can influence the sampled reserves or averaging window within one transaction or across epochs, inspect all whitelist and failure branches, and determine whether any reachable path permits value-moving transfers at manipulated prices; document a concrete exploit or conclude no exploitable price-manipulation path exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:26:05.092559",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:26:39.315944",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_02c04f5381ab": {
+      "frame_id": "frame_02c04f5381ab",
+      "session_id": "sess_agent_20261012_202559",
+      "question": "Vulnerability analysis of AuctionBurnReserveSkew",
+      "artifact_refs": [
+        "Consulted price and reserve-ratio inputs used in burn-budget calculations",
+        "Ring-buffer peg history updates and moving-average or cumulative price derivation",
+        "Role-gated peg writes and whether stale or manipulable values affect auction redemption or burn limits",
+        "External reserve and oracle assumptions that permit transient market-price manipulation"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:26:44.548905",
+      "updated_at": "2026-10-12T20:27:38.250481",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:26:44.549370",
+          "status": "planned",
+          "rationale": "WHY NOW: This unvisited component directly feeds auction economics from consulted prices and peg history, making it a high-value target for the audit's exclusive price-manipulation scope. Its interaction with reserve-derived data and role-gated updates could allow an attacker to influence burn budgets or redemption-related pricing if samples are manipulable, stale, or insufficiently time-weighted. EXIT CRITERIA: Trace every price and peg input from its source through storage and all consumers; verify update permissions, sampling cadence, averaging, stale-value handling, and resistance to single-block or low-liquidity reserve manipulation; assess whether any attainable manipulated value changes burn or auction outcomes; document evidence or conclude no exploitable price-manipulation path remains in this component.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:26:44.568726",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:27:38.250602",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_23f72c711d59": {
+      "frame_id": "frame_23f72c711d59",
+      "session_id": "sess_agent_20261012_202559",
+      "question": "Vulnerability analysis of RewardReinvestor",
+      "artifact_refs": [
+        "Trace how reward tokens are converted, swapped, or reinvested and whether execution relies on manipulable spot prices or reserves",
+        "Check slippage, minimum-output, oracle, and price-bound protections on external liquidity operations",
+        "Assess whether permissionless reinvestment timing, caller-controlled amounts, or stale price data enable temporary pool-price manipulation to extract value"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:27:45.475972",
+      "updated_at": "2026-10-12T20:28:44.177375",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:27:45.476632",
+          "status": "planned",
+          "rationale": "WHY NOW: RewardReinvestor is an unvisited component that may route reward assets through liquidity pools, making it a direct candidate for price manipulation despite the already completed analysis of PoolTransferVerification and AuctionBurnReserveSkew. EXIT CRITERIA: Review the complete reinvestment flow and every price-dependent external call, identify the price source and manipulation resistance, and conclude whether an attacker can profit from reserve or spot-price distortion; record one supported hypothesis if found, otherwise close the component with no hypothesis.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:27:45.496258",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:28:44.177508",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_e023234927ce": {
+      "frame_id": "frame_e023234927ce",
+      "session_id": "sess_agent_20261012_202559",
+      "question": "Vulnerability analysis of StabilizerNode",
+      "artifact_refs": [
+        "Price inputs and oracle dependencies used for stabilization decisions",
+        "Minting and arb-reward allocation amounts derived from spot or reserve prices",
+        "External protocol interactions that can execute trades at manipulable prices",
+        "Whether stale, transient, or attacker-controlled prices can trigger profitable stabilization flows"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:28:50.504530",
+      "updated_at": "2026-10-12T20:29:20.023453",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:28:50.505029",
+          "status": "planned",
+          "rationale": "WHY NOW: StabilizerNode combines price-sensitive stabilization logic, token minting, reward allocation, and external protocol calls, making it a high-impact component for price manipulation and distinct from the completed RewardReinvestor, PoolTransferVerification, and AuctionBurnReserveSkew investigations. EXIT CRITERIA: Trace every price input into stabilization, minting, reward, and external-call paths; establish the source, freshness, manipulation resistance, and update authority of each input; determine whether a temporary reserve or spot-price distortion can cause material mispricing or excess minting; and document either a concrete exploitable manipulation path with affected state and impact or evidence that all paths use sufficiently protected and bounded pricing.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:28:50.522500",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:29:20.023585",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 4,
+    "last_modified": "2026-10-12T20:29:20.023707"
+  }
+}

@@ -1,0 +1,1473 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_5c673bbda565": {
+      "frame_id": "frame_5c673bbda565",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of TradingAction",
+      "artifact_refs": [
+        "Market-based trade pricing and oracle-derived residual pricing",
+        "Whether user-controlled trade parameters, maturity, liquidity, or sequencing can manipulate execution prices",
+        "Consistency and freshness of oracle inputs versus market state during trade execution",
+        "Price impact, slippage, and invariant enforcement across multi-step or batched trades"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:08:16.856790",
+      "updated_at": "2026-10-12T20:08:49.871968",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:08:16.856984",
+          "status": "planned",
+          "rationale": "WHY NOW: TradingAction is the primary trade-execution component and explicitly combines market pricing with oracle-derived residual pricing, making it the highest-priority unvisited component for price manipulation analysis. EXIT CRITERIA: Trace every pricing path and caller, identify all oracle and market-state inputs, verify bounds and sequencing against attacker-controlled parameters and same-transaction state changes, and conclude whether an exploitable price manipulation path exists or document the relevant safeguards.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:08:16.867164",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:08:49.872071",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_51e42cac938f": {
+      "frame_id": "frame_51e42cac938f",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of GovernanceAction",
+      "artifact_refs": [
+        "Assess whether governance-controlled collateral parameters, oracle configurations, exchange rates, or haircut/liquidation settings can be manipulated or updated in ways that distort collateral valuation and trading prices",
+        "Trace authorization, timelock, and parameter validation for changes affecting price-sensitive risk calculations",
+        "Check whether stale, extreme, or inconsistent pricing parameters can be applied atomically with account or market operations"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:08:56.256854",
+      "updated_at": "2026-10-12T20:09:49.585318",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:08:56.257349",
+          "status": "planned",
+          "rationale": "WHY NOW: GovernanceAction is an unvisited privileged component that writes shared storage and sets collateral parameters, making it a high-impact control point for price-sensitive valuation and liquidation behavior. It should be examined before lower-privilege state handlers because a parameter or oracle configuration weakness could systematically manipulate prices across the protocol. EXIT CRITERIA: Review all externally reachable governance updates and their authorization path; identify every price-sensitive parameter written; trace each parameter into oracle, exchange-rate, collateral, liquidation, and trading calculations; verify bounds, freshness, consistency, and timelock assumptions; conclude with either a concrete price-manipulation path or evidence that all relevant updates are properly authorized and constrained.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:08:56.276665",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:09:49.585487",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_b558a573f3c5": {
+      "frame_id": "frame_b558a573f3c5",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of AccountAction",
+      "artifact_refs": [
+        "Trace asset settlement and account-state updates for use of manipulable prices or stale exchange rates",
+        "Check whether account transfers, deposits, withdrawals, or settlements can bypass oracle, market-price, or valuation consistency checks",
+        "Analyze sequencing of external asset calls and internal balance updates for price-dependent accounting discrepancies"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:09:57.864691",
+      "updated_at": "2026-10-12T20:10:29.132517",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:09:57.865033",
+          "status": "planned",
+          "rationale": "WHY NOW: AccountAction is an unvisited state-mutating action component that performs asset settlement and writes account state, making it a high-value coverage target for price manipulation pathways connecting external assets to collateral or portfolio valuation. EXIT CRITERIA: Trace every price- or rate-dependent path through AccountAction and its directly invoked libraries, identify the authoritative price source and freshness/consistency checks, and conclude whether manipulated or stale pricing can change account balances, collateral value, or settlement outcomes; record any concrete exploit path or rule out the category for this component.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:09:57.881752",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:10:29.132637",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9f041d32315f": {
+      "frame_id": "frame_9f041d32315f",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of ExchangeRate",
+      "artifact_refs": [
+        "Oracle price freshness, validity, and decimal normalization",
+        "Use of oracle-derived exchange rates in collateral valuation",
+        "Potential manipulation through stale, low-liquidity, or inconsistent price sources",
+        "Propagation of manipulated rates into trading, liquidation, and free-collateral decisions"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:10:37.235288",
+      "updated_at": "2026-10-12T20:11:06.790186",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:10:37.235761",
+          "status": "planned",
+          "rationale": "WHY NOW: ExchangeRate is a central uncompleted pricing component that reads external oracle values and feeds collateral valuation, making it a high-leverage target for price manipulation coverage after TradingAction, GovernanceAction, and AccountAction were completed. EXIT CRITERIA: Trace every oracle read and downstream consumer; verify freshness, sign, bounds, decimals, fallback behavior, and consistency across state-changing and view paths; determine whether an attacker can cause materially incorrect valuation, liquidation, or trade outcomes, and document any concrete exploit path or conclude no price-manipulation issue is present.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:10:37.253928",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:11:06.790283",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_65324ca28e4a": {
+      "frame_id": "frame_65324ca28e4a",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of FreeCollateral",
+      "artifact_refs": [
+        "Trace oracle-derived exchange rates into collateral valuation and free-collateral calculations",
+        "Check whether stale, manipulated, inconsistent, or single-source prices can alter borrowing capacity or liquidation eligibility",
+        "Examine rate scaling, sign, decimal, and fallback handling across collateral types",
+        "Assess whether callers use spot prices without freshness, deviation, or multi-source validation"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:11:12.124092",
+      "updated_at": "2026-10-12T20:11:16.618312",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:11:12.124561",
+          "status": "planned",
+          "rationale": "WHY NOW: FreeCollateral is a critical valuation module directly consuming exchange-rate data and determining account solvency, so it is a high-value unvisited component for the price-manipulation sweep. It complements the completed ExchangeRate and TradingAction reviews by checking whether validated oracle outputs become exploitable when aggregated into collateral and liquidation decisions. EXIT CRITERIA: Trace every FreeCollateral valuation path and caller; document all oracle inputs, transformations, freshness/deviation protections, and downstream state-changing decisions; conclude whether a price-manipulation path exists or establish that all relevant prices are independently validated before affecting collateral, borrowing, or liquidation outcomes.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:11:12.141519",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:11:16.618478",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_2f9bf4770518": {
+      "frame_id": "frame_2f9bf4770518",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of AssetRateAdapter",
+      "artifact_refs": [
+        "Trace all external asset-rate and exchange-rate reads into collateral valuation, settlement, trading, and liquidation flows",
+        "Check whether rate freshness, round integrity, timestamp validity, decimal normalization, and source consistency are enforced",
+        "Assess whether stateful and view rate methods can return materially different prices or accept manipulable adapter inputs",
+        "Determine whether a single stale, invalid, or externally manipulated rate can change account solvency or asset conversion outcomes"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:11:25.533861",
+      "updated_at": "2026-10-12T20:12:05.774694",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:11:25.534320",
+          "status": "planned",
+          "rationale": "WHY NOW: AssetRateAdapter is an uncompleted oracle-facing component and is a direct boundary between external rate sources and core valuation paths. Existing hypotheses identify insufficient oracle validation and reliance on a single oracle answer, while ExchangeRate and FreeCollateral have already been reviewed; analyzing this adapter can establish whether those suspected weaknesses originate in rate adaptation and can affect additional settlement or liquidation paths. EXIT CRITERIA: Trace every adapter entry point and caller, document all validation and normalization applied to returned rates, compare view and stateful behavior, and conclude whether any stale, inconsistent, malformed, or manipulable rate can alter protocol pricing or collateral decisions; record supporting code evidence or close the component with no price-manipulation finding.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:11:25.550695",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:12:05.774893",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_53f21f81e3bb": {
+      "frame_id": "frame_53f21f81e3bb",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of LiquidateCurrencyAction",
+      "artifact_refs": [
+        "Oracle-derived collateral and liquidity-token valuation during liquidation",
+        "Whether liquidator-supplied maxima, exchange rates, or market prices can be manipulated to seize excessive collateral",
+        "Freshness, positivity, and consistency checks on prices used across liquidation calculations",
+        "Ordering of oracle reads, state updates, and external calls affecting liquidation pricing"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:12:13.244368",
+      "updated_at": "2026-10-12T20:12:17.404570",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:12:13.244899",
+          "status": "planned",
+          "rationale": "WHY NOW: LiquidateCurrencyAction is an unanalyzed critical liquidation entry point that consumes valuation data and accepts liquidator-supplied maximum amounts. Its downstream LiquidateCurrency logic values liquidity tokens and withdraws collateral, making it a high-value path for oracle price manipulation or inconsistent pricing between debt and collateral. EXIT CRITERIA: Trace every price and exchange-rate input from the entry point through liquidation calculations and storage updates; verify bounds, freshness, source consistency, and manipulation resistance for each asset; determine whether a manipulated or stale price can increase collateral seized, bypass liquidation limits, or create undercollateralized settlement; record evidence or conclude no price-manipulation path exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:12:13.264007",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:12:17.404742",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_1c4e60b029f9": {
+      "frame_id": "frame_1c4e60b029f9",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of Market",
+      "artifact_refs": [
+        "Market execution price calculations and slippage boundaries",
+        "Use of market state, liquidity, and time parameters in pricing",
+        "Whether caller-controlled inputs can distort trade or settlement prices",
+        "Consistency between calculated prices and oracle-derived valuations"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:12:25.062236",
+      "updated_at": "2026-10-12T20:13:14.386692",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:12:25.062591",
+          "status": "planned",
+          "rationale": "WHY NOW: Market is an unanalyzed pricing-critical library used by TradingAction and nToken minting, and its liquidity-proportional arithmetic can directly determine asset exchange rates without necessarily relying on the separately reviewed oracle paths. It is therefore a high-value component for identifying price manipulation through stale or mutable market state, insufficient bounds, or attacker-controlled trade parameters. EXIT CRITERIA: Trace every externally reachable caller into Market, document all price inputs and state dependencies, verify manipulation resistance and bounds for each calculation path, and either produce a concrete price-manipulation hypothesis with an affected flow or conclude no exploitable pricing deviation exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:12:25.080041",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:13:14.386852",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_ff0df663d75a": {
+      "frame_id": "frame_ff0df663d75a",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of LiquidatefCashAction",
+      "artifact_refs": [
+        "Trace fCash liquidation entry points and caller-supplied maximums",
+        "Verify oracle-derived discounted fCash valuation and cash-deficit calculations",
+        "Assess whether mutable market state or manipulated exchange rates can alter liquidation prices",
+        "Check consistency of price inputs across validation, transfer, and finalization"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:13:21.577748",
+      "updated_at": "2026-10-12T20:14:03.653666",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:13:21.578277",
+          "status": "planned",
+          "rationale": "WHY NOW: Liquidation pricing is a high-impact oracle-consumer path, and existing hypotheses indicate that liquidation valuation may depend on mutable market parameters. LiquidatefCashAction has not been investigated and provides a distinct liquidation flow from the completed LiquidateCurrencyAction analysis, making it a priority for broad coverage of price manipulation risks. EXIT CRITERIA: Trace every liquidation-price input through the action and its helpers, identify all oracle and market-state dependencies, determine whether an attacker can influence the resulting liquidation amount or discount without an independently trusted price, and record either a concrete price-manipulation vulnerability with impact and exploit conditions or evidence that the pricing path is adequately constrained.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:13:21.597984",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:14:03.653825",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_6d40fc99eb01": {
+      "frame_id": "frame_6d40fc99eb01",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of nTokenMintAction",
+      "artifact_refs": [
+        "Market pricing and oracle-derived exchange rates used during nToken minting",
+        "Whether mint amounts, collateral requirements, or account state can be manipulated through stale, single-source, or otherwise distorted prices",
+        "Consistency between quoted market values, pool parameters, and balances when minting nTokens"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:14:09.662567",
+      "updated_at": "2026-10-12T20:14:25.926837",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:14:09.662960",
+          "status": "planned",
+          "rationale": "WHY NOW: nToken minting is a critical pricing-sensitive path that can convert account assets into nTokens and is directly relevant to the existing hypothesis that issuance is coupled to current market or oracle prices. It has not been investigated, while adjacent oracle, collateral, and market components have already exposed multiple potential price-manipulation surfaces. EXIT CRITERIA: Trace every price and exchange-rate input through the complete mint flow, identify all attacker-controlled or externally sourced values and their validation, assess whether manipulated prices can cause mispriced issuance or account value changes, and document either a concrete exploitable price-manipulation path with impact or evidence that the flow is adequately protected.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:14:09.679788",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:14:25.927023",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9674de5ef849": {
+      "frame_id": "frame_9674de5ef849",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of LiquidationHelpers",
+      "artifact_refs": [
+        "Trace liquidation price and discount calculations from oracle-derived valuations",
+        "Assess whether attacker-controlled market, account, or asset inputs can manipulate liquidation prices",
+        "Check consistency of pricing assumptions and bounds across currency and fCash liquidation paths",
+        "Determine whether stale, extreme, or selectively sourced prices can create underpriced collateral purchases or excessive debt repayment"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:14:30.965960",
+      "updated_at": "2026-10-12T20:14:36.022833",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:14:30.966434",
+          "status": "planned",
+          "rationale": "WHY NOW: LiquidationHelpers is an unanalyzed pricing-critical library shared by liquidation flows, while existing hypotheses already identify externally sourced and mutable inputs as possible liquidation price-manipulation vectors. Reviewing this component can confirm whether those inputs are transformed, bounded, or reused in a manipulable way without repeating completed action-level investigations. EXIT CRITERIA: Map every liquidation valuation and discount calculation in the library, identify all price and market-state inputs and their validation, trace each result into liquidation settlement, and either document a concrete exploitable price-manipulation path with affected callers or conclude that relevant prices are sufficiently bounded and consistently sourced.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:14:30.986013",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:14:36.023019",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9a6c7833642e": {
+      "frame_id": "frame_9a6c7833642e",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of nTokenRedeemAction",
+      "artifact_refs": [
+        "Current exchange-rate and oracle inputs used to value redeemed nTokens",
+        "Whether redemption amounts, reserve fees, and underlying asset withdrawals can be manipulated by transient price changes",
+        "Consistency between redemption pricing and stored nToken/account state"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:14:44.075193",
+      "updated_at": "2026-10-12T20:15:14.692213",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:14:44.075620",
+          "status": "planned",
+          "rationale": "WHY NOW: nToken redemption is a major uncompleted component that directly converts nToken balances using current valuation data, while existing hypotheses identify price-sensitive coupling in nToken issuance/redemption. An attacker-controlled or insufficiently constrained rate could enable over-redemption, distorted reserve fees, or extraction of underlying collateral. EXIT CRITERIA: Trace every redemption pricing input to its oracle or rate source, establish whether rates are current, bounded, and manipulation-resistant, verify redemption effects against nToken supply and reserve accounting, and either document a concrete price-manipulation path with impact or conclude no exploitable path remains.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:14:44.093538",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:15:14.692323",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_0d11cb681a39": {
+      "frame_id": "frame_0d11cb681a39",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of SettlePortfolioAssets",
+      "artifact_refs": [
+        "Oracle-derived fCash conversion rates used during portfolio settlement",
+        "Whether settlement accepts a single manipulated or stale exchange-rate observation",
+        "Differences between settlement-time pricing and the rates used for collateral or liquidation valuation",
+        "Whether permissionless settlement can crystallize an attacker-beneficial price into persistent portfolio state"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:15:22.275870",
+      "updated_at": "2026-10-12T20:15:29.137657",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:15:22.276211",
+          "status": "planned",
+          "rationale": "WHY NOW: SettlePortfolioAssets is a critical uncompleted settlement module that converts fCash into cash using oracle- or rate-adapter-derived values and writes the resulting portfolio state. Existing hypotheses identify oracle price manipulation and externally sourced liquidation pricing, making settlement a high-value adjacent path where a manipulated rate may be permanently crystallized. EXIT CRITERIA: Trace every rate input from the oracle or adapter through conversion and rounding, identify freshness, deviation, and caller-context checks, verify whether permissionless settlement can select favorable timing or rates, and determine whether any manipulated value changes persistent balances or portfolio assets. Conclude with a concrete exploit path and impact, or document why rate validation and settlement invariants prevent price manipulation.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:15:22.293253",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:15:29.137897",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_12b277fe3e02": {
+      "frame_id": "frame_12b277fe3e02",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of PortfolioHandler",
+      "artifact_refs": [
+        "Oracle-derived present-value calculations during portfolio updates",
+        "Asset settlement and conversion rates used when writing portfolio state",
+        "Whether caller-controlled prices, maturities, or rates can alter collateral or liquidation valuations",
+        "Consistency between stored portfolio values and ExchangeRate or AssetRate inputs"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:15:39.390163",
+      "updated_at": "2026-10-12T20:15:56.939348",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:15:39.390321",
+          "status": "planned",
+          "rationale": "WHY NOW: PortfolioHandler is an unanalyzed state-writing library on the critical path for portfolio valuation and settlement, while existing hypotheses identify oracle-driven valuation and liquidation pricing as key price-manipulation risks. It may convert externally sourced rates into persistent portfolio state, creating manipulation impact beyond the already completed pricing and liquidation components. EXIT CRITERIA: Trace every PortfolioHandler entry point and caller, identify all price/rate inputs and their provenance, verify freshness, positivity, bounds, and consistency checks, and determine whether a manipulable rate can change stored asset amounts, collateral valuation, or liquidation outcomes. Close the investigation with either a concrete exploit path and affected flows or evidence that all rate inputs are trusted, validated, and temporally consistent.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:15:39.401271",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:15:56.939598",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_084f7b9601c7": {
+      "frame_id": "frame_084f7b9601c7",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of LiquidateCurrency",
+      "artifact_refs": [
+        "Trace all collateral and liquidity-token valuation inputs used during currency liquidation",
+        "Assess whether oracle-derived prices, exchange rates, market parameters, or caller-supplied maxima can be manipulated before liquidation",
+        "Check consistency between liquidation pricing, caps, discounts, and withdrawals across currencies"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:16:05.168983",
+      "updated_at": "2026-10-12T20:16:25.177592",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:16:05.169446",
+          "status": "planned",
+          "rationale": "WHY NOW: LiquidateCurrency is an unanalyzed core liquidation library, and liquidation valuation is directly implicated by the existing hypotheses concerning mutable market parameters and externally sourced pricing. It can convert manipulated prices or rates into underpriced collateral transfers or excessive liquidation proceeds even though the higher-level LiquidateCurrencyAction has already been reviewed. EXIT CRITERIA: Trace every pricing and rate dependency into the liquidation amount, verify freshness, authenticity, bounds, and timing of each input, compare the pricing path with collateral valuation and liquidation caps, and document either a concrete exploitable price-manipulation path with impact or evidence that all relevant inputs are safely constrained.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:16:05.185196",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:16:25.177708",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_d586b04ebaf9": {
+      "frame_id": "frame_d586b04ebaf9",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of FreeCollateralExternal",
+      "artifact_refs": [
+        "Trace external collateral valuation inputs and exchange-rate propagation",
+        "Check whether oracle-derived prices are validated, freshness-checked, or bounded before collateral decisions",
+        "Assess whether callers can influence pricing context, asset selection, or valuation timing to manipulate free-collateral results"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:16:30.875213",
+      "updated_at": "2026-10-12T20:16:37.855812",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:16:30.875654",
+          "status": "planned",
+          "rationale": "WHY NOW: FreeCollateralExternal is an uncompleted valuation component on the critical collateral and liquidation path, and the graph shows it performs external collateral checks while relying on oracle-sensitive valuation logic already implicated by current price-manipulation hypotheses. EXIT CRITERIA: Trace every caller and all valuation inputs, identify the exact oracle and rate-validation controls, determine whether manipulated or stale prices can change collateral eligibility or liquidation outcomes, and document either a concrete exploitable manipulation path with impact or evidence that robust bounds, freshness, and consistency checks prevent it.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:16:30.894160",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:16:37.855998",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_86c7b6428b5a": {
+      "frame_id": "frame_86c7b6428b5a",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of AssetRate",
+      "artifact_refs": [
+        "Validation and normalization of oracle-derived exchange rates",
+        "Use of asset rates in collateral valuation, settlement, minting, redemption, and liquidation",
+        "Handling of stale, manipulated, zero, negative, or unexpectedly scaled rates",
+        "Consistency between view and stateful rate paths"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:16:47.771090",
+      "updated_at": "2026-10-12T20:16:52.405473",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:16:47.771450",
+          "status": "planned",
+          "rationale": "WHY NOW: AssetRate is an unanalyzed pricing component directly upstream of collateral and asset valuation, while existing hypotheses indicate that positivity-only validation and externally sourced rates may permit price manipulation. Reviewing this module now provides coverage of a distinct critical pricing layer not included in the completed ExchangeRate or AssetRateAdapter investigations. EXIT CRITERIA: Trace every AssetRate entry point to its oracle or adapter source and all downstream consumers; determine whether stale, anomalous, or manipulable rates can affect protocol state or economic decisions; document a concrete exploit path and impact if found, or conclude no price-manipulation path exists under the statically verified validation and scaling rules.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:16:47.787774",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:16:52.405647",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_c19bcd6592ab": {
+      "frame_id": "frame_c19bcd6592ab",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of SettleAssetsExternal",
+      "artifact_refs": [
+        "Trace all settlement paths that convert fCash or bitmap assets using oracle- or rate-derived prices",
+        "Verify whether settlement accepts stale, manipulable, inconsistent, or insufficiently validated exchange rates",
+        "Assess whether settlement timing or caller-controlled asset selection can crystallize manipulated valuations into account balances or portfolio state"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:16:59.240442",
+      "updated_at": "2026-10-12T20:17:33.758408",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:16:59.240786",
+          "status": "planned",
+          "rationale": "WHY NOW: SettleAssetsExternal is an unanalyzed state-mutating settlement component that can convert portfolio assets into balances and therefore may crystallize oracle-driven prices after the already identified concerns in ExchangeRate, AssetRateAdapter, and settlement valuation libraries. Its external entry paths and conditional bitmap/portfolio handling could expose a distinct price-manipulation flow even though related pricing libraries have been reviewed. EXIT CRITERIA: Trace every callable settlement route into bitmap and portfolio settlement, identify the exact source and validation of each rate, determine whether stale or manipulated prices can alter stored balances or collateral value, and confirm whether caller-controlled timing or asset selection creates an exploitable pricing window; conclude with either a concrete exploit path or documented evidence that all rates and settlement transitions are appropriately protected.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:16:59.258893",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:17:33.758577",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_848fe99d9364": {
+      "frame_id": "frame_848fe99d9364",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of MarketParameters",
+      "artifact_refs": [
+        "Determine whether mutable or improperly validated market parameters can distort trade, collateral, settlement, or liquidation prices",
+        "Trace parameter reads and writes, including packed storage and liquidity-related arithmetic",
+        "Assess whether parameter updates can be applied without price-impact safeguards, bounds, timelocks, or synchronization with oracle-derived values"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:17:40.818563",
+      "updated_at": "2026-10-12T20:17:49.022186",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:17:40.818911",
+          "status": "planned",
+          "rationale": "WHY NOW: MarketParameters is an unanalyzed state component directly governing market calculations, and existing hypotheses identify mutable market state as a possible source of liquidation price manipulation. Reviewing this storage and parameter layer can establish whether attackers or privileged update paths can skew pricing inputs independently of the already-analyzed Market library. EXIT CRITERIA: Map every parameter affecting valuation or exchange pricing, identify all write paths and authorization/timing constraints, and either document a concrete price-manipulation path with affected operations or rule out exploitable parameter-based distortion.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:17:40.837856",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:17:49.022271",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_e97b0df04a95": {
+      "frame_id": "frame_e97b0df04a95",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of CashGroup",
+      "artifact_refs": [
+        "Market parameter reads used in asset and collateral pricing",
+        "Interest-rate and oracle-related parameter handling",
+        "Whether mutable cash-group configuration can manipulate valuation, settlement, or liquidation prices",
+        "Bounds, freshness, and consistency of pricing parameters"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:17:55.926463",
+      "updated_at": "2026-10-12T20:18:15.336663",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:17:55.926990",
+          "status": "planned",
+          "rationale": "WHY NOW: CashGroup is an unanalyzed pricing module that supplies market parameters to valuation and trading-related calculations, while several existing hypotheses involve mutable market state and oracle-derived prices. It may provide an unreviewed path for governance-controlled or inconsistent parameters to distort financially consequential prices. EXIT CRITERIA: Trace every CashGroup parameter read and write relationship into Market, FreeCollateral, settlement, and liquidation flows; verify parameter bounds, update authority, synchronization, and use of stale or inconsistent values; determine whether any attacker-accessible or insufficiently constrained path can manipulate prices, or document why no price-manipulation impact is possible.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:17:55.947031",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:18:15.336824",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_c5810a816984": {
+      "frame_id": "frame_c5810a816984",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of nTokenERC20Proxy",
+      "artifact_refs": [
+        "Present-value forwarding and any oracle- or exchange-rate-dependent calculations",
+        "Whether externally supplied or stale nToken pricing can influence transfers, balances, or downstream collateral valuation",
+        "Consistency between proxy-exposed values and authoritative nToken/accounting state"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:18:24.348621",
+      "updated_at": "2026-10-12T20:18:40.940028",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:18:24.349130",
+          "status": "planned",
+          "rationale": "WHY NOW: This uncompleted adapter is an external pricing surface that forwards nToken present values and delegates token operations, making it a distinct path through which manipulated or inconsistent nToken pricing could affect users or downstream integrations. EXIT CRITERIA: Trace every present-value and transfer-related path, identify the authoritative rate source and validation controls, determine whether a caller can influence or exploit the returned price, and either document a concrete price-manipulation impact with an attack path or rule out exploitable pricing influence.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:18:24.372702",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:18:40.940277",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_ce5133056a45": {
+      "frame_id": "frame_ce5133056a45",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of LiquidatefCash",
+      "artifact_refs": [
+        "Discounted fCash valuation and cash-deficit calculations",
+        "Dependence on oracle-derived rates and market parameters during liquidation",
+        "Whether attacker-influenced prices can distort liquidation amounts, discounts, or collateral seized",
+        "Consistency of pricing inputs across liquidation paths and caps"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:18:50.651525",
+      "updated_at": "2026-10-12T20:18:58.037263",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:18:50.651943",
+          "status": "planned",
+          "rationale": "WHY NOW: LiquidatefCash is an unanalyzed critical pricing module directly responsible for valuing and capping fCash liquidation. Existing hypotheses identify liquidation pricing as dependent on externally sourced prices and mutable market state, but the library\u2019s internal valuation flow has not yet been reviewed. EXIT CRITERIA: Trace every price and market-parameter input through discounted fCash valuation, liquidation caps, and cash-deficit limits; determine whether manipulable or stale inputs can cause materially incorrect liquidation amounts or collateral transfers; document concrete exploit conditions and affected callers, or conclude no price-manipulation path exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:18:50.669228",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:18:58.037426",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9ca13c6f9496": {
+      "frame_id": "frame_9ca13c6f9496",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of SettleBitmapAssets",
+      "artifact_refs": [
+        "Bitmap-based fCash settlement valuation",
+        "Exchange-rate and oracle inputs used when converting bitmap assets",
+        "Whether settlement uses stale, manipulable, or insufficiently validated prices",
+        "State transitions that could allow repeated or selectively timed settlement at an advantageous price"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:19:08.267629",
+      "updated_at": "2026-10-12T20:19:14.042505",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:19:08.268106",
+          "status": "planned",
+          "rationale": "WHY NOW: Settlement is a financially consequential price-consumption path, and SettleBitmapAssets is an uncompleted component distinct from the already analyzed SettlePortfolioAssets and SettleAssetsExternal. Its bitmap-specific conversion logic may apply oracle-derived rates without the same safeguards or may expose timing and repeat-settlement price manipulation opportunities. EXIT CRITERIA: Trace every bitmap settlement entry point through rate acquisition, validation, conversion, and storage updates; determine whether prices can be manipulated, stale, selectively timed, or reused; and confirm whether each identified path can or cannot create an economically exploitable settlement discrepancy.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:19:08.289729",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:19:14.042622",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_3c45c416df75": {
+      "frame_id": "frame_3c45c416df75",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of BatchAction",
+      "artifact_refs": [
+        "Sequencing of multiple trading actions within one batch",
+        "Oracle-dependent collateral checks before and after batched balance updates",
+        "Whether intermediate or final prices can be manipulated to bypass free-collateral requirements",
+        "Consistency of market and oracle pricing across batched operations"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:19:25.983934",
+      "updated_at": "2026-10-12T20:20:06.860213",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:19:25.984200",
+          "status": "planned",
+          "rationale": "WHY NOW: BatchAction is an unanalyzed state-mutating entry point that composes trading operations and performs collateral validation, making it a likely amplification point for oracle or market-price manipulation through transaction ordering and inconsistent valuation snapshots. EXIT CRITERIA: Trace every batched action path and all price, oracle, market, and collateral reads; establish whether one manipulated or inconsistent price can affect multiple operations or bypass final solvency checks; document a concrete exploitable price-manipulation path or rule it out with the relevant invariants.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:19:26.003818",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:20:06.860380",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_17f4a93140c6": {
+      "frame_id": "frame_17f4a93140c6",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of Views",
+      "artifact_refs": [
+        "Oracle-dependent collateral and portfolio valuation exposed through view methods",
+        "Whether manipulated exchange rates alter reported free collateral, account value, liquidation eligibility, or trade-related prices",
+        "Consistency of oracle freshness, validity, and rate-source checks across externally consumable views"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:20:17.622725",
+      "updated_at": "2026-10-12T20:20:35.009251",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:20:17.623040",
+          "status": "planned",
+          "rationale": "WHY NOW: Views is an unanalyzed component that exposes financially consequential valuation data while relying on collateral checks and portfolio reads. Existing hypotheses identify oracle-price manipulation and settlement/liquidation valuation concerns, but the read-only presentation layer has not been checked for weaker validation, inconsistent rate usage, or outputs that external actors may trust when deciding liquidations or transfers. EXIT CRITERIA: Trace every price-sensitive view to its valuation and oracle dependencies; compare validation, freshness, and rate-source handling with ExchangeRate, AssetRate, and FreeCollateral; determine whether a manipulated or stale price can materially change reported collateral, account value, liquidation status, or other actionable outputs; document a concrete exploit path or conclude that all exposed values inherit adequate protections.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:20:17.641619",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:20:35.009404",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_3b02b77f5bd3": {
+      "frame_id": "frame_3b02b77f5bd3",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of AccountPortfolio",
+      "artifact_refs": [
+        "Oracle-based present-value calculations for portfolio assets",
+        "Risk-adjusted valuation used in collateral, settlement, or liquidation decisions",
+        "Whether stale, manipulable, or single-source prices can alter stored portfolio value"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:20:45.852956",
+      "updated_at": "2026-10-12T20:20:50.183040",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:20:45.853401",
+          "status": "planned",
+          "rationale": "WHY NOW: AccountPortfolio is an unanalyzed state component at the boundary between oracle-derived prices and financially consequential portfolio valuation. Existing hypotheses identify oracle manipulation and settlement pricing risks, but the portfolio storage and valuation path itself has not been covered. EXIT CRITERIA: Trace every price-dependent read and write, identify the oracle/rate source and freshness or integrity checks, determine whether manipulated values affect collateral, liquidation, or settlement outcomes, and conclude whether a distinct exploitable price-manipulation issue exists without duplicating completed component analyses.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:20:45.874313",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:20:50.183238",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_00b67a3b22c2": {
+      "frame_id": "frame_00b67a3b22c2",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of nTokenAction",
+      "artifact_refs": [
+        "Trace how nToken balances and account state are read during price-sensitive operations",
+        "Determine whether balance-derived nToken valuations rely on manipulable exchange rates, stale oracle data, or attacker-controlled state",
+        "Check whether nToken accounting can influence collateral valuation, liquidation eligibility, or settlement amounts without appropriate price validation"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:21:00.747779",
+      "updated_at": "2026-10-12T20:21:08.202443",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:21:00.748351",
+          "status": "planned",
+          "rationale": "WHY NOW: nTokenAction is an unanalyzed state-facing action component, and nToken balances are likely inputs to collateral and portfolio valuation. Existing hypotheses identify oracle and nToken pricing risks, while the mint and redeem paths have already been reviewed; this component may expose an independent balance-reading or valuation path that bypasses protections found there. EXIT CRITERIA: inspect every nTokenAction entry point and its calls into balance, valuation, and account-state libraries; map all oracle or exchange-rate inputs; establish whether attacker-controlled balances or stale/manipulated rates can change economically relevant values. Conclude with a concrete price-manipulation finding, or document that all reads are non-price-sensitive and inherit validated pricing safeguards.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:21:00.769489",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:21:08.202591",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_d0ea5e0905f2": {
+      "frame_id": "frame_d0ea5e0905f2",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of BalanceHandler",
+      "artifact_refs": [
+        "Trace all balance-to-value conversions and identify whether attacker-controlled or stale exchange rates influence cash, nToken, or collateral balances",
+        "Check whether balance writes used during settlement, liquidation, minting, or redemption rely on a single unvalidated price observation",
+        "Assess whether token balance updates can be combined with oracle or market-price movements to create artificial collateral or redeemable value"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:21:16.280398",
+      "updated_at": "2026-10-12T20:21:20.187532",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:21:16.280746",
+          "status": "planned",
+          "rationale": "WHY NOW: BalanceHandler is an unanalyzed state-mutating library that feeds account balances into collateral checks, settlement, liquidation, and nToken flows. Although the principal oracle and liquidation components have been reviewed, this boundary may determine whether manipulated prices are converted into persistent balances or whether balance updates bypass expected valuation safeguards. EXIT CRITERIA: Map every BalanceHandler entry point and caller, document all price/rate inputs and their validation, verify consistency across deposit, withdrawal, settlement, liquidation, mint, and redemption paths, and conclude whether any attacker-controlled or stale price can inflate balances, collateral value, or redeemable assets; record a price-manipulation hypothesis only if a concrete exploitable flow remains.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:21:16.301963",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:21:20.187645",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_86160c8db423": {
+      "frame_id": "frame_86160c8db423",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of UUPSUpgradeable",
+      "artifact_refs": [
+        "Whether implementation upgrades are adequately authorized and constrained",
+        "Whether an attacker or unauthorized role can replace oracle, rate, or valuation logic through the proxy",
+        "Rollback and delegatecall upgrade paths that could enable persistent price-source manipulation",
+        "Interaction between upgrade authorization and governance-controlled pricing components"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:21:27.109682",
+      "updated_at": "2026-10-12T20:21:30.599629",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:21:27.110074",
+          "status": "planned",
+          "rationale": "WHY NOW: UUPSUpgradeable is an unanalyzed critical control plane for the entire proxied system, and replacing implementation logic could directly alter oracle consumption, exchange-rate computation, collateral valuation, or liquidation pricing despite the pricing components already reviewed individually. EXIT CRITERIA: Trace every upgrade entry point and authorization hook, establish which caller and governance path can invoke upgrades, verify that unauthorized upgrades cannot install price-manipulating logic, and document whether rollback/delegatecall behavior creates any alternate path to a malicious implementation. Stop once all proxy upgrade paths relevant to price determination are covered or no price-manipulation impact is possible.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:21:27.127272",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:21:30.599726",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_4073f85dcd9c": {
+      "frame_id": "frame_4073f85dcd9c",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of nTokenHandler",
+      "artifact_refs": [
+        "nToken balance and bitmap portfolio state used in valuation",
+        "Packed context updates that can create stale or inconsistent nToken pricing inputs",
+        "Whether nToken state transitions bypass current exchange-rate or collateral valuation assumptions",
+        "Propagation of manipulated or stale nToken values into free-collateral checks, settlement, or liquidation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:21:43.399034",
+      "updated_at": "2026-10-12T20:21:47.818493",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:21:43.399516",
+          "status": "planned",
+          "rationale": "WHY NOW: nTokenHandler is an unanalyzed state-management component linked to nToken balances and bitmap portfolios, both of which feed collateral valuation and financially consequential risk checks. Its packed-state and bitmap updates may determine which assets are valued and whether current pricing data is applied, making it a high-value remaining component for the price-manipulation sweep. EXIT CRITERIA: Trace every nTokenHandler read and write into valuation, settlement, liquidation, mint, and redemption flows; establish whether asset inclusion, balances, or valuation inputs can become stale, selectively omitted, or inconsistent with current oracle/exchange-rate data; document a concrete exploitable price-manipulation path or conclude that all relevant transitions preserve authoritative pricing and state consistency.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:21:43.421089",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:21:47.818631",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_1ee1a7cdb32f": {
+      "frame_id": "frame_1ee1a7cdb32f",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of ERC1967Upgrade",
+      "artifact_refs": [
+        "Whether implementation upgrades can replace oracle, valuation, settlement, or liquidation logic without robust authorization",
+        "Rollback and implementation validation paths that could enable a price-manipulating implementation",
+        "Whether proxy storage and upgrade flows permit unauthorized changes to price-consumption behavior"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:21:55.068169",
+      "updated_at": "2026-10-12T20:22:10.133182",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:21:55.068989",
+          "status": "planned",
+          "rationale": "WHY NOW: ERC1967Upgrade is an unanalyzed critical proxy component controlling which implementation serves all price-sensitive actions, while existing hypotheses depend on oracle, liquidation, settlement, and nToken valuation behavior. A weakness in upgrade authorization or implementation replacement could bypass otherwise sound price protections across the system. EXIT CRITERIA: Trace every upgrade and rollback path, identify the authorization source and validation guarantees, and determine whether any unauthorized or insufficiently constrained upgrade can alter price-sensitive logic; conclude with either a concrete price-manipulation impact or documented evidence that upgrades are adequately restricted.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:21:55.089478",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:22:10.133349",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_aec78842b014": {
+      "frame_id": "frame_aec78842b014",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of Router",
+      "artifact_refs": [
+        "Trace all externally reachable trading routes and verify user-controlled pricing parameters cannot bypass oracle, market, or settlement pricing controls",
+        "Check route forwarding preserves maturity, market, currency, and rate-related constraints without introducing alternate price sources",
+        "Compare every routed entry point against TradingAction pricing and validation assumptions"
+      ],
+      "priority": 6,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:22:18.221752",
+      "updated_at": "2026-10-12T20:22:42.799714",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:22:18.222284",
+          "status": "planned",
+          "rationale": "WHY NOW: Router is an unanalyzed contract at the boundary for trading operations, while the core TradingAction pricing logic has already been reviewed. A routing-specific flaw could expose an alternate invocation path or alter price-sensitive parameters before execution. EXIT CRITERIA: Enumerate all Router entry points and their forwarding paths, confirm each preserves the intended oracle/market pricing validations and cannot select or inject an unvalidated price source, and document any price-manipulation path or conclude none exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:22:18.244667",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:22:42.799868",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_f1b1e7d191be": {
+      "frame_id": "frame_f1b1e7d191be",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of ERC1155Action",
+      "artifact_refs": [
+        "Price-sensitive collateral and portfolio updates during ERC1155 transfers",
+        "Whether transfers settle or synchronize oracle-valued assets before balance changes",
+        "Whether reverse-transfer and authorization paths can move assets at stale or manipulated valuations",
+        "Interactions with TransferAssets, AccountContext, and FreeCollateral valuation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:22:54.566471",
+      "updated_at": "2026-10-12T20:23:13.540205",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:22:54.566925",
+          "status": "planned",
+          "rationale": "WHY NOW: ERC1155Action is an unanalyzed state-changing entry point that can alter account portfolios and collateral while interacting with settlement and valuation-sensitive asset state. It is therefore a remaining pathway through which stale or manipulated prices could affect collateralization or transfer outcomes, complementing the already analyzed liquidation, trading, settlement, and oracle-consumer components. EXIT CRITERIA: Trace every ERC1155 transfer and reverse-transfer path through TransferAssets and account-context updates; establish whether required settlement and oracle-rate synchronization occur before economically consequential state changes; determine whether any caller-controlled asset, amount, or timing can cause value to be recognized at a stale, inconsistent, or manipulable price; stop once all price-sensitive paths are covered and no exploitable valuation discrepancy remains or a concrete price-manipulation issue is documented.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:22:54.588109",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:23:13.540378",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_bb40fb5e1d16": {
+      "frame_id": "frame_bb40fb5e1d16",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of TransferAssets",
+      "artifact_refs": [
+        "Whether asset transfers bypass settlement or valuation updates before portfolio ownership changes",
+        "Whether transferred fCash, cash, or liquidity-token positions are accepted using stale oracle-dependent values",
+        "Whether recipient and sender collateral calculations can be manipulated through timing around oracle updates or maturity settlement"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:23:25.801577",
+      "updated_at": "2026-10-12T20:23:35.952472",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:23:25.802022",
+          "status": "planned",
+          "rationale": "WHY NOW: TransferAssets is an unanalyzed state-mutating library connected to ERC1155Action and portfolio/account-context storage. Although it does not appear to calculate prices directly, bypassing settlement or transferring positions under stale valuation assumptions could create a price-manipulation path that affects collateral, liquidation, or settlement outcomes. EXIT CRITERIA: Trace every transfer path and determine whether all oracle-sensitive assets are settled or revalued consistently before and after transfer; verify that no attacker-controlled timing, stale rate, or unpriced position can alter collateral or liquidation value. Stop once the component is shown to contain no price-sensitive accounting or any identified manipulation path is documented for escalation.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:23:25.823415",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:23:35.952634",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_025338dd441e": {
+      "frame_id": "frame_025338dd441e",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of PausedRouter",
+      "artifact_refs": [
+        "Verify pause-state enforcement on governance and price-sensitive administrative routes",
+        "Trace whether oracle, exchange-rate, and collateral-parameter updates can bypass pause or reach unintended implementations",
+        "Check routing and authorization assumptions that could enable unauthorized price-source or valuation configuration changes"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:23:41.606496",
+      "updated_at": "2026-10-12T20:23:45.481712",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:23:41.606908",
+          "status": "planned",
+          "rationale": "WHY NOW: PausedRouter is an unanalyzed routing component connected to governance actions that can modify exchange-rate or collateral valuation inputs, making it a relevant unvisited control point for price manipulation despite the primary Router already being completed. EXIT CRITERIA: Determine whether every price-sensitive governance route is correctly gated and authorized during paused and unpaused states, and establish whether any routing or pause bypass can alter valuation inputs; conclude with no price-manipulation issue or document a concrete exploitable path and affected state.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:23:41.626083",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:23:45.481910",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_0cf5cb01b76e": {
+      "frame_id": "frame_0cf5cb01b76e",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of CompoundToNotionalV2",
+      "artifact_refs": [
+        "Trace all externally sourced exchange-rate, borrow-balance, and repayment-value inputs",
+        "Determine whether Compound market state or adapter responses can be manipulated to alter collateral, debt, or settlement valuations",
+        "Check caps and conversion arithmetic for stale, inflated, or attacker-controlled prices",
+        "Assess whether price-sensitive values are validated against independent sources or freshness bounds"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:23:57.647122",
+      "updated_at": "2026-10-12T20:24:11.987807",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:23:57.647441",
+          "status": "planned",
+          "rationale": "WHY NOW: This external integration remains unanalyzed and sits on a financially consequential boundary where Compound-reported balances and conversion values may influence debt repayment or valuation. It is a distinct unvisited component and can expose price-manipulation paths not covered by the completed oracle, market, liquidation, and settlement analyses. EXIT CRITERIA: Map every price- or value-bearing input into and out of the integration, establish whether stale, manipulated, or inconsistent Compound rates can change user liabilities or protocol collateral accounting, and either document a concrete exploitable manipulation path with impact or conclude that all such inputs are bounded, fresh, and independently validated.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:23:57.665300",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:24:11.987990",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9c2991a30330": {
+      "frame_id": "frame_9c2991a30330",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of GovernorAlpha",
+      "artifact_refs": [
+        "Governance proposal execution paths that can alter exchange-rate oracle configuration or collateral valuation parameters",
+        "Validation of proposal success, operation hashes, queued-call identity, and timelock sequencing before price-sensitive calls execute",
+        "Whether stale, replayed, or improperly constrained governance actions can manipulate prices used for trading, settlement, or liquidation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:24:20.278600",
+      "updated_at": "2026-10-12T20:24:35.128207",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:24:20.279083",
+          "status": "planned",
+          "rationale": "WHY NOW: GovernorAlpha is an unanalyzed privileged component governing execution of price-sensitive configuration changes, while existing hypotheses identify oracle and valuation manipulation risks. Its proposal and timelock checks determine whether an attacker or improperly authorized path can cause GovernanceAction to install a manipulated oracle or rate configuration. EXIT CRITERIA: Trace every proposal-to-execution path and verify that only succeeded, uniquely identified, correctly queued, and timelocked operations can modify price sources or valuation parameters; document any reachable path that permits unauthorized, replayed, stale, or insufficiently constrained price-affecting execution, or conclude no price-manipulation exposure exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:24:20.304094",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:24:35.128444",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_712f185f2554": {
+      "frame_id": "frame_712f185f2554",
+      "session_id": "sess_agent_20261012_200812",
+      "question": "Vulnerability analysis of AccountContextHandler",
+      "artifact_refs": [
+        "Determine whether account-context updates preserve settlement and oracle-rate freshness assumptions",
+        "Trace how last-settlement metadata, asset-rate caches, and bitmap/portfolio state are packed and rewritten",
+        "Check whether stale or selectively updated context can cause collateral or debt to be valued using manipulable or outdated prices",
+        "Verify all callers consistently update pricing-relevant context before valuation, settlement, or liquidation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:24:46.599283",
+      "updated_at": "2026-10-12T20:25:00.628654",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:24:46.599579",
+          "status": "planned",
+          "rationale": "WHY NOW: AccountContextHandler is an unanalyzed shared state module used by account actions and settlement flows, while several existing hypotheses concern stale or manipulable oracle pricing during settlement and collateral valuation. Incorrect packed-context preservation could bypass freshness or settlement boundaries and make a manipulated rate financially consequential across multiple entry points. EXIT CRITERIA: Map every pricing-relevant context field and every read/write path; establish whether updates can retain stale rate or settlement metadata across valuation, liquidation, and settlement; and either document a concrete price-manipulation path with affected callers or rule out such paths with invariants for each caller.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:24:46.619085",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:25:00.628773",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 38,
+    "last_modified": "2026-10-12T20:25:00.628867"
+  }
+}

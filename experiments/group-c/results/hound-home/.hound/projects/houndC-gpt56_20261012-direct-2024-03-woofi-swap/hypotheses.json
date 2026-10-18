@@ -1,0 +1,250 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_a3f2d0945e66": {
+      "title": "Global oracle timestamp allows stale asset prices to remain feasible",
+      "description": "VULNERABILITY TYPE: oracle_integrity\nROOT CAUSE: Per-token price feasibility is validated against a single global update timestamp rather than each token's own last-update timestamp.\nATTACK VECTOR: After a token price becomes stale, an oracle administrator or automated poster updates a different token. The stale token then passes isWoFeasible and can be traded through WooRouterV2 using its outdated oracle price.\nAFFECTED NODES: wooracle_v2, woo_pp_v2, woo_router_v2\nAFFECTED CODE: WooracleV2.isWoFeasible, WooracleV2.postState, WooracleV2.postStateList, WooPPV2.tryQuery, WooRouterV2.swap\nSEVERITY: high\nREASONING: The displayed implementation directly checks the global timestamp variable for the requested base token, while price updates set that same global timestamp. The behavior is independent of whether the requested token was updated.\nSUGGESTED MITIGATION: Store a last-update timestamp per base token and validate that timestamp in isWoFeasible. Ensure every price, spread, and coefficient update updates only the relevant token timestamp, and use the per-token timestamp in all pool feasibility checks.",
+      "vulnerability_type": "oracle_integrity",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "wooracle_v2",
+        "woo_pp_v2",
+        "woo_router_v2"
+      ],
+      "evidence": [],
+      "reasoning": "The displayed implementation directly checks the global timestamp variable for the requested base token, while price updates set that same global timestamp. The behavior is independent of whether the requested token was updated.",
+      "mitigation": "Store a last-update timestamp per base token and validate that timestamp in isWoFeasible. Ensure every price, spread, and coefficient update updates only the relevant token timestamp, and use the per-token timestamp in all pool feasibility checks.",
+      "finding_description": "WooracleV2 stores one global timestamp and isWoFeasible(base) checks that timestamp for every asset. Any authorized update to one asset refreshes feasibility for all assets, including assets whose prices have not been updated. Consequently, WooPPV2 can continue pricing swaps with stale prices for otherwise inactive tokens.",
+      "impact": "Users or liquidity providers can suffer losses from swaps executed at stale prices, potentially draining the pool's reserves of an affected token.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/wooracle/WooracleV2.sol",
+          "contract": "WooracleV2",
+          "function": "isWoFeasible"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "WooPoolV2/contracts/WooRouterV2.sol",
+          "WooPoolV2/contracts/WooPPV2.sol",
+          "WooPoolV2/contracts/wooracle/WooracleV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_003324",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:34:12.433078",
+      "id": "hyp_a3f2d0945e66",
+      "qa_comment": "Upon reviewing WooracleV2, I confirmed the alleged oracle-integrity vulnerability. The contract stores a single global `timestamp` variable, while `postPrice`, `postPriceList`, `postSpread`, `postSpreadList`, `postState`, and `postStateList` update that timestamp regardless of which token was modified. In `isWoFeasible`, `price`, and `woState`, feasibility for `infos[base].price` is evaluated using this global timestamp rather than a timestamp associated with `base`. Consequently, if token A's price is old but token B is updated through any administrative posting function, token A can satisfy `block.timestamp <= timestamp + staleDuration` despite not receiving a price update. `WooPPV2` retrieves each token's state in `_tryQuerySellBase`, `_tryQuerySellQuote`, `_tryQueryBaseToBase`, and the swap paths, and enforces only the returned `woFeasible` flag via the calculation helpers. `WooRouterV2` forwards swaps to the pool without an independent freshness check. Chainlink bounds may reject some stale values, but tokens without a usable reference oracle, or stale values still within the bound, remain exploitable."
+    },
+    "hyp_26e15dad642b": {
+      "title": "Native vault deposits can report an arbitrary token amount",
+      "description": "VULNERABILITY TYPE: accounting_integrity\nROOT CAUSE: The native-asset transfer amount and the externally supplied accounting amount are not bound by an equality check.\nATTACK VECTOR: A caller invokes depositTo with a small msg.value and an arbitrarily large data.tokenAmount. The vault emits an event claiming the larger amount while transferring only msg.value to the receiver; an off-chain or downstream accounting process relying on the event can over-credit the caller.\nAFFECTED NODES: woofi_dex_vault, woofi_dex_depositor\nAFFECTED CODE: WOOFiDexTestVault.depositTo, IWOOFiDexVault.depositTo\nSEVERITY: medium\nREASONING: The native branch explicitly transfers msg.value but records data.tokenAmount. The loaded code does not constrain data.tokenAmount or demonstrate that consumers ignore the emitted amount; therefore the mismatch is a concrete integrity flaw wherever event-based accounting is used.\nSUGGESTED MITIGATION: Require msg.value == data.tokenAmount for native deposits, or derive the emitted amount from msg.value and ignore the caller-supplied value. Ensure downstream accounting uses the actual received amount rather than an unchecked event field.",
+      "vulnerability_type": "accounting_integrity",
+      "severity": "medium",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "woofi_dex_vault",
+        "woofi_dex_depositor"
+      ],
+      "evidence": [],
+      "reasoning": "The native branch explicitly transfers msg.value but records data.tokenAmount. The loaded code does not constrain data.tokenAmount or demonstrate that consumers ignore the emitted amount; therefore the mismatch is a concrete integrity flaw wherever event-based accounting is used.",
+      "mitigation": "Require msg.value == data.tokenAmount for native deposits, or derive the emitted amount from msg.value and ignore the caller-supplied value. Ensure downstream accounting uses the actual received amount rather than an unchecked event field.",
+      "finding_description": "WOOFiDexTestVault.depositTo transfers msg.value to the receiver when the configured token is native ETH, but emits the supplied data.tokenAmount without requiring it to equal msg.value. Any downstream system that credits deposits from the event or tokenAmount can be induced to record more tokens than were actually deposited.",
+      "impact": "Attackers may obtain excess vault or exchange credit, causing unrecoverable accounting deficits and potential loss of deposited assets.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/WOOFiDex/WOOFiDexTestVault.sol",
+          "contract": "WOOFiDexTestVault",
+          "function": "depositTo"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "WooPoolV2/contracts/WOOFiDex/WOOFiDexDepositor.sol",
+          "WooPoolV2/contracts/WOOFiDex/WOOFiDexTestVault.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_003324",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:34:12.454027",
+      "id": "hyp_26e15dad642b"
+    },
+    "hyp_d1b45860dccf": {
+      "title": "WooRouterV3 retains excess native currency as stranded WETH",
+      "description": "VULNERABILITY TYPE: accounting_integrity\nROOT CAUSE: The router deposits msg.value instead of fromAmount and has no refund path for msg.value - fromAmount.\nATTACK VECTOR: A user or integrator submits a native swap with msg.value greater than fromAmount. The surplus is wrapped and remains in the router while the user receives no corresponding refund.\nAFFECTED NODES: woo_router_v3, woo_pp_v3\nAFFECTED CODE: WooPoolV2/contracts/WooPPV3/WooRouterV3.sol: native-input swap branch\nSEVERITY: medium\nREASONING: The loaded code explicitly checks fromAmount <= msg.value, calls IWETH.deposit with all msg.value, and transfers only fromAmount to WooPP. There is no shown refund of the difference.\nSUGGESTED MITIGATION: Wrap and transfer exactly fromAmount, or explicitly refund msg.value - fromAmount to the caller after the swap while safely handling failed ETH transfers.",
+      "vulnerability_type": "accounting_integrity",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "woo_router_v3",
+        "woo_pp_v3"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded code explicitly checks fromAmount <= msg.value, calls IWETH.deposit with all msg.value, and transfers only fromAmount to WooPP. There is no shown refund of the difference.",
+      "mitigation": "Wrap and transfer exactly fromAmount, or explicitly refund msg.value - fromAmount to the caller after the swap while safely handling failed ETH transfers.",
+      "finding_description": "The native-input branch only requires fromAmount <= msg.value, but wraps the entire msg.value and transfers only fromAmount to WooPP. Any excess value is left as WETH in WooRouterV3 rather than refunded to the caller, allowing accidental overpayment to become stranded and potentially recoverable only through privileged recovery functionality.",
+      "impact": "Users can permanently lose the excess native currency sent with a swap; accumulated surplus WETH may remain inaccessible or depend on an administrative recovery path.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/WooPPV3/WooRouterV3.sol",
+          "contract": "WooRouterV3",
+          "function": "swap"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "WooPoolV2/contracts/WooPPV3/WooRouterV3.sol",
+          "WooPoolV2/contracts/WooPPV3/WooPPV3.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_003324",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:35:09.514275",
+      "id": "hyp_d1b45860dccf",
+      "qa_comment": "Upon reviewing the native-input branch of WooRouterV3.swap, I confirmed the accounting-integrity issue. When fromToken is the ETH placeholder, the contract only checks that fromAmount <= msg.value, then calls IWETH(WETH).deposit{value: msg.value}(), wrapping the entire payment. It subsequently transfers only fromAmount of WETH to wooPP and executes the swap using fromAmount. There is no transfer, withdrawal, or other refund of msg.value - fromAmount. Consequently, any transaction that supplies excess native currency leaves the surplus as WETH held by the router. The nonReentrant modifier and the receive() restriction do not prevent this condition; they address reentrancy and unsolicited ETH receipts, respectively, rather than enforcing exact payment or returning excess value. The WooPPV3.swap implementation also receives and accounts for only fromAmount, confirming that the surplus is not credited to the user or applied to the swap. Although exploitation generally requires a user or integrator to submit excessive msg.value and the owner can potentially rescue stranded funds, the code clearly permits loss of the surplus without refund."
+    },
+    "hyp_3e5a8f7eed94": {
+      "title": "SuperCharger weekly settlement can revert when withdrawal requests exceed liquid balance",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: Unchecked subtraction of requestedAmount from the current liquid balance in weeklyNeededAmountForWithdraw.\nATTACK VECTOR: Users request withdrawals while a substantial portion of vault assets is lent out, or requests otherwise approach the available balance. Calls to weeklyNeededAmountForWithdraw and settlement functions that depend on it revert.\nAFFECTED NODES: supercharger_vault, lending_manager\nAFFECTED CODE: WooPoolV2/contracts/earn/WooSuperChargerVaultV2.sol: weeklyNeededAmountForWithdraw, WooPoolV2/contracts/earn/WooSuperChargerVaultV2.sol: startWeeklySettle, WooPoolV2/contracts/earn/WooSuperChargerVaultV2.sol: endWeeklySettle\nSEVERITY: medium\nREASONING: The loaded implementation directly evaluates balance() - requestedAmount before calculating the funding shortfall. The same function is used by weekly settlement flows, and the architecture confirms that funds may be lent through WooLendingManager.\nSUGGESTED MITIGATION: Handle insufficient liquidity explicitly, for example by treating afterBal as zero when requestedAmount exceeds balance, and ensure settlement logic computes the required repayment without arithmetic underflow.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "supercharger_vault",
+        "lending_manager"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation directly evaluates balance() - requestedAmount before calculating the funding shortfall. The same function is used by weekly settlement flows, and the architecture confirms that funds may be lent through WooLendingManager.",
+      "mitigation": "Handle insufficient liquidity explicitly, for example by treating afterBal as zero when requestedAmount exceeds balance, and ensure settlement logic computes the required repayment without arithmetic underflow.",
+      "finding_description": "weeklyNeededAmountForWithdraw computes afterBal as balance() - requestedAmount without checking that the vault balance covers requested withdrawals. Because lending can reduce the vault's liquid balance while withdrawal requests accumulate, requestedAmount can exceed balance(), causing an arithmetic underflow and reverting the calculation.",
+      "impact": "Weekly settlement and associated withdrawal processing can become unavailable, preventing withdrawals and potentially blocking recovery until the liquid balance is restored or state is otherwise changed.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/earn/WooSuperChargerVaultV2.sol",
+          "contract": "WooSuperChargerVaultV2",
+          "function": "weeklyNeededAmountForWithdraw"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "WooPoolV2/contracts/earn/WooSuperChargerVaultV2.sol",
+          "WooPoolV2/contracts/earn/WooLendingManager.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_003324",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:35:09.531023",
+      "id": "hyp_3e5a8f7eed94",
+      "qa_comment": "Upon reviewing weeklyNeededAmountForWithdraw, startWeeklySettle, endWeeklySettle, and the related withdrawal and lending accounting, I determined this hypothesis is a false positive. The subtraction uses balance(), which represents available + reserveBalance + lendingBalance, rather than only the vault\u2019s immediately liquid token balance. requestedTotalAmount() is calculated from requestedTotalShares at the same share price used by balance(), while withdrawal requests can only transfer shares already owned by the requester and therefore cannot normally exceed totalSupply or the vault\u2019s total accounted balance. Consequently, having assets lent out may increase the repayment amount returned by weeklyNeededAmountForWithdraw, but does not itself cause balance() - requestedAmount to underflow. The settlement flow intentionally relies on WooLendingManager.weeklyRepaymentBreakdown() and repayment before endWeeklySettle, and endWeeklySettle additionally requires weeklyNeededAmountForWithdraw() == 0. A revert could occur if accounting invariants are externally broken, such as unrecognized losses or inconsistent manager state, but the provided code does not establish an exploitable path where ordinary withdrawal requests exceeding liquid balance trigger this subtraction underflow."
+    },
+    "hyp_4c148ac5e838": {
+      "title": "Outgress fee quote reverts when requested amount exceeds current balance",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: \nATTACK VECTOR: \nAFFECTED NODES: fallback_8249d39e05\nAFFECTED CODE: \nSEVERITY: medium\nREASONING: \nSUGGESTED MITIGATION: Validate amount <= currentBalance before subtraction and define an explicit behavior for insufficient balance, such as reverting with a dedicated error at the integration boundary or clamping the modeled balance to zero.",
+      "vulnerability_type": "security_issue",
+      "severity": "medium",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "fallback_8249d39e05"
+      ],
+      "evidence": [],
+      "reasoning": "",
+      "mitigation": "Validate amount <= currentBalance before subtraction and define an explicit behavior for insufficient balance, such as reverting with a dedicated error at the integration boundary or clamping the modeled balance to zero.",
+      "finding_description": "outgressFee computes currentBalance() - amount without validating that amount is no greater than the current balance. Under Solidity 0.8 arithmetic reverts on underflow; if a caller or an integrated router supplies an amount above the fee module's current balance, the fee quote reverts instead of returning a bounded result.",
+      "impact": "A malformed, stale, or externally influenced outbound amount can make fee calculation revert and block outbound transfers or cross-chain operations that depend on this quote.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/CrossChain/WooCrossFee.sol",
+          "contract": "WooCrossFee",
+          "function": "outgressFee"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_003324",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:36:50.294402",
+      "id": "hyp_4c148ac5e838"
+    },
+    "hyp_b8871f804dc1": {
+      "title": "Unvalidated external dependency addresses can permanently disable or corrupt fee quoting",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Constructor lacks zero-address and dependency validation for contracts used by fee and balance calculations.\nATTACK VECTOR: A misconfigured deployment, compromised deployment process, or intentionally supplied malicious dependency address causes callers to receive manipulated fee quotes or causes integrations that depend on the quote to revert.\nAFFECTED NODES: cross_fee\nAFFECTED CODE: WooPoolV2/contracts/CrossChain/WooCrossFee.sol:constructor, WooPoolV2/contracts/CrossChain/WooCrossFee.sol:currentBalance, WooPoolV2/contracts/CrossChain/WooCrossFee.sol:ingressFee, WooPoolV2/contracts/CrossChain/WooCrossFee.sol:outgressFee\nSEVERITY: medium\nREASONING: The constructor stores all three externally supplied addresses without validation, while the fee functions depend on those integrations. The exploitability and exact impact depend on the omitted currentBalance implementation and deployment controls, but invalid configuration can directly affect availability and fee integrity.\nSUGGESTED MITIGATION: Reject zero addresses during construction and validate that each dependency supports the expected interface and trusted implementation. Use controlled setters with event emission, access control, and validation if dependency replacement is required; otherwise make the references immutable after verified initialization.",
+      "vulnerability_type": "security_issue",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "cross_fee"
+      ],
+      "evidence": [],
+      "reasoning": "The constructor stores all three externally supplied addresses without validation, while the fee functions depend on those integrations. The exploitability and exact impact depend on the omitted currentBalance implementation and deployment controls, but invalid configuration can directly affect availability and fee integrity.",
+      "mitigation": "Reject zero addresses during construction and validate that each dependency supports the expected interface and trusted implementation. Use controlled setters with event emission, access control, and validation if dependency replacement is required; otherwise make the references immutable after verified initialization.",
+      "finding_description": "The WooCrossFee constructor assigns _wooracle, _wooPP, and _helper directly without rejecting zero addresses or verifying that the configured contracts implement the expected behavior. A deployment with an invalid or malicious dependency can make currentBalance or fee calculations revert, return attacker-controlled values, or otherwise produce incorrect cross-chain fees. Because these references are initialized only in the constructor, recovery may require redeployment if no trusted setter exists.",
+      "impact": "Cross-chain transfers can be blocked by repeated quote reverts, or users can be charged incorrect fees and protocol accounting can be distorted by attacker-controlled balance or oracle responses.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/CrossChain/WooCrossFee.sol",
+          "contract": "WooCrossFee",
+          "function": "constructor"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "WooPoolV2/contracts/CrossChain/WooCrossFee.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_003324",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:37:31.008767",
+      "id": "hyp_b8871f804dc1",
+      "qa_comment": "Upon reviewing the WooCrossFee constructor and fee-calculation functions, I confirmed that externally supplied dependencies are accepted without validation. The constructor directly casts _wooracle, _wooPP, and _helper to their expected interfaces and stores them, with no zero-address check, code-existence check, or verification of the expected implementation. currentBalance() then unconditionally calls helper.allBaseTokensLength(), helper.allBaseTokens(), wooracle.price(), wooPP.decimalInfo(), and wooPP.poolSize(). Consequently, a zero address, EOA, incompatible contract, or malicious implementation supplied during deployment can cause ingressFee(), outgressFee(), and direct currentBalance() calls to revert or return manipulated balances and therefore incorrect fee quotes. There are no setters or administrative validation mechanisms that can repair these references after deployment. The issue is not a permissionless post-deployment exploit: exploitation requires a faulty, compromised, or malicious deployment configuration, and trusted deployment controls may reduce practical likelihood. Nevertheless, the code clearly lacks the stated dependency-validation safeguards and provides a direct path to quote denial of service or fee-integrity compromise when those controls fail."
+    }
+  },
+  "metadata": {
+    "total": 6,
+    "confirmed": 3,
+    "last_modified": "2026-10-13T00:37:31.010230"
+  }
+}

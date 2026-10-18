@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndD-gpt56_20261012-direct-2024-03-revert-lend</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Revert Lend</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndD-gpt56_20261012-direct-2024-03-revert-lend<br>
+                <strong>Date:</strong> October 12, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the Revert Lend protocol, focusing on its lending vault, collateral valuation, debt accounting, liquidation flows, interest-rate calculations, and position-management integrations.</p>
+<p>The review covered the system architecture and interaction flow between lenders, borrowers, V3Vault, V3Oracle, InterestRateModel, FlashloanLiquidator, Swapper, leverage transformers, automators, Uniswap V3 position infrastructure, and external pricing and token dependencies.</p>
+<p>Our team confirmed one high-severity security issue involving spot-price manipulation of concentrated liquidity position collateral. V3Oracle derives LP token amounts from the live Uniswap V3 spot price and validates that price against another spot-based reference, allowing temporary price movements within the configured tolerance to affect collateral valuation and borrowing health checks. The overall security posture depends materially on oracle configuration, pool liquidity, position ranges, and conservative risk parameters; independent TWAP validation and valuation haircuts are recommended before production reliance.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The core lending boundary is V3Vault, which implements IVault and manages ERC-4626 lending shares, borrower debt shares, NFT collateral, deposits, withdrawals, borrowing, repayment, liquidation, and position transformations. Borrowing and repayment update loan accounting, while health checks determine whether a position can incur additional debt or remain eligible for liquidation. V3Vault also depends on InterestRateModel for rate calculations and on V3Oracle for collateral valuation.</p>
+<p>V3Oracle evaluates Uniswap V3 position NFTs by obtaining pool state, calculating the position's token amounts, and applying configured token pricing sources and feed settings. The oracle exposes getValue and getPositionBreakdown, while token configuration and secondary price validation provide additional safeguards. Our analysis revealed that the position composition is calculated from the current pool spot price, and the secondary pool-price comparison also uses a spot observation rather than an independent manipulation-resistant TWAP.</p>
+<p>The principal lending risk is therefore concentrated in the relationship between V3Oracle and V3Vault collateral checks. A temporary pool-price movement within maxPoolPriceDifference can alter the calculated composition and reported value of a concentrated LP position without causing a revert. V3Vault.borrow then relies on that valuation when checking loan health, so a borrower may increase debt against an inflated temporary valuation and restore the market price afterward. The same valuation path can also influence loan information and liquidation decisions.</p>
+<p>Liquidation can be performed directly through V3Vault or through FlashloanLiquidator. The flash-loan flow obtains loan information, invokes the Uniswap V3 flash callback, swaps assets through Swapper, and routes the resulting liquidation through V3Vault. LeverageTransformer similarly borrows from the vault, swaps assets, and increases liquidity, while V3Utils handles balance-delta accounting and NFT-related operations. These flows create important trust boundaries around token transfers, router behavior, callback authorization, and external pool execution.</p>
+<p>Automator components including AutoCompound, AutoRange, and AutoExit operate on externally owned or vault-held Uniswap V3 positions through approved transformation paths. They rely on Automator authorization, Swapper routing, pool-price checks, operator permissions, and residual-balance accounting. The Hound team identified the oracle's spot-price dependence as the principal confirmed issue in the reviewed architecture; strengthening valuation with independent TWAP observations, strict deviation limits, conservative haircuts, and pause controls would reduce the risk of bad debt and delayed liquidation.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">1</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">1</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">0</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 1,1 125.00,25.00 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">1</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">1</div>
+                    <div style="color: #64738c; font-size: 12px;">(100.0%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Spot-price manipulation of concentrated LP collateral passes oracle validation</h3>
+                <div class="vulnerability-description">
+                    <p>This is a price-manipulation and oracle-validation logic error in the valuation of concentrated-liquidity positions. The V3Oracle derives the position's token composition and collateral value from the pool's current spot price. Its anti-manipulation check compares the oracle-derived price with that same potentially manipulated spot price and permits a configurable deviation, so the check does not provide an independent validation of the valuation input. For narrow-range positions, even a price movement within the permitted threshold can materially inflate the reported collateral value.</p>
+<p>An attacker could use a flash swap or temporary liquidity to move the Uniswap V3 pool price toward a favorable tick, keep the movement below maxPoolPriceDifference, and then borrow against the inflated position valuation. The pool price could be restored within the same transaction or before the next block, leaving the vault with undercollateralized debt. Depending on the configured deviation limit, pool liquidity, position range, and collateral parameters, this could result in excessive borrowing, inaccurate loan health calculations, and losses during liquidation.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the V3Oracle contract, specifically getValue(), _checkPoolPrice(), and _getAmounts(), and the V3Vault contract, specifically _checkLoanIsHealthy(), borrow(), and loanInfo(); the issue also affects the vault’s collateral checks and liquidation logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing V3Oracle.getValue, V3Oracle._getAmounts, V3Oracle._checkPoolPrice, and V3Vault._checkLoanIsHealthy/borrow, I confirmed that the hypothesized spot-price manipulation path exists. In V3Oracle._initializeState and _getAmounts, the position’s token amounts are calculated from pool.slot0().sqrtPriceX96, making collateral composition dependent on the current Uniswap V3 spot price. Although getValue obtains token prices from configured Chainlink/TWAP sources, its anti-manipulation check derives an oracle pool price from those same prices and compares it against _getReferencePoolPriceX96(pool, 0), which explicitly reads the manipulable current slot0 price rather than a TWAP. _requireMaxDifference only rejects deviations at or above the configurable maxPoolPriceDifference, with a minimum configuration of 2%, so a temporary price movement below the threshold is accepted while still changing the LP amounts and resulting collateral valuation. V3Vault.borrow invokes _requireLoanIsHealthy using this valuation, allowing debt to be increased during the manipulated state. Restoring the pool price afterward does not undo the debt, and no independent spot/TWAP guard or valuation haircut prevents this path.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Value LP amounts using a sufficiently long, manipulation-resistant TWAP or an independently observed position price, and validate the position pool&#39;s price against an independent TWAP before using it for borrowing or liquidation. Add conservative valuation haircuts and reject or pause valuation when spot/TWAP deviation exceeds a strict bound; do not use the same spot observation as both the valuation input and verification source.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/V3Oracle.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 133-138</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>133
+134
+135
+136
+137</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function _checkPoolPrice(address token0, address token1, uint24 fee, uint256 derivedPoolPriceX96) internal view {
+    IUniswapV3Pool pool = _getPool(token0, token1, fee);
+    uint256 priceX96 = _getReferencePoolPriceX96(pool, 0);
+    _requireMaxDifference(priceX96, derivedPoolPriceX96, maxPoolPriceDifference);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The oracle validates the derived position price against the pool&#39;s current spot price, which can be manipulated by an attacker; both values therefore lack independent price validation.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/V3Vault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 1270-1280</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>1270
+1271
+1272
+1273
+1274
+1275
+1276
+1277
+1278
+1279</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function _checkLoanIsHealthy(uint256 tokenId, uint256 debt)
+    internal
+    view
+    returns (bool isHealthy, uint256 fullValue, uint256 collateralValue, uint256 feeValue)
+{
+    (fullValue, feeValue,,) = oracle.getValue(tokenId, address(asset));
+    uint256 collateralFactorX32 = _calculateTokenCollateralFactorX32(tokenId);
+    collateralValue = fullValue.mulDiv(collateralFactorX32, Q32);
+    isHealthy = collateralValue &gt;= debt;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Loan health and collateral value directly trust oracle.getValue(), so the spot-price-dependent valuation controls borrowing eligibility.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

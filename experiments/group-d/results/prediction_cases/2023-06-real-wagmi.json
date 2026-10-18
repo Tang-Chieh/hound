@@ -1,0 +1,84 @@
+{
+  "repo_id": "2023-06-real-wagmi",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_4087d2a678bc",
+      "title": "Spot-price manipulation can force rebalance liquidity into attacker-selected Uniswap V3 ranges",
+      "description": "Multipool._initializeStrategy obtains each trusted Uniswap V3 pool's current tick directly from slot0 and derives the new position bounds from that spot tick. rebalanceAll invokes _initializeStrategy after its TWAP-based swap validation, but does not validate the tick used for range construction against a TWAP or deviation bound. An attacker can temporarily move the underlying pool price before the operator's rebalance transaction, causing liquidity to be reopened around manipulated ticks even though the swap amount itself passes the TWAP check.",
+      "impact": "The multipool can concentrate assets in ranges selected by the attacker, leaving positions out of range and reducing fee generation while exposing LP holders to adverse price movement and rebalancing losses.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "_initializeStrategy"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "rebalanceAll"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "_getTicksForPosition"
+        }
+      ],
+      "mitigation": "Derive rebalance position ticks from a sufficiently long TWAP or an oracle observation with a bounded spot/TWAP deviation, and revert when the current tick is outside the permitted range. Consider calculating and validating all price-sensitive rebalance parameters before execution and protecting the rebalance transaction from stale or manipulated observations.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_0934f42ea744",
+      "title": "Dispatcher reserve-based share pricing can be manipulated during deposits and withdrawals",
+      "description": "Dispatcher derives user share conversion and withdrawal-fee accounting from the Multipool snapshot reserves without evidence of a time-weighted or independently validated token0/token1 valuation. An attacker can temporarily distort the underlying Uniswap V3 price, cause the snapshot to report an unfavorable reserve ratio, and execute a deposit or withdrawal at the distorted conversion before the price returns.",
+      "impact": "The attacker can receive more LP shares than the fair value of deposited assets or redeem shares for more assets than their fair proportion, diluting other users and transferring pool value to the attacker.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Dispatcher.sol",
+          "contract": "Dispatcher",
+          "function": "deposit(uint256,uint256,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Dispatcher.sol",
+          "contract": "Dispatcher",
+          "function": "withdraw(uint256,uint256,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "snapshot()"
+        }
+      ],
+      "mitigation": "Use a manipulation-resistant TWAP or independently validated oracle for token conversion, enforce maximum deviation against the oracle before any share conversion, and apply conservative minimum-output and maximum-input checks to both deposits and withdrawals. Consider preventing same-transaction reserve-price changes from affecting share accounting.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_7cdc2a0d08ac",
+      "title": "Public Multipool deposits can mint shares against a transiently manipulated Uniswap V3 price",
+      "description": "Multipool deposit valuation uses current slot0-derived prices and liquidity calculations. Because deposits are externally callable and the shown code passes getSlots() results into _deposit before minting, a trader who temporarily moves an underlying pool price can alter the token ratio and liquidity credited for a deposit, then unwind the price distortion and redeem at the restored valuation.",
+      "impact": "The attacker may mint underpriced or over-credited Multipool LP shares, extracting token0/token1 reserves from the pool and diluting existing LP holders.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "deposit(uint256,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "_deposit(uint256,uint256,uint256,Slot0Data[] memory)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "getSlots()"
+        }
+      ],
+      "mitigation": "Base deposit liquidity and share pricing on a sufficiently long TWAP or validated oracle, reject deposits when spot deviates beyond a configured bound, and require user-specified minimum shares or maximum token amounts based on the protected valuation.",
+      "severity": "high"
+    }
+  ]
+}

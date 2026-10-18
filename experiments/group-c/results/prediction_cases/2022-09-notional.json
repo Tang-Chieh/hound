@@ -1,0 +1,24 @@
+{
+  "repo_id": "2022-09-notional",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_7c765c9c07b0",
+      "title": "Unvalidated Aave asset configuration can create an incorrect exchange-rate oracle",
+      "description": "The constructor stores the supplied lending pool, aToken, and underlying addresses independently, obtains decimals from the supplied underlying, and does not verify that the aToken belongs to that underlying or that the lending pool has a reserve for it. A deployment or governance configuration using mismatched addresses causes the aggregator to report the normalized income of one reserve as the exchange rate of another token.",
+      "impact": "Balances can be materially overvalued or undervalued, allowing incorrect minting, redemption, collateral accounting, or protocol losses when users transact against the misconfigured asset.",
+      "vulnerable_code": [
+        {
+          "file": "contracts-v2/contracts/external/adapters/aTokenAggregator.sol",
+          "contract": "aTokenAggregator",
+          "function": "constructor"
+        }
+      ],
+      "mitigation": "During construction, verify the aToken's underlying asset against the configured underlying, verify the lending pool's reserve configuration and aToken address for that underlying, reject zero or inconsistent addresses, and use an immutable trusted deployment registry where possible.",
+      "severity": "high"
+    }
+  ]
+}

@@ -1,0 +1,2698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2022-08-sentiment</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">HoundC-Gpt56_20261012-Direct-2022-08-Sentiment</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2022-08-sentiment<br>
+                <strong>Date:</strong> October 12, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the protocol architecture, account infrastructure, oracle system, lending components, and DeFi integration controls.</p>
+<p>The review covered high-level protocol boundaries and end-to-end control and data flow, including user interaction with AccountManager and AccountFactory, BeaconProxy account routing and upgrades, Registry and RiskEngine collateral controls, OracleFacade and its pricing adapters, LToken lending pools, and ControllerFacade validation of external DeFi calls.</p>
+<p>Our team identified a mixed security posture. Core permission boundaries and administrative allowlists provide important protection, but confirmed material risks remain in oracle freshness and scaling, account upgrade administration, external-protocol calldata validation, recipient binding, Uniswap V3 path validation, recursive oracle configuration, and LP valuation. Several additional concerns were rejected because they depended on privileged misconfiguration or were mitigated by existing target mappings and access controls. The confirmed issues should be prioritized before production deployment or expansion of supported collateral and protocol integrations.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The system is organized around AccountManager, AccountFactory, Account, BeaconProxy, and Beacon. AccountFactory creates BeaconProxy account instances, which route delegated execution through Beacon to the Account implementation. Beacon provides implementation upgrades, while Account restricts execution through the account-manager authorization boundary. This upgradeable account architecture allows managed accounts to hold assets and interact with external protocols, but makes proxy-administrator assignment and beacon-change authorization critical security controls.</p>
+<p>AccountManager coordinates account lifecycle operations and invokes Account functionality while consulting RiskEngine for collateral and borrowing decisions. RiskEngine reads account balances, LToken debt, Registry configuration, and OracleFacade prices to calculate asset values, health factors, borrowing capacity, and withdrawal eligibility. LToken pools use DefaultRateModel for interest calculations and interact with underlying external assets; the review identified a risk that publicly callable state updates can use temporarily inflated token balances to suppress accrued borrowing interest.</p>
+<p>OracleFacade dispatches asset pricing to adapters including ChainlinkOracle, WETHOracle, ATokenOracle, ERC4626Oracle, YTokenOracle, Stable2CurveOracle, UniV2LPOracle, and WeightedBalancerLPOracle. These adapters combine Chainlink feeds, lending-token metadata, vault conversion rates, Yearn accounting values, Curve pool data, Uniswap V2 reserves, and Balancer pool information. The analysis revealed important validation gaps involving stale or incomplete Chainlink rounds, feed decimal assumptions, zero answers, UniV2 LP reserve scaling, and recursive oracle dependencies that can make valuation fail when privileged configuration introduces cycles.</p>
+<p>ControllerFacade mediates supported external DeFi interactions through protocol-specific controllers such as AaveV2Controller, AaveV3Controller, UniV2Controller, UniV3Controller, CompoundController, ERC4626Controller, BalancerController, curve controllers, YearnVaultController, and WETHController. ControllerFacade uses target-to-controller mappings configured by an administrator, while each controller parses selectors and calldata before Account execution. Our analysis revealed that several controllers do not bind recipient, owner, sender, or beneficiary fields to the managed Account, and that UniV3 path validation does not consistently validate every token in a route. These gaps can redirect assets or permit unsupported assets to enter account operations when authorized execution is induced with crafted calldata.</p>
+<p>Deployment scripts instantiate and connect Registry, AccountManager, AccountFactory, Beacon, RiskEngine, ControllerFacade, OracleFacade, LToken, oracle adapters, and protocol controllers. The deployment and administration model provides meaningful protection against arbitrary users registering controllers or oracle mappings, but it also concentrates risk in privileged configuration. The Hound team recommends enforcing invariant checks during registration and deployment, binding all external-protocol recipients and owners to approved accounts, adding comprehensive oracle freshness and decimal normalization, and introducing recursion, cycle, and upgrade-administrator safeguards.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">14</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">10</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">4</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 1,1 27.51,147.25 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L27.51,147.25 A100,100 0 0,1 125.00,25.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">14</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">10</div>
+                    <div style="color: #64738c; font-size: 12px;">(71.4%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">4</div>
+                    <div style="color: #64738c; font-size: 12px;">(28.6%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Stale Chainlink rounds are accepted for collateral valuation</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle validation vulnerability accepts stale or incomplete Chainlink rounds for collateral and borrowing calculations. The token and ETH/USD price functions inspect whether the reported answer is negative, but do not verify that the round has been completed, that updatedAt is nonzero, or that the response falls within an approved freshness window. As a result, outdated prices can be passed directly to the risk engine.</p>
+<p>An attacker can borrow against collateral while a feed is stale and the market price has materially changed, potentially receiving more debt than the collateral supports. The same issue can distort liquidation and account-health calculations until the feed is updated. The oracle should validate round completeness and enforce a configured maximum data age for every relevant feed.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the ChainlinkOracle contract, specifically the getPrice() and getEthPrice() functions; the Chainlink feeds; the OracleFacade; and the RiskEngine contract, specifically _valueInWei()</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing ChainlinkOracle.sol:getPrice and getEthPrice, I confirmed that stale or incomplete Chainlink rounds are accepted and used in valuation. Both functions call latestRoundData() but discard roundId, startedAt, updatedAt, and answeredInRound, checking only whether answer is negative. Consequently, a nonnegative answer with updatedAt == 0, an arbitrarily old timestamp, or answeredInRound &lt; roundId is accepted. getPrice computes the token price using the stale token/USD answer and getEthPrice, which applies the same insufficient validation to the ETH/USD feed. OracleFacade.getPrice forwards this value without additional checks, and RiskEngine._valueInWei directly uses it for collateral balances, borrow values, withdrawals, and health-factor calculations. The deployment configures these Chainlink feeds for DAI, WBTC, USDC, and USDT, while ETH/USD is used as the denominator, establishing a clear affected path. Although feed administration is restricted, that does not provide freshness protection during outages or delayed updates; an attacker can transact while stale prices materially misrepresent market value.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Validate updatedAt against a configured maximum age, require updatedAt != 0, require answeredInRound &gt;= roundId where applicable, and revert when the round is incomplete or stale. Apply equivalent checks to the ETH/USD feed.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/RiskEngine.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 178-189</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function _valueInWei(address token, uint amt)
+    internal
+    view
+    returns (uint)
+{
+    return oracle.getPrice(token)
+    .mulDivDown(
+        amt,
+        10 ** ((token == address(0)) ? 18 : IERC20(token).decimals())
+    );
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The risk engine directly uses the oracle-returned price to value collateral and borrow amounts, with no local validation of round completeness, updatedAt, or data freshness.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">oracle/src/core/OracleFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 40-48</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>40
+41
+42
+43
+44
+45
+46
+47</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function getPrice(address token) external view returns (uint) {
+    if(address(oracle[token]) == address(0)) revert Errors.PriceUnavailable();
+    return oracle[token].getPrice(token);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               ADMIN FUNCTIONS                              */
+/* -------------------------------------------------------------------------- */</code></pre></div>
+            </div>
+            <div class="code-explanation">The facade only verifies that an oracle is configured and then forwards its price unchanged; it performs no Chainlink round or freshness checks before the value reaches the risk engine.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Feed decimal mismatch can arbitrarily mis-scale token prices</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle scaling vulnerability arises because Chainlink feed decimals are assumed rather than validated or normalized. The price calculation performs raw arithmetic and relies on an undocumented expectation that token feeds use a particular precision, while the interface does not enforce that requirement. A feed using six, eighteen, or another number of decimals can therefore produce a materially mis-scaled token price when combined with the ETH/USD feed.</p>
+<p>If an incorrectly configured feed is registered, the risk engine may overvalue or undervalue deposits, borrowing capacity, and withdrawals. An overvalued collateral asset could enable excess borrowing, while an undervalued asset could improperly block valid operations. Feed decimals should be read and normalized to a common scale, or validated against an immutable expected value when feeds are configured.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the ChainlinkOracle contract, specifically getPrice(); the Chainlink feeds; the OracleFacade; the RiskEngine contract, specifically _valueInWei(); and the deployment configuration in Deploy.sol, specifically configureChainLinkOracle()</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing ChainlinkOracle.sol, RiskEngine.sol, and Deploy.sol, I confirmed that the oracle implementation has an exploitable decimal-normalization flaw when a configured feed uses decimals different from the ETH/USD feed. ChainlinkOracle.getPrice performs `(uint(answer) * 1e18) / getEthPrice()` and only documents, via a comment, that token feeds should return eight decimals; it neither reads feed decimals nor verifies compatibility with the immutable ETH/USD feed. The AggregatorV3Interface also omits a decimals() function. Consequently, a feed with a different precision produces a price scaled by the corresponding power-of-ten factor, and RiskEngine._valueInWei trusts that result for collateral and debt valuation after only normalizing token units. ChainlinkOracle.setFeed accepts any AggregatorV3Interface without validation, and Deploy.configureChainLinkOracle provides no additional check. The deployment’s listed feeds may conventionally use eight decimals, but this is not enforced and future administrative reconfiguration can introduce the mismatch. Exploitation requires an authorized feed-setting or deployment action, rather than an arbitrary permissionless attacker, but the underlying vulnerability is real.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Read decimals() from both feeds and normalize answers to a common fixed-point scale before division, or enforce and verify an immutable expected decimal value for every configured feed during setFeed.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/RiskEngine.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 178-189</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function _valueInWei(address token, uint amt)
+    internal
+    view
+    returns (uint)
+{
+    return oracle.getPrice(token)
+    .mulDivDown(
+        amt,
+        10 ** ((token == address(0)) ? 18 : IERC20(token).decimals())
+    );
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The risk engine uses the oracle&#39;s raw price and only scales by the token&#39;s ERC-20 decimals. It does not normalize or validate the decimals of the underlying Chainlink feed, allowing feed precision mismatches to mis-scale asset values.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/deployments/Deploy.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 255-259</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>255
+256
+257
+258</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function configureChainLinkOracle(address token, address feed) internal {
+    chainlinkOracle.setFeed(token, AggregatorV3Interface(feed));
+    oracle.setOracle(token, chainlinkOracle);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Chainlink feeds are registered directly through setFeed without reading, validating, or normalizing the feed&#39;s decimals, leaving the system dependent on an undocumented precision assumption.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">oracle/src/core/OracleFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 40-48</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>40
+41
+42
+43
+44
+45
+46
+47</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function getPrice(address token) external view returns (uint) {
+    if(address(oracle[token]) == address(0)) revert Errors.PriceUnavailable();
+    return oracle[token].getPrice(token);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               ADMIN FUNCTIONS                              */
+/* -------------------------------------------------------------------------- */</code></pre></div>
+            </div>
+            <div class="code-explanation">The facade forwards the configured oracle&#39;s price without applying any decimal normalization or validation, preserving potentially mis-scaled feed output for downstream risk calculations.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Spot liquidity can be flash-manipulated to suppress borrow interest</h3>
+                <div class="vulnerability-description">
+                    <p>This economic manipulation vulnerability allows the borrow-rate calculation to be influenced by transient spot liquidity. The rate model derives utilization from borrow balances and liquidity, while the LToken integration uses the underlying token's instantaneous balance as the liquidity value. Because updateState() is externally callable, temporary transfers can inflate that balance immediately before interest accrual.</p>
+<p>An attacker can supply or borrow flash liquidity, transfer it to the LToken, invoke updateState() while liquidity is artificially high, and remove or repay the temporary funds in the same transaction or block. The inflated denominator reduces utilization and can suppress the interest rate applied to the accrued period, harming lenders and distorting protocol accounting. Accrual should use a protected accounting snapshot, stored or time-weighted liquidity, or another measure that cannot be manipulated around the update call.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the DefaultRateModel contract, specifically getBorrowRatePerSecond(); the LToken contract, specifically updateState() and getBorrows(); and the integrated external lending protocol</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing LToken.sol, particularly updateState(), getRateFactor(), and the public asset-balance access in getRateFactor(), I confirmed that the alleged economic manipulation is exploitable. updateState() is callable by any address and, when the timestamp changes, calculates accrued interest using rateModel.getBorrowRatePerSecond(asset.balanceOf(address(this)), borrows). DefaultRateModel.sol then computes utilization as borrows divided by liquidity plus borrows, so temporarily transferring underlying tokens to the LToken reduces utilization and the resulting borrow rate. An attacker can supply temporary liquidity, invoke updateState() while that balance is present, and remove or repay the liquidity in the same transaction or block. The only guard is the lastUpdated == block.timestamp check, which prevents repeated accrual within a timestamp but does not prevent the first manipulated update. Other state-changing paths, including beforeDeposit(), beforeWithdraw(), and lendTo(), also invoke the same vulnerable update logic, while no trusted snapshot, minimum holding period, or balance-change sequencing protection exists. Therefore, a flash-loan-funded attacker can suppress interest accrued for the elapsed interval since the prior update.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Do not base accrual on an unprotected instantaneous token balance. Use a liquidity measure that cannot be temporarily inflated for the accrual call, such as a stored or time-weighted liquidity value, and ensure state updates use a trusted pre-update accounting snapshot. Consider restricting or carefully sequencing balance-changing operations around interest accrual.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/tokens/LToken.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 200-216</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function updateState() public {
+    if (lastUpdated == block.timestamp) return;
+    uint rateFactor = getRateFactor();
+    uint interestAccrued = borrows.mulWadUp(rateFactor);
+    borrows += interestAccrued;
+    reserves += interestAccrued.mulWadUp(reserveFactor);
+    lastUpdated = block.timestamp;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                             INTERNAL FUNCTIONS                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+    @dev Rate Factor = Timestamp Delta * 1e18 (Scales timestamp delta to 18 decimals) * Interest Rate Per Block
+        Timestamp Delta = Number of seconds since last update
+*/</code></pre></div>
+            </div>
+            <div class="code-explanation">updateState() is publicly callable and accrues interest using getRateFactor(), allowing an attacker to trigger accrual while the pool&#39;s transient underlying-token balance is artificially inflated.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/DefaultRateModel.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 51-68</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function getBorrowRatePerSecond(
+    uint liquidity,
+    uint borrows
+)
+    external
+    view
+    returns (uint)
+{
+    uint util = _utilization(liquidity, borrows);
+    return c3.mulDivDown(
+        (
+            util.mulWadDown(c1)
+            + util.rpow(32, SCALE).mulWadDown(c1)
+            + util.rpow(64, SCALE).mulWadDown(c2)
+        ),
+        secsPerYear
+    );
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The borrow rate is derived from utilization, which is calculated from the supplied liquidity and borrow balances; inflated spot liquidity therefore lowers utilization and suppresses interest.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Caller-supplied proxy administrator permits unauthorized upgrade control</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability results from accepting a caller-supplied proxy administrator without binding that address to the account owner or trusted governance. The permissionless account factory passes the supplied administrator into the proxy configuration, and the available validation does not establish that the address is authorized, nonzero, or otherwise suitable to control upgrades.</p>
+<p>An attacker can create an account, or cause an integration to create one, with an administrator address controlled by the attacker. If that administrator has proxy upgrade authority, it can install malicious account logic and redirect or control assets held by the proxy. Account creation should be restricted or the administrator should be derived from authenticated ownership or immutable trusted governance, with explicit validation and tests preventing untrusted upgrade control.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the AccountFactory contract and its account-proxy creation logic; the AccountProxy or BeaconProxy configuration; the Account contract; and the associated beacon upgrade mechanism</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing AccountFactory.create and the proxy administrator logic in BeaconProxy and BaseProxy, I confirmed that the factory accepts an arbitrary caller-supplied administrator without authorization or ownership validation. AccountFactory.create(accountManager) is external and permissionless, and it directly constructs BeaconProxy(beacon, accountManager). BeaconProxy passes that value to BaseProxy._setAdmin, which only rejects address(0); it does not require the administrator to be the account owner, factory, governance, or another trusted address. The resulting administrator can invoke changeBeacon() through the adminOnly modifier and replace the account’s beacon with an attacker-controlled beacon whose implementation contains arbitrary logic. Because the proxy delegates all account calls and may hold assets, this can enable asset theft if an integration creates or funds an account while assigning an attacker-controlled administrator. Beacon ownership does not mitigate this issue because the proxy administrator can change the beacon itself. The supplied code does not demonstrate a victim-facing integration flow, so exploitation against a funded third-party account depends on external usage, but the access-control flaw is directly present.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Restrict account creation or bind the administrator to the authenticated account owner; reject zero and unsuitable administrator addresses; preferably derive the administrator from immutable trusted governance or the initialized owner rather than accepting an unconstrained caller-supplied value. Add tests proving that an untrusted caller cannot obtain upgrade authority over another user&#39;s account.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/AccountFactory.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 43-51</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>43
+44
+45
+46
+47
+48
+49
+50</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">    function create(address accountManager)
+        external
+        returns (address account)
+    {
+        account = address(new BeaconProxy(beacon, accountManager));
+        emit AccountCreated(account, accountManager);
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The permissionless factory accepts any caller-supplied accountManager and passes it directly to the BeaconProxy constructor, without checking ownership, authorization, or zero address validity.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/Account.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 59-68</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>59
+60
+61
+62
+63
+64
+65
+66
+67
+68</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function init(address _accountManager) external {
+    if (accountManager != address(0))
+        revert Errors.ContractAlreadyInitialized();
+    accountManager = _accountManager;
+}
+
+/**
+    @notice Activates an account by setting the activationBlock to the
+        current block number
+*/</code></pre></div>
+            </div>
+            <div class="code-explanation">Account initialization accepts and permanently stores the supplied manager without validating that it is authorized or trusted, making the caller-provided address the account&#39;s privileged controller.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Aave V3 supply and withdraw recipients are not constrained to the Account</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability allows Aave V3 supply and withdrawal calls to specify beneficiaries or recipients that are not the managed Account. The controller validates the operation and asset mapping but does not demonstrably bind supply's onBehalfOf field or withdrawal's to field to the Account executing the call.</p>
+<p>A caller who can reach the Account or controller execution path may submit supply calldata for an attacker-controlled beneficiary or withdrawal calldata that sends assets to an attacker-controlled address. This can redirect supplied positions or withdrawn funds while preserving otherwise valid protocol parameters. The controller must decode and validate both fields, requiring them to equal the Account unless a separately authorized destination model is explicitly supported, and the facade must not bypass those checks.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the AaveV3Controller contract, specifically supply and withdraw calldata validation; the ControllerFacade; and the Account contract's external protocol execution path</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing AaveV3Controller.canCall in controller/src/aave/AaveV3Controller.sol, I confirmed that recipient binding is absent for both supported Aave operations. For SUPPLY, the controller decodes only the first argument, asset, from data[4:] and checks the corresponding aToken allowance; it never decodes or validates the third argument, onBehalfOf. For WITHDRAW, it likewise decodes only asset and does not inspect the third argument, to. ControllerFacade.canCall merely forwards calldata to the configured controller and adds no independent validation. Account.exec in protocol/src/core/Account.sol authorizes the accountManager but then forwards arbitrary calldata directly using target.call, without constraining protocol recipient parameters. Consequently, an otherwise authorized execution through this path can supply assets from the Account while crediting aToken ownership to a different address, or withdraw Account-owned aTokens while directing underlying assets to an attacker-controlled recipient. The shown code contains no guard requiring onBehalfOf or to to equal the Account, so the hypothesis is exploitable assuming the normal controller-approved execution path invokes Account.exec.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Decode and validate onBehalfOf for supply and to for withdraw, requiring each to equal the Account being operated on unless an explicitly approved destination model is intended. Add negative tests for third-party beneficiaries and recipients, and ensure ControllerFacade cannot bypass these checks.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/Account.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 149-162</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-10').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162</pre></div>
+                <div class="code-content"><pre id="code-block-10"><code class="language-solidity">function exec(address target, uint amt, bytes calldata data)
+    external
+    accountManagerOnly
+    returns (bool, bytes memory)
+{
+    (bool success, bytes memory retData) = target.call{value: amt}(data);
+    return (success, retData);
+}
+
+/**
+    @notice Utility function to transfer all assets to a specified account
+        and delete all assets
+    @param toAddress address of the account to send the assets to
+*/</code></pre></div>
+            </div>
+            <div class="code-explanation">The account manager can execute arbitrary calldata against any target, with no decoding or validation that Aave supply onBehalfOf or withdrawal to equals the Account.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">controller/src/core/ControllerFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 45-56</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-11').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55</pre></div>
+                <div class="code-content"><pre id="code-block-11"><code class="language-solidity">function canCall(
+    address target,
+    bool useEth,
+    bytes calldata data
+) external view returns (bool, address[] memory, address[] memory) {
+    return controllerFor[target].canCall(target, useEth, data);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               ADMIN FUNCTIONS                              */
+/* -------------------------------------------------------------------------- */</code></pre></div>
+            </div>
+            <div class="code-explanation">The facade forwards the target and raw calldata directly to the configured controller and performs no recipient or beneficiary binding itself.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Aave V2 withdrawals are accepted without sufficient authorization checks</h3>
+                <div class="vulnerability-description">
+                    <p>This authorization vulnerability affects the Aave V2 withdrawal path, which does not enforce a complete allowlist relationship between the target pool, underlying asset, and corresponding aToken. Unlike the deposit path, which performs an aToken-to-asset mapping, withdrawals are described as always permitted and may therefore reach the controller without equivalent reserve validation.</p>
+<p>An attacker may submit a withdrawal through the controller facade using an unapproved asset, pool, or reserve configuration. If the call is forwarded, assets can be transferred out of Aave V2 without satisfying the intended protocol- and asset-level authorization policy. Every withdrawal should validate the canonical pool, confirm the reserve and expected aToken mapping, and reject any unconfigured target or asset.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the AaveV2Controller contract, specifically withdrawal validation; the ControllerFacade; and the Account contract's external protocol call authorization</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing AaveV2Controller.canCall and ControllerFacade.canCall, I confirmed an authorization gap in the withdrawal validation path. For the WITHDRAW selector, AaveV2Controller decodes only the asset, populates accounting arrays using dataProvider.getReserveTokensAddresses(asset), and unconditionally returns true. It does not verify controllerFacade.isTokenAllowed for the asset or returned aToken, does not validate that the target is the canonical Aave V2 pool, and ignores both the target and useEth parameters. By contrast, the DEPOSIT branch requires the returned aToken to be allowed. ControllerFacade merely dispatches based on controllerFor[target] and adds no independent validation. Account.exec is restricted by accountManagerOnly, which prevents arbitrary external callers from directly executing calls, but it does not correct the missing protocol-specific authorization when the account manager relies on canCall. The underlying Aave pool may revert for nonexistent reserves, and successful withdrawal still requires a corresponding aToken balance, but valid yet unapproved reserves or targets can pass this policy check. Therefore, the claimed withdrawal authorization asymmetry is real, although the practical impact depends on the omitted account-manager execution flow.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require every withdrawal to validate the canonical Aave V2 pool, verify that the asset has a registered reserve and expected aToken mapping, and reject assets or targets not present in the configured allowlist.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">controller/src/core/ControllerFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 45-51</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-12').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>45
+46
+47
+48
+49
+50
+51</pre></div>
+                <div class="code-content"><pre id="code-block-12"><code class="language-solidity">function canCall(
+    address target,
+    bool useEth,
+    bytes calldata data
+) external view returns (bool, address[] memory, address[] memory) {
+    return controllerFor[target].canCall(target, useEth, data);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The facade forwards canCall requests directly to the controller registered for the supplied target without checking the target pool, underlying asset, reserve, or aToken mapping; the isTokenAllowed policy is not consulted.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/Account.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 149-162</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-13').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162</pre></div>
+                <div class="code-content"><pre id="code-block-13"><code class="language-solidity">function exec(address target, uint amt, bytes calldata data)
+    external
+    accountManagerOnly
+    returns (bool, bytes memory)
+{
+    (bool success, bytes memory retData) = target.call{value: amt}(data);
+    return (success, retData);
+}
+
+/**
+    @notice Utility function to transfer all assets to a specified account
+        and delete all assets
+    @param toAddress address of the account to send the assets to
+*/</code></pre></div>
+            </div>
+            <div class="code-explanation">The account exposes a generic low-level execution path that forwards arbitrary calldata to any target. Once reached by the account manager/controller flow, this provides no protocol-specific validation of an Aave withdrawal target or asset.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>ERC4626 withdrawal and redemption authorization may permit arbitrary owners and receivers</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability arises because ERC4626 withdrawal and redemption parameters are not demonstrably bound to an authorized owner and receiver. Both operations accept independent owner and receiver addresses, and the controller validation boundary does not visibly restrict those fields to the managed Account or an approved destination.</p>
+<p>An attacker may supply calldata that uses an owner whose shares are accessible to the Account and directs the resulting assets to an attacker-controlled receiver. The same issue can occur when the Account is specified as owner but proceeds are redirected elsewhere. The controller should require the owner to be the executing Account unless a controlled allowance model is implemented, restrict the receiver to the Account or an approved destination, and validate the complete payload before forwarding it.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the ERC4626Controller contract, specifically withdraw() and redeem(); the ControllerFacade; and the Account contract's ERC4626 execution path</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the ERC4626Controller.canCall function and the forwarding path through ControllerFacade.canCall and Account.exec, I confirmed that the validator does not enforce authorization of ERC4626 withdrawal or redemption parameters. For REDEEM and WITHDRAW selectors, ERC4626Controller only identifies the vault asset and share token, then returns true; it never decodes or checks the owner or receiver arguments. Consequently, calldata such as withdraw(assets, attacker, account) or redeem(shares, attacker, account) is accepted by the controller, and the more direct case of using the Account as owner while specifying an attacker-controlled receiver is also accepted. Account.exec restricts invocation to accountManagerOnly, but it does not constrain target calldata or the destination encoded within it, so that guard does not provide the missing owner/receiver policy enforcement when the manager executes user-supplied or otherwise attacker-influenced calldata. ERC4626 vault-level authorization may reject arbitrary third-party owners absent allowance, but it does not prevent redirecting assets owned by the Account to an arbitrary receiver. Therefore, the validation boundary is insufficient and the hypothesis is exploitable wherever this controller governs Account execution.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require owner to be the executing Account unless a separately authorized allowance model is implemented, and restrict receiver to the Account or an explicitly approved destination. Validate the full calldata before forwarding the call.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/Account.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 149-162</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-14').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162</pre></div>
+                <div class="code-content"><pre id="code-block-14"><code class="language-solidity">function exec(address target, uint amt, bytes calldata data)
+    external
+    accountManagerOnly
+    returns (bool, bytes memory)
+{
+    (bool success, bytes memory retData) = target.call{value: amt}(data);
+    return (success, retData);
+}
+
+/**
+    @notice Utility function to transfer all assets to a specified account
+        and delete all assets
+    @param toAddress address of the account to send the assets to
+*/</code></pre></div>
+            </div>
+            <div class="code-explanation">The account manager can forward arbitrary calldata to any target through a low-level call. No decoding or validation binds ERC4626 owner and receiver parameters to the Account or an approved destination before execution.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">controller/src/core/ControllerFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 45-56</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-15').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55</pre></div>
+                <div class="code-content"><pre id="code-block-15"><code class="language-solidity">function canCall(
+    address target,
+    bool useEth,
+    bytes calldata data
+) external view returns (bool, address[] memory, address[] memory) {
+    return controllerFor[target].canCall(target, useEth, data);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               ADMIN FUNCTIONS                              */
+/* -------------------------------------------------------------------------- */</code></pre></div>
+            </div>
+            <div class="code-explanation">The facade delegates payload authorization entirely to the target-specific controller and performs no visible validation of the encoded ERC4626 owner or receiver fields at this boundary.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Uniswap V3 swap recipient is not constrained to the managed account</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability permits Uniswap V3 swaps to specify a recipient that is not the managed Account. The swap validator checks selectors, input tokens, and path data, but does not enforce a trusted recipient across supported exact-input, exact-output, or multicall payloads.</p>
+<p>An attacker may submit or induce execution of an otherwise permitted swap with an attacker-controlled recipient, causing the Account's assets or swap proceeds to be delivered externally. The controller should decode every supported swap, including nested multicall operations, require the recipient to be the executing Account or an explicitly approved protocol destination, and reject arbitrary recipient values.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the UniV3Controller contract and its swap calldata validation; the ControllerFacade; and the Account contract's validated external protocol execution path</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing UniV3Controller.canCall and all supported parsing functions, I confirmed that recipient validation is absent. parseExactInputSingle, parseExactOutputSingle, parseExactInput, and parseExactOutput decode the swap parameters but only validate token allowlisting; they never compare params.recipient with the executing Account or another trusted destination. The multicall handlers, including parseExactInputSingleMulticall, parseExactOutputSingleMulticall, parseExactInputMulticall, and parseExactOutputMulticall, likewise decode the swap while ignoring its recipient field. Consequently, a call can pass ControllerFacade.canCall while directing swap output to an arbitrary address. Account.exec restricts execution to accountManagerOnly, which prevents an entirely unauthenticated caller from invoking exec directly, but it does not compensate for the controller’s incomplete policy if the account manager accepts or forwards controller-approved calldata. The source therefore demonstrates a clear fund-redirection condition for any execution path relying on this validation, including all listed swap selectors and supported multicalls.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Decode every supported swap payload, including swaps nested in multicall, and require the recipient to be the executing Account or an explicitly approved protocol-controlled destination. Reject arbitrary recipient values and ensure all relevant swap selectors are covered.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/Account.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 149-162</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-16').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162</pre></div>
+                <div class="code-content"><pre id="code-block-16"><code class="language-solidity">function exec(address target, uint amt, bytes calldata data)
+    external
+    accountManagerOnly
+    returns (bool, bytes memory)
+{
+    (bool success, bytes memory retData) = target.call{value: amt}(data);
+    return (success, retData);
+}
+
+/**
+    @notice Utility function to transfer all assets to a specified account
+        and delete all assets
+    @param toAddress address of the account to send the assets to
+*/</code></pre></div>
+            </div>
+            <div class="code-explanation">The account manager can execute arbitrary calldata against any target. This generic execution path does not constrain swap recipients to the managed Account or an approved destination, allowing a permitted swap payload to direct assets externally if the validator fails to enforce the recipient.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">controller/src/core/ControllerFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 45-56</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-17').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55</pre></div>
+                <div class="code-content"><pre id="code-block-17"><code class="language-solidity">function canCall(
+    address target,
+    bool useEth,
+    bytes calldata data
+) external view returns (bool, address[] memory, address[] memory) {
+    return controllerFor[target].canCall(target, useEth, data);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               ADMIN FUNCTIONS                              */
+/* -------------------------------------------------------------------------- */</code></pre></div>
+            </div>
+            <div class="code-explanation">The facade delegates validation entirely to the controller registered for the target and performs no recipient enforcement itself. Recipient safety therefore depends on the target-specific swap controller correctly decoding every supported payload.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>UniV2 LP valuation may mis-scale reserves for tokens with different decimals</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle valuation vulnerability may mis-scale UniV2 LP values when the pair's underlying tokens use different decimals. Pair reserves are denominated in each token's native units, but the valuation path does not demonstrably normalize those reserves and the corresponding OracleFacade prices to a common scale before combining them.</p>
+<p>An LP token containing six-, eight-, and eighteen-decimal assets may therefore be overvalued or undervalued. Overvaluation can allow excessive borrowing against LP collateral, while undervaluation can reject valid collateral or trigger incorrect risk decisions. The oracle should read both token decimal values, normalize reserves and prices to a common fixed-point representation, and test representative decimal combinations before accepting a pair.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the UniV2LPOracle contract and its LP reserve valuation logic; the OracleFacade; and the RiskEngine contract's collateral valuation logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the UniV2LpOracle.getPrice function in oracle/src/uniswap/UniV2LPOracle.sol, I confirmed a reserve-decimal scaling vulnerability. The function reads raw getReserves() values and combines them with OracleFacade prices using mulWadDown, but never reads token0 or token1 decimals or normalizes reserves to whole-token units. Its calculation effectively assumes both reserves use 18 decimals. OracleFacade.getPrice merely forwards the underlying price and performs no normalization, while RiskEngine._valueInWei only divides the final LP amount by the LP token&#39;s decimals; it cannot correct incorrectly scaled underlying reserves. Consequently, a pair containing, for example, a 6-decimal token and an 18-decimal token produces an LP price mis-scaled by the square root of the decimal-factor difference. No guard in the shown code rejects differing decimals or restricts LP registration to compatible pairs. If such an LP is accepted as collateral, the resulting overvaluation can increase borrowing capacity, while undervaluation can incorrectly reject collateral.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Read both underlying token decimals and normalize reserve quantities and oracle prices to a single fixed-point scale before calculating the LP value; add tests covering common 6/8/18-decimal pair combinations and reject unsupported decimal configurations.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/deployments/Deploy.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 301-318</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-18').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318</pre></div>
+                <div class="code-content"><pre id="code-block-18"><code class="language-solidity">function deployOracles() internal {
+    deployWETHOracle();
+    deployChainlinkOracle();
+
+    // Aave
+    aTokenOracle = new ATokenOracle(oracle);
+    oracle.setOracle(aWETH, aTokenOracle);
+    oracle.setOracle(aDAI, aTokenOracle);
+    oracle.setOracle(aWBTC, aTokenOracle);
+
+    // Sushi
+    SLPOracle = new UniV2LpOracle(oracle);
+    oracle.setOracle(SLP, SLPOracle);
+
+    curveTriCryptoOracle = new CurveTriCryptoOracle(ICurveTriCryptoOracle(TRICRYPTOPRICE), ICurvePool(TRIPOOL));
+    oracle.setOracle(TRICRYPTO, curveTriCryptoOracle);
+
+    stable2crvOracle = new Stable2CurveOracle(oracle);</code></pre></div>
+            </div>
+            <div class="code-explanation">Registers the UniV2 LP oracle for the SushiSwap LP token and passes the OracleFacade into it, but this wiring provides no visible normalization of the pair reserves or underlying token decimal scales.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/RiskEngine.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 178-189</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-19').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188</pre></div>
+                <div class="code-content"><pre id="code-block-19"><code class="language-solidity">function _valueInWei(address token, uint amt)
+    internal
+    view
+    returns (uint)
+{
+    return oracle.getPrice(token)
+    .mulDivDown(
+        amt,
+        10 ** ((token == address(0)) ? 18 : IERC20(token).decimals())
+    );
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Values an asset by multiplying the OracleFacade price by its native-unit amount and dividing by that asset&#39;s decimals; this only normalizes the outer token amount and does not demonstrate normalization of underlying UniV2 reserves combined inside an LP oracle.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">oracle/src/core/OracleFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 40-48</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-20').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>40
+41
+42
+43
+44
+45
+46
+47</pre></div>
+                <div class="code-content"><pre id="code-block-20"><code class="language-solidity">function getPrice(address token) external view returns (uint) {
+    if(address(oracle[token]) == address(0)) revert Errors.PriceUnavailable();
+    return oracle[token].getPrice(token);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               ADMIN FUNCTIONS                              */
+/* -------------------------------------------------------------------------- */</code></pre></div>
+            </div>
+            <div class="code-explanation">The facade simply delegates getPrice to the configured token oracle and returns the result, with no token-decimal or reserve-scale normalization at this layer.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Balancer join and exit recipients are not constrained to the managed account</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability allows Balancer join and exit requests to direct resulting assets to an arbitrary recipient. The controller decodes pool and token information but does not demonstrably bind the Vault request's sender and recipient fields to the managed Account.</p>
+<p>An attacker may submit or induce an otherwise valid joinPool or exitPool request that specifies an attacker-controlled recipient, causing assets received from the operation to bypass the Account. The controller should require the sender and recipient to equal the managed Account, or generate those values internally so they cannot be caller-controlled, and should reject arbitrary destinations before forwarding requests to the Balancer Vault.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the BalancerController contract, specifically joinPool() and exitPool() request decoding and validation; the ControllerFacade; and the Account contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the BalancerController canJoin and canExit functions, I confirmed that Balancer Vault recipient and sender fields are decoded but discarded. Both functions decode the tuple as `(bytes32 poolId, address, address, request)` and use only poolId and request assets; they never validate that the sender or recipient equals the Account, nor do they replace those values with a controller-controlled address. Consequently, a call to Vault.joinPool or exitPool can use the Account as sender while directing minted BPT or withdrawn tokens to an attacker-controlled recipient. Account.exec only restricts who may initiate the external call through accountManagerOnly; it does not validate Balancer calldata or invoke ControllerFacade itself. Thus, assuming the account manager executes calldata after consulting canCall, the facade will approve a request with an arbitrary recipient, allowing assets generated from Account-held funds to be sent elsewhere. The missing recipient binding is therefore a genuine authorization/integrity gap, although exploitation requires inducing or compromising the authorized account manager.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require the Balancer request sender and recipient to equal the managed Account, or use controller-generated values that cannot be caller-supplied; reject requests containing arbitrary recipients before forwarding them to the Vault.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/Account.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 149-162</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-21').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162</pre></div>
+                <div class="code-content"><pre id="code-block-21"><code class="language-solidity">function exec(address target, uint amt, bytes calldata data)
+    external
+    accountManagerOnly
+    returns (bool, bytes memory)
+{
+    (bool success, bytes memory retData) = target.call{value: amt}(data);
+    return (success, retData);
+}
+
+/**
+    @notice Utility function to transfer all assets to a specified account
+        and delete all assets
+    @param toAddress address of the account to send the assets to
+*/</code></pre></div>
+            </div>
+            <div class="code-explanation">The account manager can forward arbitrary calldata to any target through exec. No validation constrains embedded Balancer joinPool/exitPool sender or recipient fields to address(this), allowing downstream request destinations to be caller-controlled if the manager forwards untrusted data.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Zero answers can disable pricing or create zero-valued collateral</h3>
+                <div class="vulnerability-description">
+                    <p>This oracle input-validation vulnerability allows zero-valued Chainlink answers to pass validation. The implementation rejects only negative answers, so an answer of zero is accepted; a zero token price is returned directly, while a zero ETH/USD answer can cause division by zero when token prices are converted.</p>
+<p>A feed outage or configuration error can therefore disable pricing operations or cause collateral to be valued at zero. This may cause risk checks, borrowing, withdrawals, and liquidations to revert or may allow account state to be evaluated using invalid collateral values. Both token and ETH/USD answers should be required to be strictly positive before any arithmetic or valuation occurs.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the ChainlinkOracle contract, specifically getPrice() and getEthPrice(); the Chainlink feeds; the OracleFacade; and the RiskEngine contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing ChainlinkOracle.getPrice and getEthPrice in oracle/src/chainlink/ChainlinkOracle.sol, I confirmed the reported oracle validation weakness. Both functions reject only negative answers, allowing answer == 0 to pass the int-to-uint conversion. When the token feed returns zero and the ETH/USD feed is positive, getPrice returns zero, and OracleFacade performs no additional validation before exposing that value to RiskEngine._valueInWei. Consequently, collateral can be valued at zero, disabling withdrawals or borrowing for affected accounts, while a zero-valued borrow feed could cause debt to be omitted from health calculations. If the ETH/USD feed returns zero, getEthPrice returns zero and getPrice reverts on division by zero, allowing pricing-dependent protocol operations to be disabled. The relevant RiskEngine balance and borrow aggregation paths directly consume these prices without safeguards. Although an ordinary user cannot arbitrarily set Chainlink answers, a feed outage, migration, or misconfiguration provides a realistic triggering condition, and no strictly-positive answer check exists to fail safely with a dedicated validation error.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require both token and ETH answers to be greater than zero and revert with a dedicated invalid-answer error before any arithmetic or price use.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">oracle/src/core/OracleFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 40-48</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-22').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>40
+41
+42
+43
+44
+45
+46
+47</pre></div>
+                <div class="code-content"><pre id="code-block-22"><code class="language-solidity">function getPrice(address token) external view returns (uint) {
+    if(address(oracle[token]) == address(0)) revert Errors.PriceUnavailable();
+    return oracle[token].getPrice(token);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               ADMIN FUNCTIONS                              */
+/* -------------------------------------------------------------------------- */</code></pre></div>
+            </div>
+            <div class="code-explanation">The target getPrice function only verifies that an oracle is configured and directly returns its result, with no check that the returned price is strictly positive; a zero answer therefore propagates to callers.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/RiskEngine.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 178-189</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-23').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188</pre></div>
+                <div class="code-content"><pre id="code-block-23"><code class="language-solidity">function _valueInWei(address token, uint amt)
+    internal
+    view
+    returns (uint)
+{
+    return oracle.getPrice(token)
+    .mulDivDown(
+        amt,
+        10 ** ((token == address(0)) ? 18 : IERC20(token).decimals())
+    );
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The target price is consumed directly in valuation arithmetic. A zero oracle price produces a zero-valued amount, which can invalidate collateral and borrow valuations; downstream division or health checks may also be affected.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Only the input token is allowlisted, permitting unsupported output and intermediate assets</h3>
+                <div class="vulnerability-description">
+                    <p>This token-allowlist logic vulnerability validates only the input token of a Uniswap V3 path rather than every token involved in the route. Intermediate assets and the final output asset may therefore be unsupported, and exact-output paths require additional care because their encoded direction is reversed.</p>
+<p>An attacker can provide a path that begins with an approved token but routes through an unapproved intermediate asset or ends with an attacker-selected output token. This may introduce assets that lack approved risk parameters or oracle support and can interfere with collateral valuation and account controls. Every token in every supported path should be decoded and checked, with correct direction handling for exact-input and exact-output swaps.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the UniV3Controller contract, specifically token-path parsing and allowlist validation; the ControllerFacade; the Account contract; the RiskEngine contract; and the OracleFacade</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing UniV3Controller functions parseExactInput, parseExactOutput, and their single-swap and multicall variants, I confirmed incomplete token-path validation. For exact-output multihop swaps, Uniswap encodes the path in reverse order, and parseExactOutput validates only params.path.toAddress(params.path.length - ADDR_SIZE), the input token, while params.path.toAddress(0), the output token, is neither allowlisted nor otherwise checked. Consequently, an allowlisted input can be swapped into an unsupported output. Conversely, parseExactInput validates only the final path address, the output token, leaving the input endpoint unchecked. No parser iterates through the path to validate intermediate hop tokens. The same endpoint-only behavior exists in the single-swap functions, and the multicall parsers preserve this gap. ControllerFacade merely delegates to the controller and adds no validation, while the supplied RiskEngine and OracleFacade do not reject unsupported assets before valuation; OracleFacade only fails when no oracle exists. Thus, a properly formed route using an unsupported output or intermediate token can pass controller validation, subject to available liquidity and downstream execution assumptions.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Decode and validate every token address in every supported path, including all intermediate hops and the final output token, with correct direction handling for exact-input and exact-output swaps. Require each token to be explicitly approved and supported by the protocol&#39;s asset and oracle policy.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/Account.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 139-176</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-24').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176</pre></div>
+                <div class="code-content"><pre id="code-block-24"><code class="language-solidity">/**
+    @notice Generalized utility function to transact with a given contract
+    @param target Address of contract to transact with
+    @param amt Amount of Eth to send to the target contract
+    @param data Encoded sig + params of the function to transact with in the
+        target contract
+    @return success True if transaction was successful, false otherwise
+    @return retData Data returned by given target contract after
+        the transaction
+*/
+function exec(address target, uint amt, bytes calldata data)
+    external
+    accountManagerOnly
+    returns (bool, bytes memory)
+{
+    (bool success, bytes memory retData) = target.call{value: amt}(data);
+    return (success, retData);
+}
+
+/**
+    @notice Utility function to transfer all assets to a specified account
+        and delete all assets
+    @param toAddress address of the account to send the assets to
+*/
+function sweepTo(address toAddress) external accountManagerOnly {
+    uint assetsLen = assets.length;
+    for(uint i; i &lt; assetsLen; ++i) {
+        assets[i].safeTransfer(
+            toAddress,
+            assets[i].balanceOf(address(this))
+        );
+        hasAsset[assets[i]] = false;
+    }
+    delete assets;
+    toAddress.safeTransferEth(address(this).balance);
+}
+
+/* -------------------------------------------------------------------------- */</code></pre></div>
+            </div>
+            <div class="code-explanation">Merged evidence from graph node → source mapping</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/interface/core/IAccount.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 1-26</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-25').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25</pre></div>
+                <div class="code-content"><pre id="code-block-25"><code class="language-solidity">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.15;
+
+interface IAccount {
+    function activate() external;
+    function deactivate() external;
+    function addAsset(address token) external;
+    function addBorrow(address token) external;
+    function removeAsset(address token) external;
+    function sweepTo(address toAddress) external;
+    function removeBorrow(address token) external;
+    function init(address accountManager) external;
+    function hasAsset(address) external returns (bool);
+    function assets(uint) external returns (address);
+    function hasNoDebt() external view returns (bool);
+    function activationBlock() external view returns (uint);
+    function accountManager() external view returns (address);
+    function getAssets() external view returns (address[] memory);
+    function getBorrows() external view returns (address[] memory);
+    function exec(
+        address target,
+        uint amt,
+        bytes calldata data
+    ) external returns (bool, bytes memory);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Merged evidence from graph node → source mapping</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/RiskEngine.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 1-88</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-26').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88</pre></div>
+                <div class="code-content"><pre id="code-block-26"><code class="language-solidity">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.15;
+
+import {Errors} from &quot;../utils/Errors.sol&quot;;
+import {Ownable} from &quot;../utils/Ownable.sol&quot;;
+import {IOracle} from &quot;oracle/core/IOracle.sol&quot;;
+import {IERC20} from &quot;../interface/tokens/IERC20.sol&quot;;
+import {ILToken} from &quot;../interface/tokens/ILToken.sol&quot;;
+import {IAccount} from &quot;../interface/core/IAccount.sol&quot;;
+import {IRegistry} from &quot;../interface/core/IRegistry.sol&quot;;
+import {IRiskEngine} from &quot;../interface/core/IRiskEngine.sol&quot;;
+import {IAccountManager} from &quot;../interface/core/IAccountManager.sol&quot;;
+import {FixedPointMathLib} from &quot;solmate/utils/FixedPointMathLib.sol&quot;;
+
+/**
+    @title Risk Engine
+    @notice Risk engine is a sentiment utility contract used by the protocol to
+    analyze the health factor of a given account.
+*/
+contract RiskEngine is Ownable, IRiskEngine {
+    using FixedPointMathLib for uint;
+
+    /* -------------------------------------------------------------------------- */
+    /*                               STATE VARIABLES                              */
+    /* -------------------------------------------------------------------------- */
+
+    /// @notice Registry
+    IRegistry public immutable registry;
+
+    /// @notice Oracle Facade
+    IOracle public oracle;
+
+    /// @notice Account Manager
+    IAccountManager public accountManager;
+
+    /// @notice Balance:Borrow, Default = 1.2
+    uint public constant balanceToBorrowThreshold = 1.2e18;
+
+    /* -------------------------------------------------------------------------- */
+    /*                                 CONSTRUCTOR                                */
+    /* -------------------------------------------------------------------------- */
+
+    /**
+        @notice Contract constructor
+        @param _registry Address of registry contract
+    */
+    constructor(IRegistry _registry) {
+        initOwnable(msg.sender);
+        registry = _registry;
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /*                             EXTERNAL FUNCTIONS                             */
+    /* -------------------------------------------------------------------------- */
+
+    /// @notice Initializes external dependencies
+    function initDep() external adminOnly {
+        oracle = IOracle(registry.getAddress(&#39;ORACLE&#39;));
+        accountManager = IAccountManager(registry.getAddress(&#39;ACCOUNT_MANAGER&#39;));
+    }
+
+    /**
+        @notice Utility function to determine if an account can borrow a
+        specified amount of a token
+            isBorrowAllowed = (currentAccountBalance + borrowValue) /
+                (currentAccountBorrows + borrowValue) &gt; balanceToBorrowThreshold
+        @param account Address of account
+        @param token Address of token
+        @param amt Amount of token to borrow
+        @return isBorrowAllowed Returns whether a borrow is allowed or not
+    */
+    function isBorrowAllowed(
+        address account,
+        address token,
+        uint amt
+    )
+        external
+        view
+        returns (bool)
+    {
+        uint borrowValue = _valueInWei(token, amt);
+        return _isAccountHealthy(
+            _getBalance(account) + borrowValue,
+            _getBorrows(account) + borrowValue
+        );
+    }
+
+    /**</code></pre></div>
+            </div>
+            <div class="code-explanation">Merged evidence from graph node → source mapping</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>ATokenOracle permits recursive oracle cycles through underlying-asset resolution</h3>
+                <div class="vulnerability-description">
+                    <p>This availability vulnerability allows recursive ATokenOracle and OracleFacade mappings to form cycles. ATokenOracle delegates underlying-asset pricing to the OracleFacade, while the facade may dispatch pricing back to ATokenOracle, and the valuation path does not demonstrate cycle detection or a bounded delegation depth.</p>
+<p>A privileged or compromised configuration authority can create a direct or indirect cycle, after which collateral valuation, liquidation, borrowing, or withdrawal checks may repeatedly recurse until they revert or exhaust gas. The system should track visited assets or enforce a strict maximum delegation depth, and oracle configuration should reject mappings that resolve back to the same asset or adapter.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the ATokenOracle contract; the OracleFacade; and the RiskEngine contract's oracle-based valuation logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the recursive price path in OracleFacade.getPrice and ATokenOracle.getPrice, I confirmed that the implementation lacks cycle detection or a recursion bound. OracleFacade.getPrice first dispatches to oracle[token].getPrice(token), while ATokenOracle.getPrice calls IAToken(aToken).UNDERLYING_ASSET_ADDRESS() and then recursively invokes the immutable OracleFacade. An administrator can therefore register a token whose underlying is itself, or configure two token contracts whose underlying references form a cycle, by assigning them to the ATokenOracle through OracleFacade.setOracle. Each call then performs another external getPrice invocation until execution exhausts gas or reverts. RiskEngine._valueInWei directly depends on oracle.getPrice, and its balance, borrow, health, withdrawal, and borrowing checks consequently fail whenever the affected asset is valued. The only OracleFacade guard checks for a zero oracle address; neither contract validates the underlying token, tracks visited assets, or limits delegation depth. Exploitation requires privileged or compromised oracle configuration, but under that stated threat model the availability impact is real.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Track visited assets or enforce a maximum oracle-delegation depth across OracleFacade and adapters; reject configurations where an aToken&#39;s underlying resolves back to the same asset or adapter, and validate mappings before activation.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">oracle/src/core/OracleFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 40-53</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-27').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53</pre></div>
+                <div class="code-content"><pre id="code-block-27"><code class="language-solidity">    function getPrice(address token) external view returns (uint) {
+        if(address(oracle[token]) == address(0)) revert Errors.PriceUnavailable();
+        return oracle[token].getPrice(token);
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /*                               ADMIN FUNCTIONS                              */
+    /* -------------------------------------------------------------------------- */
+
+    function setOracle(address token, IOracle _oracle) external adminOnly {
+        oracle[token] = _oracle;
+        emit UpdateOracle(token, address(_oracle));
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">OracleFacade forwards each token price request to the configured oracle and allows privileged configuration to assign any oracle without rejecting self-referential or cyclic mappings, enabling recursive delegation cycles.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/RiskEngine.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 178-189</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-28').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188</pre></div>
+                <div class="code-content"><pre id="code-block-28"><code class="language-solidity">function _valueInWei(address token, uint amt)
+    internal
+    view
+    returns (uint)
+{
+    return oracle.getPrice(token)
+    .mulDivDown(
+        amt,
+        10 ** ((token == address(0)) ? 18 : IERC20(token).decimals())
+    );
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">RiskEngine valuation relies directly on oracle.getPrice(token); a recursive oracle cycle therefore propagates into collateral, borrowing, and withdrawal checks without any local recursion limit or visited-asset tracking.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Recursive UniV2 LP oracle mappings can cause valuation denial of service</h3>
+                <div class="vulnerability-description">
+                    <p>This availability vulnerability permits recursive UniV2 LP oracle mappings to create valuation cycles. The LP oracle obtains prices for its underlying assets through the OracleFacade, and those assets may themselves resolve to LP or other recursive oracle implementations without demonstrated cycle detection or a maximum recursion depth.</p>
+<p>A privileged configuration or accepted token registration can therefore cause an LP token to depend directly or indirectly on itself. Any risk check, liquidation, or account operation that requires the affected price may revert or consume excessive gas. Pricing requests should track visited assets, enforce a strict recursion limit, and reject oracle registrations that introduce direct or indirect self-dependencies.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the UniV2LPOracle contract and its recursive underlying-price calls; the OracleFacade; and the RiskEngine contract's collateral valuation logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing UniV2LpOracle.getPrice, OracleFacade.getPrice and setOracle, I confirmed that recursive oracle evaluation has no cycle detection or recursion-depth limit. UniV2LpOracle.getPrice obtains the pair constituents and directly invokes oracle.getPrice for both token0 and token1. OracleFacade.getPrice then dispatches to the configured oracle for that token, allowing an LP oracle to call back into the facade and traverse an arbitrary dependency graph. If configuration creates a direct or indirect cycle, the nested calls continue until the transaction exhausts gas or reaches the EVM call-depth limit and reverts. RiskEngine._valueInWei invokes oracle.getPrice during _getBalance, _getBorrows, and account health, withdrawal, and borrowing checks, so affected assets can make these operations unavailable. OracleFacade.setOracle is restricted by adminOnly, meaning an unprivileged attacker cannot freely create the cycle, but the implementation provides no validation or runtime protection against an administrator or compromised configuration introducing one. Therefore, the availability issue is real, although its exploitability depends on privileged oracle configuration.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Track visited assets during a pricing request and reject repeated nodes; enforce a strict maximum recursion depth and validate oracle registrations so an LP cannot directly or indirectly depend on itself.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">oracle/src/core/OracleFacade.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 40-53</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-29').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53</pre></div>
+                <div class="code-content"><pre id="code-block-29"><code class="language-solidity">    function getPrice(address token) external view returns (uint) {
+        if(address(oracle[token]) == address(0)) revert Errors.PriceUnavailable();
+        return oracle[token].getPrice(token);
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /*                               ADMIN FUNCTIONS                              */
+    /* -------------------------------------------------------------------------- */
+
+    function setOracle(address token, IOracle _oracle) external adminOnly {
+        oracle[token] = _oracle;
+        emit UpdateOracle(token, address(_oracle));
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">OracleFacade recursively delegates getPrice calls to the configured oracle for the same token, while setOracle allows privileged registration without validating dependencies or detecting cycles.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/src/core/RiskEngine.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 178-189</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-30').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188</pre></div>
+                <div class="code-content"><pre id="code-block-30"><code class="language-solidity">function _valueInWei(address token, uint amt)
+    internal
+    view
+    returns (uint)
+{
+    return oracle.getPrice(token)
+    .mulDivDown(
+        amt,
+        10 ** ((token == address(0)) ? 18 : IERC20(token).decimals())
+    );
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Risk valuation directly calls oracle.getPrice(token); any recursive LP-oracle cycle therefore propagates into account health, borrow, or withdrawal checks.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">protocol/deployments/Deploy.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 301-313</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-31').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313</pre></div>
+                <div class="code-content"><pre id="code-block-31"><code class="language-solidity">function deployOracles() internal {
+    deployWETHOracle();
+    deployChainlinkOracle();
+
+    // Aave
+    aTokenOracle = new ATokenOracle(oracle);
+    oracle.setOracle(aWETH, aTokenOracle);
+    oracle.setOracle(aDAI, aTokenOracle);
+    oracle.setOracle(aWBTC, aTokenOracle);
+
+    // Sushi
+    SLPOracle = new UniV2LpOracle(oracle);
+    oracle.setOracle(SLP, SLPOracle);</code></pre></div>
+            </div>
+            <div class="code-explanation">The deployment registers a UniV2 LP oracle for the LP token through OracleFacade, illustrating the recursive oracle configuration path that can introduce asset-dependency cycles.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

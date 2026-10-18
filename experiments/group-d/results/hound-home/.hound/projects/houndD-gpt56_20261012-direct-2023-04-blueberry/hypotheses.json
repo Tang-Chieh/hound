@@ -1,0 +1,436 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_4583e7e9e72d": {
+      "title": "Zero-slippage reward liquidation enables sandwich-based price manipulation",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The reward liquidation has no minimum-output, oracle-based price bound, or validated route/liquidity protection, and the router and path are supplied by the caller.\nATTACK VECTOR: An attacker observes a closePositionFarm transaction, temporarily moves the relevant Uniswap V2 pool price or supplies an adverse route, allows the zero-minimum swap to execute, and reverses the manipulation to capture the lost CRV/debt-token value.\nAFFECTED NODES: spell_curve, interface_uniswap_v2_router, external_uniswap\nAFFECTED CODE: blueberry-core/contracts/spell/CurveSpell.sol:CurveSpell.closePositionFarm\nSEVERITY: high\nREASONING: The loaded code explicitly calls swapExactTokensForTokens with the full harvested reward amount and amountOutMin equal to zero, while the router and swapPath are function inputs. No local slippage check or oracle comparison is visible before the swap.\nSUGGESTED MITIGATION: Require a caller-specified minimum output constrained by a protocol-configured maximum slippage, validate the router and token path against an allowlist, and preferably compare the execution price with a manipulation-resistant oracle or TWAP before accepting the swap.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "spell_curve",
+        "interface_uniswap_v2_router",
+        "external_uniswap"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded code explicitly calls swapExactTokensForTokens with the full harvested reward amount and amountOutMin equal to zero, while the router and swapPath are function inputs. No local slippage check or oracle comparison is visible before the swap.",
+      "mitigation": "Require a caller-specified minimum output constrained by a protocol-configured maximum slippage, validate the router and token path against an allowlist, and preferably compare the execution price with a manipulation-resistant oracle or TWAP before accepting the swap.",
+      "finding_description": "CurveSpell.closePositionFarm swaps harvested CRV through a caller-supplied Uniswap V2 router and path with amountOutMin set to zero. An attacker can manipulate the selected pool around the transaction or route it through an illiquid pool so the swap executes at a severely unfavorable price, extracting the CRV value before the resulting debt-token balance is used for repayment or refund.",
+      "impact": "Users or the protocol can lose most or all harvested CRV value during position closure, reducing debt repayment and potentially leaving residual debt or causing value to be transferred to the manipulator.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/spell/CurveSpell.sol",
+          "contract": "CurveSpell",
+          "function": "closePositionFarm(ClosePosParam,IUniswapV2Router02,address[])"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/spell/CurveSpell.sol",
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:07:05.520108",
+      "id": "hyp_4583e7e9e72d",
+      "qa_comment": "Upon reviewing CurveSpell.closePositionFarm in blueberry-core/contracts/spell/CurveSpell.sol, I confirmed the zero-slippage reward liquidation vulnerability. After harvesting rewards through _doCutRewardsFee(CRV), the function approves the caller-supplied swapRouter and invokes swapExactTokensForTokens with the entire reward balance, amountOutMin set to 0, the caller-supplied swapPath, and no oracle or execution-price validation. Consequently, an attacker can manipulate the relevant Uniswap V2 pool before this transaction executes, causing the reward-to-debt-token swap to receive materially less value, then reverse the manipulation afterward. The function also does not validate that the router, path endpoints, intermediate tokens, or liquidity sources are protocol-approved. Although subsequent Curve removal and repayment logic may cause the transaction to revert if insufficient debt tokens are received, a successful adverse swap can still impose value loss where the remaining flow succeeds; moreover, arbitrary routers introduce additional trust and token-transfer risks. The supplied oracle contracts do not protect this swap, as neither is consulted by closePositionFarm."
+    },
+    "hyp_c2e5eed50619": {
+      "title": "PSwapLib forwards caller-controlled Paraswap slippage without oracle or minimum-output enforcement",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The integration treats Paraswap calldata as the source of price protection and performs no local validation of the minimum destination amount or expected amount.\nATTACK VECTOR: A caller submits MegaSwapSellData with a near-zero toAmount, or submits a route whose market price is temporarily manipulated, causing the spell to accept an execution price far below the intended valuation.\nAFFECTED NODES: library_paraswap, spell_shortlong, external_paraswap\nAFFECTED CODE: blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol:PSwapLib.megaSwap, blueberry-core/contracts/libraries/Paraswap/Utils.sol:Utils.MegaSwapSellData, blueberry-core/contracts/spell/ShortLongSpell.sol:ShortLongSpell._withdraw\nSEVERITY: high\nREASONING: The loaded implementation clearly forwards caller-provided swap data directly to the unprotected megaSwap and contains no local price or slippage check. Exploitability depends on the omitted ShortLongSpell entry-point validation; that caller should be verified to determine whether it constrains toAmount before invoking _withdraw.\nSUGGESTED MITIGATION: Validate swapData.toAmount against an independently obtained oracle or strategy quote and enforce a bounded maximum slippage before calling Paraswap. Reject zero or insufficient minimum outputs, constrain allowed routes and tokens, and prefer the protected Paraswap entry point where its beneficiary and execution protections are applicable.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "library_paraswap",
+        "spell_shortlong",
+        "external_paraswap"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation clearly forwards caller-provided swap data directly to the unprotected megaSwap and contains no local price or slippage check. Exploitability depends on the omitted ShortLongSpell entry-point validation; that caller should be verified to determine whether it constrains toAmount before invoking _withdraw.",
+      "mitigation": "Validate swapData.toAmount against an independently obtained oracle or strategy quote and enforce a bounded maximum slippage before calling Paraswap. Reject zero or insufficient minimum outputs, constrain allowed routes and tokens, and prefer the protected Paraswap entry point where its beneficiary and execution protections are applicable.",
+      "finding_description": "PSwapLib approves the requested source amount and directly invokes the unprotected Paraswap megaSwap using the caller-supplied MegaSwapSellData. Although the struct contains toAmount and expectedAmount fields, PSwapLib does not validate either against an oracle, an independently computed quote, or a strategy-level slippage bound. If ShortLongSpell exposes swapData to a position caller, the caller can set toAmount to zero or an excessively low value and route through an adversarially manipulated or otherwise unfavorable market, allowing the swap to execute at a materially manipulated price.",
+      "impact": "A position can receive substantially fewer destination tokens than intended, causing collateral loss, unfavorable entry or exit pricing, and possible insolvency or bad debt when the resulting asset value is used by the strategy.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "contract": "PSwapLib",
+          "function": "megaSwap"
+        },
+        {
+          "file": "blueberry-core/contracts/libraries/Paraswap/Utils.sol",
+          "contract": "Utils",
+          "function": "MegaSwapSellData"
+        },
+        {
+          "file": "blueberry-core/contracts/spell/ShortLongSpell.sol",
+          "contract": "ShortLongSpell",
+          "function": "_withdraw"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/paraswap/IParaswap.sol",
+          "blueberry-core/contracts/libraries/Paraswap/Utils.sol",
+          "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "blueberry-core/contracts/spell/ShortLongSpell.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:10:22.542918",
+      "id": "hyp_c2e5eed50619",
+      "qa_comment": "Upon reviewing PSwapLib.megaSwap and ShortLongSpell.closePosition/_withdraw, I confirmed that the spell performs no independent slippage or minimum-output validation for withdrawals. closePosition only verifies that swapData.fromToken matches the strategy\u2019s underlying token, then passes the entire caller-controlled MegaSwapSellData to _withdraw. _withdraw checks param.sellSlippage against the configured maximum, but never relates that value to swapData.toAmount, expectedAmount, the withdrawn amount, or an oracle-derived valuation. PSwapLib merely approves fromAmount and invokes the unprotected IParaswap.megaSwap entry point. Although Paraswap may enforce the supplied toAmount as a minimum at execution, that minimum itself is selected by the caller and can be set near zero; expectedAmount is not checked during withdrawal, unlike _deposit, which explicitly compares the received balance against swapData.expectedAmount. Consequently, a caller can authorize a materially underpriced route or near-zero output, and the protocol has no local protection against it. The precise impact and whether an attacker can profit depend on caller authorization and broader position-management logic, but the stated missing validation is present."
+    },
+    "hyp_56d6074f3242": {
+      "title": "AggregatorOracle can return flash-loan-manipulated Uniswap V2 spot prices",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The aggregator permits spot-reserve oracle routes without enforcing a time-weighted or independent reference price and without requiring source independence.\nATTACK VECTOR: Manipulate the underlying Uniswap V2 reserves in the same transaction before a financially sensitive operation queries AggregatorOracle, then reverse the trade after the operation completes.\nAFFECTED NODES: oracle_aggregator, oracle_uniswap_v2, external_uniswap, oracle_core\nAFFECTED CODE: oracle_aggregator: configured route aggregation and deviation validation, oracle_uniswap_v2: reserve-based price calculation, oracle_core: downstream oracle routing\nSEVERITY: high\nREASONING: The architecture explicitly identifies AggregatorOracle as using configured sources with deviation validation and UniswapV2Oracle as reading pool reserves. Reserve-based spot prices are manipulable through temporary liquidity trades; deviation checks are insufficient when a single route or correlated routes are configured.\nSUGGESTED MITIGATION: Disallow spot-reserve routes for collateral valuation, or require a sufficiently long TWAP and minimum-liquidity/depth checks. Require multiple independent sources, enforce a minimum source count, reject duplicate or correlated routes, and fail closed when sources deviate beyond the configured bound.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "oracle_aggregator",
+        "oracle_uniswap_v2",
+        "external_uniswap",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies AggregatorOracle as using configured sources with deviation validation and UniswapV2Oracle as reading pool reserves. Reserve-based spot prices are manipulable through temporary liquidity trades; deviation checks are insufficient when a single route or correlated routes are configured.",
+      "mitigation": "Disallow spot-reserve routes for collateral valuation, or require a sufficiently long TWAP and minimum-liquidity/depth checks. Require multiple independent sources, enforce a minimum source count, reject duplicate or correlated routes, and fail closed when sources deviate beyond the configured bound.",
+      "finding_description": "AggregatorOracle accepts owner-configured BaseOracle routes, while UniswapV2Oracle derives prices from pool reserves. An attacker can temporarily skew a thin Uniswap V2 pool with a flash loan and cause the aggregator to return the manipulated quote when that route is used alone or alongside correlated routes. The aggregator's relative-deviation check does not provide protection unless an independently secured reference is always enforced.",
+      "impact": "Collateral or debt can be overvalued, enabling undercollateralized borrowing, excessive leverage, or incorrect liquidation and redemption amounts.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/oracle/AggregatorOracle.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:12:16.495432",
+      "id": "hyp_56d6074f3242",
+      "qa_comment": "Upon reviewing AggregatorOracle.getPrice, UniswapV2Oracle.getPrice, and CoreOracle._getPrice, I confirmed that the implementation permits a manipulable reserve-based oracle path. UniswapV2Oracle.getPrice reads pool.getReserves() directly and uses those current reserves in its fair LP pricing formula, without any TWAP, observation-period, liquidity-depth, or freshness validation. AggregatorOracle._setPrimarySources permits up to three arbitrary sources, does not require a minimum source count, does not verify source independence, and getPrice explicitly returns a single valid source without applying deviation checks. Consequently, if an administrator configures UniswapV2Oracle as the sole source, or configures correlated sources, a transaction that changes the pair state before the oracle call can cause the aggregator to return a transient valuation; CoreOracle then accepts any nonzero result from that route. The deviation logic only compares returned values and cannot detect synchronized manipulation or protect a single-source configuration. The supplied code does not show actual deployment routes or downstream liquidation logic, but the exploitable oracle design and missing safeguards are clearly present."
+    },
+    "hyp_6a11ff9964f0": {
+      "title": "AggregatorOracle can accept flash-loan-manipulated Balancer pool valuations",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The aggregation layer trusts balance-derived Balancer spot valuations and does not enforce a TWAP, liquidity-impact bound, or independent oracle quorum for every configured route.\nATTACK VECTOR: Temporarily move the Balancer pool balance ratio, invoke a borrowing, collateral, liquidation, or redemption operation that reads AggregatorOracle, and restore the pool state afterward.\nAFFECTED NODES: oracle_aggregator, oracle_balancer_pair, external_balancer, oracle_core\nAFFECTED CODE: oracle_aggregator: configured route aggregation and deviation validation, oracle_balancer_pair: balance and normalized-weight price calculation, oracle_core: downstream oracle routing\nSEVERITY: high\nREASONING: The graph states that BalancerPairOracle reads pool balances and normalized weights, which represents a spot valuation sensitive to balance manipulation. AggregatorOracle's owner-configured routing and deviation validation do not establish that every accepted source is independent or manipulation resistant.\nSUGGESTED MITIGATION: Use a Balancer time-weighted observation or an independent external price feed with bounded deviation. Enforce minimum pool liquidity, maximum price impact, source independence, and a quorum of independent sources before returning a price.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_aggregator",
+        "oracle_balancer_pair",
+        "external_balancer",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "The graph states that BalancerPairOracle reads pool balances and normalized weights, which represents a spot valuation sensitive to balance manipulation. AggregatorOracle's owner-configured routing and deviation validation do not establish that every accepted source is independent or manipulation resistant.",
+      "mitigation": "Use a Balancer time-weighted observation or an independent external price feed with bounded deviation. Enforce minimum pool liquidity, maximum price impact, source independence, and a quorum of independent sources before returning a price.",
+      "finding_description": "BalancerPairOracle calculates prices from Balancer pool balances and normalized weights. Those balances can be temporarily changed through large swaps or flash-liquidity activity. If AggregatorOracle routes through this source without an independent manipulation-resistant reference, the deviation validation can accept the same manipulated market view or be bypassed by a single configured route.",
+      "impact": "The protocol may issue loans against inflated collateral or seize collateral at an incorrect valuation, producing direct loss for the lending pool or users receiving manipulated redemptions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/balancer/IBalancerVault.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol",
+          "blueberry-core/contracts/interfaces/balancer/IBalancerPool.sol",
+          "blueberry-core/contracts/oracle/AggregatorOracle.sol",
+          "blueberry-core/contracts/oracle/BalancerPairOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:12:22.840734",
+      "id": "hyp_6a11ff9964f0"
+    },
+    "hyp_3adfeb9bd4d7": {
+      "title": "UniswapV3AdapterOracle exposes flash-manipulable Uniswap V3 spot valuation",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The adapter relies on current Uniswap V3 pool pricing without a sufficiently long observation-based TWAP, liquidity-aware validation, or an independent reference-price deviation bound.\nATTACK VECTOR: Manipulate the configured Uniswap V3 pool price within one transaction, call CoreOracle-dependent borrowing, collateral valuation, or liquidation logic while the manipulated price is returned, then restore the pool price.\nAFFECTED NODES: oracle_univ3_adapter, oracle_base_adapter, oracle_core, bank_blueberry\nAFFECTED CODE: oracle_univ3_adapter price retrieval and pool configuration, oracle_base_adapter price validation and freshness handling, oracle_core routing of adapter prices into protocol valuation\nSEVERITY: high\nREASONING: The architecture identifies UniswapV3AdapterOracle as a direct Uniswap V3 price source and shows it feeding the core oracle path used by the bank. The documented BaseAdapter controls concern owner-managed updates and bounded time gaps; those controls do not prevent same-block distortion of a spot pool price. Exact source locations are unavailable in the supplied context, so no line locations are asserted.\nSUGGESTED MITIGATION: Price from a sufficiently long Uniswap V3 observe-based TWAP rather than current slot0 state, require adequate observation cardinality and liquidity, enforce a minimum TWAP period, and reject material deviations from an independent oracle before using the result for collateral, borrowing, or liquidation decisions.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_univ3_adapter",
+        "oracle_base_adapter",
+        "oracle_core",
+        "bank_blueberry"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies UniswapV3AdapterOracle as a direct Uniswap V3 price source and shows it feeding the core oracle path used by the bank. The documented BaseAdapter controls concern owner-managed updates and bounded time gaps; those controls do not prevent same-block distortion of a spot pool price. Exact source locations are unavailable in the supplied context, so no line locations are asserted.",
+      "mitigation": "Price from a sufficiently long Uniswap V3 observe-based TWAP rather than current slot0 state, require adequate observation cardinality and liquidity, enforce a minimum TWAP period, and reject material deviations from an independent oracle before using the result for collateral, borrowing, or liquidation decisions.",
+      "finding_description": "The UniswapV3AdapterOracle obtains token valuation from Uniswap V3 pool state while the surrounding BaseAdapter protections are limited to administrative configuration and time-gap checks; they do not establish a manipulation-resistant historical price. An attacker can temporarily move the configured pool price using a flash swap or flash loan, invoke an oracle consumer during the distorted state, and then reverse the trade in the same transaction.",
+      "impact": "An attacker may overvalue deposited collateral to borrow excess funds, undervalue collateral to trigger wrongful liquidations, or otherwise obtain financially favorable position accounting from a transient pool price.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/CoreOracle.sol",
+          "blueberry-core/contracts/oracle/BaseAdapter.sol",
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/BlueBerryBank.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:14:05.446189",
+      "id": "hyp_3adfeb9bd4d7",
+      "qa_comment": "Upon reviewing the alleged flash-manipulable spot-price vulnerability in UniswapV3AdapterOracle.getPrice, I determined that the hypothesis is a false positive as characterized. The adapter does not read the current Uniswap V3 slot0 price. Instead, it obtains timeGaps[token], rejects a zero interval with NO_MEAN, and passes the configured secondsAgo value to UniV3WrappedLibMockup.consult(stablePool, secondsAgo), returning an arithmeticMeanTick that is then quoted through getQuoteAtTick. BaseAdapter.setTimeGap also constrains configured intervals between protocol-defined minimum and maximum values. Consequently, a price movement executed and reversed within one transaction should not immediately alter the consulted historical mean, unlike a spot oracle. CoreOracle merely routes the adapter result, and BlueBerryBank consumes that result through getWrappedTokenValue and getTokenValue without introducing a separate spot read. The code does lack explicit liquidity checks and an independent deviation bound, so prolonged manipulation or weak operational configuration may warrant review, but those omissions do not establish the claimed single-transaction flash-manipulation path."
+    },
+    "hyp_9decd8711f3d": {
+      "title": "Convex collateral valuation can be inflated through Curve virtual-price manipulation",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The Convex collateral valuation path trusts Curve virtual-price data without demonstrated independent TWAP, bounded-change, or post-manipulation validation before using the value in bank collateral and borrowing calculations.\nATTACK VECTOR: An attacker temporarily increases the underlying Curve pool valuation or virtual price, supplies or values Convex LP collateral while the manipulated price is observed, borrows more assets than the collateral is economically worth, and removes the manipulation or leaves the bank with bad debt.\nAFFECTED NODES: spell_convex, interface_curve_oracle, oracle_curve, external_curve, bank_blueberry\nAFFECTED CODE: spell_convex -> interface_curve_oracle, oracle_curve -> Curve registry/pool virtual-price getter, bank_blueberry -> collateral valuation and borrowing\nSEVERITY: high\nREASONING: The architecture explicitly connects ConvexSpell to CurveOracle and identifies CurveOracle as dependent on Curve registry/address-provider virtual-price data. No loaded evidence demonstrates that this valuation is time-weighted, bounded against a second source, or protected against rapid virtual-price changes before bank lending decisions. The exploitability depends on the exact Curve pool implementation and whether its virtual price can be materially manipulated in the deployed configuration.\nSUGGESTED MITIGATION: Use a manipulation-resistant, time-weighted Curve LP valuation with a maximum per-update deviation and freshness checks; cross-check virtual price against independently derived pool asset values; reject abnormal changes before collateral valuation and borrowing, and apply conservative collateral factors or per-market debt caps.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "spell_convex",
+        "interface_curve_oracle",
+        "oracle_curve",
+        "external_curve",
+        "bank_blueberry"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly connects ConvexSpell to CurveOracle and identifies CurveOracle as dependent on Curve registry/address-provider virtual-price data. No loaded evidence demonstrates that this valuation is time-weighted, bounded against a second source, or protected against rapid virtual-price changes before bank lending decisions. The exploitability depends on the exact Curve pool implementation and whether its virtual price can be materially manipulated in the deployed configuration.",
+      "mitigation": "Use a manipulation-resistant, time-weighted Curve LP valuation with a maximum per-update deviation and freshness checks; cross-check virtual price against independently derived pool asset values; reject abnormal changes before collateral valuation and borrowing, and apply conservative collateral factors or per-market debt caps.",
+      "finding_description": "ConvexSpell relies on the CurveOracle interface for pricing Convex-related collateral, while the Curve oracle obtains LP valuation from Curve registry/pool virtual-price data. If the configured Curve pool virtual price can be increased through attacker-controlled balance donations or other short-lived pool-state changes, an attacker can inflate the reported collateral value during position opening or borrowing and receive excess debt against undercollateralized Convex LP collateral.",
+      "impact": "The attacker can overborrow against Convex LP collateral, causing liquidation losses and direct depletion of BlueBerryBank lending assets if the inflated valuation exceeds the collateral's recoverable market value.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/curve/ILiquidityGauge.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveRegistry.sol",
+          "blueberry-core/contracts/BlueBerryBank.sol",
+          "blueberry-core/contracts/interfaces/ICurveOracle.sol",
+          "blueberry-core/contracts/spell/ConvexSpell.sol",
+          "blueberry-core/contracts/oracle/CurveOracle.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurvePool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:15:17.119828",
+      "id": "hyp_9decd8711f3d"
+    },
+    "hyp_614f3259fc75": {
+      "title": "Curve LP collateral in CurveSpell can be overvalued through manipulable virtual price",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Curve LP valuation relies directly on an external Curve pool virtual-price value and does not enforce a conservative secondary valuation or pool-specific manipulation bounds.\nATTACK VECTOR: Manipulate the supported Curve pool's balances or accounting state, then submit a CurveSpell operation that uses the inflated CurveOracle valuation to obtain excess borrowing capacity or avoid liquidation.\nAFFECTED NODES: oracle_curve, interface_curve_registry, interface_curve_address_provider, external_curve, spell_curve, bank_blueberry\nAFFECTED CODE: oracle_curve:CurveOracle LP-token pricing, spell_curve:CurveSpell collateral valuation, bank_blueberry:collateralized borrowing and liquidation\nSEVERITY: high\nREASONING: The graph confirms that CurveOracle depends on Curve's registry and address provider, Curve pools expose virtual-price data, and CurveSpell consumes ICurveOracle for collateral operations. Unlike the already reported Convex-specific finding, this finding concerns direct CurveSpell collateral exposure. Exact source locations were not available in the loaded context, so no line-level location is asserted.\nSUGGESTED MITIGATION: Use a manipulation-resistant and conservative LP valuation: combine virtual price with independently observed underlying prices and pool balances, enforce liquidity/deviation and freshness bounds, reject unsupported or anomalous pools, and apply a collateral haircut that is sufficient for liquidation slippage.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_curve",
+        "interface_curve_registry",
+        "interface_curve_address_provider",
+        "external_curve",
+        "spell_curve",
+        "bank_blueberry"
+      ],
+      "evidence": [],
+      "reasoning": "The graph confirms that CurveOracle depends on Curve's registry and address provider, Curve pools expose virtual-price data, and CurveSpell consumes ICurveOracle for collateral operations. Unlike the already reported Convex-specific finding, this finding concerns direct CurveSpell collateral exposure. Exact source locations were not available in the loaded context, so no line-level location is asserted.",
+      "mitigation": "Use a manipulation-resistant and conservative LP valuation: combine virtual price with independently observed underlying prices and pool balances, enforce liquidity/deviation and freshness bounds, reject unsupported or anomalous pools, and apply a collateral haircut that is sufficient for liquidation slippage.",
+      "finding_description": "CurveOracle derives LP-token valuation from the Curve registry/address-provider pool mapping and the pool's virtual price, while CurveSpell uses that oracle for collateral accounting. The valuation has no visible independent market-price, liquidity, freshness, or deviation safeguard at the CurveOracle/CurveSpell boundary. An attacker able to distort a supported Curve pool's accounting state, including through pool-specific donation, rebasing, or imbalance behavior, can cause the reported LP value to exceed realizable liquidation value before opening or increasing a Curve position.",
+      "impact": "The attacker can borrow more assets than the Curve LP collateral can repay, leaving BlueBerryBank with undercollateralized debt and losses when the position is liquidated or the pool price normalizes.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/curve/ILiquidityGauge.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveRegistry.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveAddressProvider.sol",
+          "blueberry-core/contracts/BlueBerryBank.sol",
+          "blueberry-core/contracts/oracle/CurveOracle.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurvePool.sol",
+          "blueberry-core/contracts/spell/CurveSpell.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:16:39.147069",
+      "id": "hyp_614f3259fc75",
+      "qa_comment": "Upon reviewing the alleged manipulable Curve virtual-price valuation in CurveOracle._getPoolInfo and getPrice, together with CurveSpell.openPositionFarm and BlueBerryBank.getPositionValue, I determined that the hypothesis is not demonstrated as an exploitable vulnerability by the supplied code. CurveOracle does rely on the Curve registry\u2019s virtual price and multiplies it by the minimum price of the pool\u2019s underlying tokens, without an explicit deviation bound or independent NAV check. However, the code does not show that an unprivileged attacker can arbitrarily inflate the canonical Curve pool virtual price: the registry and address provider resolve protocol-managed pools, while virtual price is an accounting metric rather than a directly supplied spot price. CurveSpell also validates strategy existence, collateral type, maximum LTV, and maximum position size before finalizing a position, and BlueBerryBank enforces the resulting risk checks. An anomalous or compromised Curve pool could still create valuation risk, but proving this attack requires pool-specific implementation and configuration details demonstrating a feasible virtual-price inflation mechanism. Therefore, the stated manipulation path is speculative rather than confirmed."
+    },
+    "hyp_b39066ca3f14": {
+      "title": "HardVault share-price manipulation through unsolicited asset donations",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Share pricing relies on the vault\u2019s token balance without excluding unsolicited transfers or using protected virtual assets/shares; balance-delta accounting only measures the deposit transfer and does not prevent later balance-based exchange-rate manipulation.\nATTACK VECTOR: The attacker deposits an initial amount, transfers additional tokens directly to HardVault, and front-runs a victim deposit. The inflated asset balance reduces the victim\u2019s minted shares through integer rounding; the attacker then withdraws existing shares and captures the victim\u2019s deposit and donated assets.\nAFFECTED NODES: vault_hard, interface_ihardvault, contract_fee_manager, config_protocol\nAFFECTED CODE: vault_hard.deposit, vault_hard.withdraw, HardVault ERC1155 share accounting\nSEVERITY: high\nREASONING: The architecture identifies HardVault as a balance-delta minting ERC1155 share vault with withdrawals by shares. Such accounting is vulnerable when redemption or subsequent mint calculations use the mutable on-chain token balance, because anyone can alter that balance without receiving shares. Exact source lines were not available in the loaded context, so the finding is based on the exposed HardVault accounting behavior.\nSUGGESTED MITIGATION: Maintain internal accounted assets rather than using raw token balances for share pricing, or explicitly account for donations. Add virtual shares/assets or permanent dead shares, enforce a minimum-share/slippage condition on deposits, and define safe rounding rules that prevent zero-share deposits.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "vault_hard",
+        "interface_ihardvault",
+        "contract_fee_manager",
+        "config_protocol"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies HardVault as a balance-delta minting ERC1155 share vault with withdrawals by shares. Such accounting is vulnerable when redemption or subsequent mint calculations use the mutable on-chain token balance, because anyone can alter that balance without receiving shares. Exact source lines were not available in the loaded context, so the finding is based on the exposed HardVault accounting behavior.",
+      "mitigation": "Maintain internal accounted assets rather than using raw token balances for share pricing, or explicitly account for donations. Add virtual shares/assets or permanent dead shares, enforce a minimum-share/slippage condition on deposits, and define safe rounding rules that prevent zero-share deposits.",
+      "finding_description": "HardVault mints ERC1155 shares from the observed token balance delta and subsequently determines redemption value from vault-held assets. Direct transfers to the vault are not represented by shares, so an attacker can donate assets to alter the assets-per-share exchange rate before a victim deposit or withdrawal. With favorable rounding, a first depositor can inflate the rate so a victim receives few or zero shares, then redeem the attacker\u2019s shares for the victim\u2019s assets.",
+      "impact": "An attacker may steal part or all of a victim\u2019s deposited assets, cause deposits to mint zero or severely underpriced shares, and manipulate the redemption value of existing shares.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/IHardVault.sol",
+          "blueberry-core/contracts/vault/HardVault.sol",
+          "blueberry-core/contracts/FeeManager.sol",
+          "blueberry-core/contracts/ProtocolConfig.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:18:08.285542",
+      "id": "hyp_b39066ca3f14",
+      "qa_comment": "Upon reviewing the alleged share-price manipulation in HardVault.deposit and HardVault.withdraw, I determined this is a false positive. The deposit function records the token balance before and after safeTransferFrom and mints exactly the balance delta, so unsolicited tokens transferred before a user deposit are excluded from that deposit's minted amount rather than used in an exchange-rate calculation. More importantly, withdraw does not calculate redemption value from the vault's current token balance or total shares: it burns the caller's ERC1155 balance for the token ID and passes the same shareAmount to FeeManager.doCutVaultWithdrawFee, after which only the fee-adjusted amount is transferred. Consequently, a direct donation cannot dilute a victim's shares, and an attacker cannot redeem donated assets merely by holding shares. The donation may remain stranded in the vault and could affect solvency or accounting expectations, but the described theft path does not exist. No virtual-share mechanism is needed to prevent the stated attack because this implementation uses one-to-one deposit shares and withdrawals."
+    },
+    "hyp_90e07533de7c": {
+      "title": "SoftVault Compound exchange-rate inflation can overvalue collateral",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: SoftVault relies on an externally mutable Compound exchange rate for share valuation, with no evidenced rate-bound, TWAP, donation-resistance, or same-block manipulation protection in the loaded component graph.\nATTACK VECTOR: The attacker acquires or flash-borrows underlying assets, supplies or donates them to the Compound market to increase its exchange rate, deposits or values cTokens through SoftVault, borrows against the inflated collateral through BlueBerryBank, and later allows the market rate to revert or withdraws the manipulated position.\nAFFECTED NODES: vault_soft, external_compound_market, bank_blueberry, interface_ibank, interface_icer20\nAFFECTED CODE: SoftVault deposit/share valuation and Compound-market interaction, BlueBerryBank collateral valuation and borrowing using SoftVault positions\nSEVERITY: high\nREASONING: The architecture explicitly connects SoftVault to a Compound market with an exposed exchange rate and connects BlueBerryBank to SoftVault. Unlike the loaded oracle components, no exchange-rate bounds, freshness checks, or manipulation-resistant accounting are evidenced for this path. Exploitability depends on the concrete SoftVault valuation and the configured collateral route, which should be confirmed in source.\nSUGGESTED MITIGATION: Use a conservative, bounded Compound exchange-rate adapter; base collateral value on a historical or independently verified rate, cap per-block changes, apply deviation checks, and prevent same-transaction deposits or valuation from using an attacker-controlled rate update.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "vault_soft",
+        "external_compound_market",
+        "bank_blueberry",
+        "interface_ibank",
+        "interface_icer20"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly connects SoftVault to a Compound market with an exposed exchange rate and connects BlueBerryBank to SoftVault. Unlike the loaded oracle components, no exchange-rate bounds, freshness checks, or manipulation-resistant accounting are evidenced for this path. Exploitability depends on the concrete SoftVault valuation and the configured collateral route, which should be confirmed in source.",
+      "mitigation": "Use a conservative, bounded Compound exchange-rate adapter; base collateral value on a historical or independently verified rate, cap per-block changes, apply deviation checks, and prevent same-transaction deposits or valuation from using an attacker-controlled rate update.",
+      "finding_description": "SoftVault depends on an external Compound market whose exchange rate is exposed as the value of deposited cTokens. If SoftVault or the configured collateral oracle values shares using the live Compound exchange rate without a manipulation-resistant snapshot, an attacker can temporarily increase the market exchange rate by supplying or donating underlying assets, then present the inflated cToken position to BlueBerryBank for borrowing or other value extraction before the valuation normalizes.",
+      "impact": "An attacker may obtain excessive debt against an inflated SoftVault collateral position, causing bad debt for BlueBerryBank and losses to lenders if the inflated valuation cannot be unwound.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/compound/ICErc20.sol",
+          "blueberry-core/contracts/vault/SoftVault.sol",
+          "blueberry-core/contracts/interfaces/IBank.sol",
+          "blueberry-core/contracts/BlueBerryBank.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:18:46.156088",
+      "id": "hyp_90e07533de7c",
+      "qa_comment": "Upon reviewing SoftVault.deposit, BlueBerryBank.lend, and BlueBerryBank.getIsolatedCollateralValue, I confirmed a spot exchange-rate manipulation vulnerability in the collateral valuation path. SoftVault issues shares equal to the cToken balance increase returned by Compound mint, while getIsolatedCollateralValue converts those shares to underlying using ICErc20(bToken).exchangeRateStored() multiplied by pos.underlyingVaultShare and divided by PRICE_PRECISION. This value is then passed directly to oracle.getTokenValue without any bound, freshness, historical-rate, deviation, or same-transaction protection. An attacker can acquire SoftVault shares, manipulate the Compound market\u2019s cash balance and exchange rate by supplying or directly transferring underlying to the cToken contract, and then invoke a borrowing path that relies on the inflated isolated collateral value. The bank\u2019s only relevant control is the liquidation-threshold check in execute, which itself uses the same manipulated valuation and therefore does not prevent over-borrowing. Although exact profitability depends on market liquidity, share ownership, and Compound implementation details, the code clearly exposes collateral valuation to a mutable spot exchange rate and provides no mitigation in the reviewed components."
+    },
+    "hyp_4c195cad1a8b": {
+      "title": "Aura reward liquidation may use manipulable Uniswap spot pricing without an effective minimum-output bound",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The Aura reward conversion path is coupled to an attacker-influenceable Uniswap spot price without demonstrated TWAP validation, oracle-based pricing, or a user/protocol-enforced minimum-output constraint.\nATTACK VECTOR: Manipulate the Uniswap reward/asset pool immediately before an Aura position burn or harvest, trigger AuraSpell reward liquidation at the distorted rate, then unwind the manipulation after receiving excess value or causing protocol losses.\nAFFECTED NODES: spell_aura, external_uniswap, wrapper_waura_pools, token_rewards\nAFFECTED CODE: spell_aura -> external_uniswap, wrapper_waura_pools -> token_rewards\nSEVERITY: high\nREASONING: The architecture explicitly connects AuraSpell to external Uniswap and WAuraPools to reward claiming, creating a price-sensitive liquidation path. The loaded graph does not expose the exact swap function or slippage arguments, so the absence of a protective minimum-output check and the precise exploitability should be confirmed from the implementation.\nSUGGESTED MITIGATION: Use a bounded minimum-output parameter derived from a trusted TWAP or Chainlink-style oracle, enforce a maximum price-impact/deviation check, and reject swaps whose execution price deviates from the reference price beyond a strict threshold. Avoid valuing harvested rewards using a single-block Uniswap spot quote.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "spell_aura",
+        "external_uniswap",
+        "wrapper_waura_pools",
+        "token_rewards"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly connects AuraSpell to external Uniswap and WAuraPools to reward claiming, creating a price-sensitive liquidation path. The loaded graph does not expose the exact swap function or slippage arguments, so the absence of a protective minimum-output check and the precise exploitability should be confirmed from the implementation.",
+      "mitigation": "Use a bounded minimum-output parameter derived from a trusted TWAP or Chainlink-style oracle, enforce a maximum price-impact/deviation check, and reject swaps whose execution price deviates from the reference price beyond a strict threshold. Avoid valuing harvested rewards using a single-block Uniswap spot quote.",
+      "finding_description": "AuraSpell directly calls the external Uniswap integration, while WAuraPools burns positions and claims Aura rewards. If the reward liquidation path derives the swap amount from the live Uniswap pool price or passes an unrestricted minimum output, an attacker can temporarily skew the relevant Uniswap reserves with a flash loan, execute the harvest/liquidation at an unfavorable rate, and restore the pool afterward.",
+      "impact": "Harvested AURA or other rewards can be sold for materially less underlying collateral, reducing user or protocol proceeds; if the resulting value is credited toward position accounting, an attacker may also extract collateral or make an undercollateralized position appear viable.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol",
+          "blueberry-core/contracts/spell/AuraSpell.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/wrapper/WConvexPools.sol",
+          "blueberry-core/contracts/wrapper/WAuraPools.sol",
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210552",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:21:05.635596",
+      "id": "hyp_4c195cad1a8b",
+      "qa_comment": "Upon reviewing AuraSpell.closePositionFarm and WAuraPools.burn, I confirmed that the reward liquidation path performs an unprotected Uniswap V2-style swap. After burning the position and receiving rewardTokens, closePositionFarm calls swapRouter.swapExactTokensForTokens(rewards, 0, swapPath[i], address(this), type(uint256).max), explicitly setting amountOutMin to zero and using an effectively unlimited deadline. The caller also supplies the router and each swap path, while no TWAP, oracle quote, price-impact limit, or deviation check is performed before or after execution. Consequently, an attacker able to influence the selected Uniswap pool can sandwich or otherwise distort reserves immediately before the transaction, causing rewards to be exchanged at an arbitrarily poor rate without reverting. WAuraPools.burn only calculates and transfers reward amounts; it provides no valuation or slippage protection. The UniswapV2Oracle shown is an LP pricing oracle and is not consulted by this liquidation path. Although the direct economic impact may depend on who invokes the close operation and the resulting debt accounting, the absence of any minimum-output bound and reliance on router spot execution clearly establish the reported vulnerability."
+    }
+  },
+  "metadata": {
+    "total": 10,
+    "confirmed": 5,
+    "last_modified": "2026-10-12T21:21:05.637215"
+  }
+}

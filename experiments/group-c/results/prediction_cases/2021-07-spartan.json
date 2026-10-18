@@ -1,0 +1,188 @@
+{
+  "repo_id": "2021-07-spartan",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_207e7a763b19",
+      "title": "Router balance sweeping allows liquidity withdrawers to steal unrelated assets",
+      "description": "Several Router paths transfer the entire current Router balance instead of only the assets produced by the current operation. In removeLiquidityExact for BNB, removeLiquiditySingle, and swapAssetToSynth, pre-existing BASE/WBNB balances can be included in the caller's output or used to mint synths. Any user able to execute the relevant path, such as an LP holder, can exploit assets accidentally sent to the Router, residual dust, or balances left by another operation.",
+      "impact": "Attackers can appropriate unrelated BASE/WBNB held by Router or mint synths against those funds, causing direct loss of protocol or user assets.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "removeLiquidityExact"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "removeLiquiditySingle"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "swapAssetToSynth"
+        }
+      ],
+      "mitigation": "Record each relevant Router asset balance before the operation and transfer only the post-operation balance delta. Avoid retaining user funds in Router; add explicit sweeping controls for any pre-existing balances and validate all intermediate transfer amounts.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_f0bf4a114496",
+      "title": "Curated-pool dividend payouts are unlimited despite maxTrades configuration",
+      "description": "addDividend computes dailyAllocation using maxTrades but does not track or enforce the maximum number of dividend events per era, and the shown Router state includes no effective per-era payout counter or reset in this path. A caller can repeatedly trade against a curated pool while emissions are enabled and trigger repeated Reserve grants, allowing the reserve allocation intended for a bounded number of trades to be paid out repeatedly.",
+      "impact": "The Reserve can be drained faster than intended, transferring protocol incentives to the curated pool and its LP holders and reducing funds available for other protocol obligations.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "addDividend"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "getsDividend"
+        }
+      ],
+      "mitigation": "Track dividend events and cumulative dividend allocation per era, reset the counters at an explicit era boundary, and reject or cap payouts once maxTrades or the configured aggregate allocation is reached. Enforce the cap in the Reserve as a defense in depth.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_e8487d8d134a",
+      "title": "Router ignores token transfer return values and received amounts in asset ingress and egress",
+      "description": "_handleTransferIn calls transferFrom or WBNB transfer without checking the returned boolean, and its computed actual amount is not used by the public liquidity and swap entrypoints. _handleTransferOut likewise ignores the return value of ERC20 transfer. For tokens that return false or otherwise do not transfer the requested amount, Router can continue into Pool accounting as though the operation succeeded, while users may receive no output or LP/swap accounting may become inconsistent.",
+      "impact": "Users can lose input assets without receiving the expected LP tokens or swap output, and pools can become misaccounted or unusable for affected assets.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "_handleTransferIn"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "_handleTransferOut"
+        }
+      ],
+      "mitigation": "Use SafeERC20-style wrappers that revert on false or malformed return data, measure pre/post balances for every input, and pass the actual received amount into Pool operations. Verify output transfer success before finalizing accounting.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_4f27d10bb008",
+      "title": "BondVault claim logic can permanently lock half of a member’s remaining LP",
+      "description": "claimForMember subtracts _claimable from bondedLP and then checks whether _claimable equals the post-claim bondedLP. When a claim occurs at exactly half of the remaining vesting amount, the comparison succeeds even though LP remains, causing claimRate to be set to zero. The remaining LP can no longer vest unless another deposit resets the rate or DAO release is invoked.",
+      "impact": "Members can have part of their bonded LP permanently locked, resulting in loss or indefinite denial of access to redeemable liquidity.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/BondVault.sol",
+          "contract": "BondVault",
+          "function": "claimForMember(address,address)"
+        },
+        {
+          "file": "contracts/BondVault.sol",
+          "contract": "BondVault",
+          "function": "calcBondedLP(address,address)"
+        }
+      ],
+      "mitigation": "Capture the pre-claim bonded balance, determine whether _claimable equals that pre-claim balance, and set claimRate to zero only when the post-claim bondedLP is zero. Add tests for claims at zero, half, and full vesting.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_bb979dd4a209",
+      "title": "Integer truncation can create permanently unclaimable BondVault dust",
+      "description": "depositForMember computes claimRate using integer division of bondedLP by bondingPeriodSeconds. Any deposit smaller than the vesting period, and any residual amount below that period after claims, receives a zero claim rate. calcBondedLP then returns zero indefinitely because elapsed time multiplied by the zero rate is zero.",
+      "impact": "Bonded LP amounts can remain trapped in BondVault indefinitely, requiring administrative release or another deposit to recover them.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/BondVault.sol",
+          "contract": "BondVault",
+          "function": "depositForMember(address,address,uint256)"
+        },
+        {
+          "file": "contracts/BondVault.sol",
+          "contract": "BondVault",
+          "function": "calcBondedLP(address,address)"
+        },
+        {
+          "file": "contracts/BondVault.sol",
+          "contract": "BondVault",
+          "function": "claimForMember(address,address)"
+        }
+      ],
+      "mitigation": "Track vesting using a numerator and denominator or an accrued remainder so fractional per-second entitlement is preserved. Alternatively provide a clearly defined final-dust claim path that does not depend on bondRelease.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_500b2cb11180",
+      "title": "Harvested Synth rewards bypass the minimum withdrawal lock",
+      "description": "harvestSingle credits newly minted synths to mapMemberSynth_deposit but never updates mapMember_depositTime. Since withdraw checks only the older global deposit timestamp, a member can harvest newly accrued rewards and immediately withdraw them without waiting minimumDepositTime.",
+      "impact": "Users can immediately exit with freshly harvested rewards, defeating the intended one-hour lock and enabling short-term or mercenary participation that the lock was intended to prevent.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/synthVault.sol",
+          "contract": "SynthVault",
+          "function": "harvestSingle(address)"
+        },
+        {
+          "file": "contracts/synthVault.sol",
+          "contract": "SynthVault",
+          "function": "_processWithdraw(address,address,uint256)"
+        }
+      ],
+      "mitigation": "Apply the intended lock to harvested rewards by updating the applicable member or member-and-synth withdrawal timestamp when harvestSingle credits synthReward, or track deposit timestamps per balance tranche and enforce the lock against each tranche.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_063f529d178e",
+      "title": "SynthVault harvestAll becomes increasingly gas-heavy and can become unusable",
+      "description": "harvestAll iterates over the entire stakedSynthAssets array on every call. The array permanently grows whenever a new synth is first deposited and entries are never removed, while each eligible entry performs reward calculation and may invoke reserve and pool contracts.",
+      "impact": "HarvestAll can revert due to gas exhaustion, leaving users unable to claim rewards through the aggregate function and imposing increasingly high gas costs as historical synth assets accumulate.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/synthVault.sol",
+          "contract": "SynthVault",
+          "function": "harvestAll()"
+        },
+        {
+          "file": "contracts/synthVault.sol",
+          "contract": "SynthVault",
+          "function": "_deposit(address,address,uint256)"
+        }
+      ],
+      "mitigation": "Provide paginated harvesting with start and end indexes, or let users harvest only explicitly selected synths. Do not require iterating over the full historical stakedSynthAssets array in one transaction.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_f352a4505325",
+      "title": "Withdrawal basis points are not range-validated, enabling caller-triggered reverts and inconsistent partial accounting",
+      "description": "withdraw and _processWithdraw accept arbitrary basisPoints without requiring a value between 0 and 10000. Values above 10000 can produce a calculated amount greater than the recorded balance and cause subtraction underflow, while values that round one component to zero can remove deposit principal without proportionally removing its recorded weight.",
+      "impact": "Malformed requests can reliably revert, and rounding mismatches can let a member retain reward weight after reducing deposited synth principal, potentially receiving excess emissions relative to remaining capital.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/synthVault.sol",
+          "contract": "SynthVault",
+          "function": "withdraw(address,uint256)"
+        },
+        {
+          "file": "contracts/synthVault.sol",
+          "contract": "SynthVault",
+          "function": "_processWithdraw(address,address,uint256)"
+        }
+      ],
+      "mitigation": "Require basisPoints <= 10000 and reject zero or otherwise ineffective withdrawals where appropriate. Calculate a single proportional share and ensure principal and weight reductions cannot diverge materially due to rounding; clear residual weight when the corresponding deposit reaches zero.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_ad3667485200",
+      "title": "Arbitrary zero-value deposits can repeatedly lock another user’s SynthVault position",
+      "description": "depositForMember is public, accepts any member address, and does not require amount > 0. A caller can invoke it with a valid synth, a victim address, and zero amount; transferFrom of zero succeeds, while _deposit still resets the victim’s global and per-synth lock timestamps.",
+      "impact": "An attacker can repeatedly reset a victim’s one-hour withdrawal and harvest lock at negligible cost, preventing the victim from withdrawing or harvesting their SynthVault position for as long as the attacker continues the calls.",
+      "vulnerable_code": [],
+      "mitigation": "Add require(amount > 0), validate that the transferred amount is positive, and use an authorization model for deposits on behalf of another member or require explicit member consent.",
+      "severity": "high"
+    }
+  ]
+}

@@ -1,0 +1,614 @@
+{
+  "session_id": "sess_agent_20261012_203013",
+  "start_time": "2026-10-12T20:30:13.671562",
+  "status": "completed",
+  "models": {
+    "scout": "OpenAI/openai-codex/gpt-5.6-luna",
+    "strategist": "OpenAI/openai-codex/gpt-5.6-luna"
+  },
+  "investigations": [
+    {
+      "timestamp": "2026-10-12T20:30:47.862845",
+      "goal": "Vulnerability analysis of LiquidityBasedTWAP",
+      "priority": 10,
+      "category": "aspect",
+      "frame_id": "frame_263e26479bba",
+      "planned_batch": 1,
+      "planned_index": 1,
+      "started_at": "2026-10-12T20:30:22.361401",
+      "ended_at": "2026-10-12T20:30:47.862719",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 0,
+        "confirmed": 0,
+        "rejected": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-12T20:31:46.692807",
+      "goal": "Vulnerability analysis of VaderPool / BasePool",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_bd75022de2c0",
+      "planned_batch": 2,
+      "planned_index": 1,
+      "started_at": "2026-10-12T20:30:57.340444",
+      "ended_at": "2026-10-12T20:31:46.692634",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 1,
+        "confirmed": 1,
+        "rejected": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-12T20:32:21.401316",
+      "goal": "Vulnerability analysis of Timelock",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_c5fd7f1aa2d2",
+      "planned_batch": 3,
+      "planned_index": 1,
+      "started_at": "2026-10-12T20:31:53.138909",
+      "ended_at": "2026-10-12T20:32:21.401141",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 1,
+        "confirmed": 1,
+        "rejected": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-12T20:33:21.109282",
+      "goal": "Vulnerability analysis of Vader protocol source boundary",
+      "priority": 8,
+      "category": "aspect",
+      "frame_id": "frame_200b761aa82f",
+      "planned_batch": 4,
+      "planned_index": 1,
+      "started_at": "2026-10-12T20:32:27.136258",
+      "ended_at": "2026-10-12T20:33:21.109052",
+      "iterations_completed": 3,
+      "hypotheses": {
+        "total": 2,
+        "confirmed": 1,
+        "rejected": 0,
+        "uncertain": 1
+      }
+    }
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-10-12T20:30:22.349801",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of LiquidityBasedTWAP",
+          "focus_areas": [
+            "Cumulative-price and TWAP observation integrity",
+            "Chainlink and pool price-source selection and fallback behavior",
+            "Liquidity-weighted aggregation susceptibility to spot-price manipulation",
+            "Owner-configured pair and oracle parameter controls",
+            "Staleness, update-window, and decimal-normalization checks"
+          ],
+          "priority": 10,
+          "reasoning": "WHY NOW: LiquidityBasedTWAP is the central oracle component and directly combines Chainlink and pool-derived inputs; weaknesses in source selection, observation windows, liquidity weighting, or configuration could let a manipulated market price influence reserve, swap, or synthetic-asset valuation. EXIT CRITERIA: Trace every external price input through validation, weighting, normalization, and returned-price consumers; verify that prices cannot be derived from manipulable spot state or stale/incomplete observations; assess owner-configured pairs and fallback paths; record a price-manipulation finding only if an attacker can cause an economically meaningful incorrect valuation, otherwise document the reviewed paths and protections.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T20:30:57.316319",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of VaderPool / BasePool",
+          "focus_areas": [
+            "AMM swap pricing and reserve-update logic",
+            "User-controlled inputs affecting asset valuation or pool reserves",
+            "Liquidity mint, burn, and withdrawal calculations that derive prices",
+            "Interactions with VaderMath, synth pricing, and any oracle-dependent paths",
+            "Same-transaction manipulation resistance and slippage or minimum-output enforcement"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: This is an unvisited core pricing component that directly determines exchange rates and liquidity outcomes, making it a high-value target for reserve, spot-price, and transaction-order manipulation. Its interaction with the already analyzed router and reserve/oracle components can expose exploitable pricing assumptions without repeating the LiquidityBasedTWAP investigation. EXIT CRITERIA: Trace every externally reachable swap, liquidity, burn, and pricing path; identify all price and reserve inputs; verify whether attacker-controlled state can distort valuations within a transaction or across transactions; and document either a concrete price-manipulation vulnerability with an exploit path and impact or sufficient evidence that relevant pricing paths are manipulation-resistant.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T20:31:53.114470",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of Timelock",
+          "focus_areas": [
+            "Determine whether queued governance actions can alter oracle sources, TWAP configuration, pool pricing parameters, or other price-sensitive state without adequate delay or validation",
+            "Trace queue, execution, cancellation, eta, and grace-period handling for paths that enable premature, replayed, or unexpectedly ordered price-affecting actions",
+            "Assess whether arbitrary target calls or self-governed delay changes can be used to manipulate protocol prices before users can react"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: Timelock is an unvisited privileged execution component and is a direct control point for governance actions that may modify price feeds or pricing parameters; reviewing it now covers a critical permission boundary while avoiding the already completed LiquidityBasedTWAP and VaderPool investigations. EXIT CRITERIA: Map every externally reachable queue, cancel, and execute path; identify all price-sensitive targets and state changes reachable through arbitrary calls; verify delay, eta, grace, replay, and self-call restrictions; conclude whether any exploitable path permits price manipulation or document that none exists.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T20:32:27.112934",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of Vader protocol source boundary",
+          "focus_areas": [
+            "External token price inputs and balance/reserve assumptions",
+            "Chainlink and cumulative-price oracle data entering protocol pricing",
+            "Cross-component propagation of manipulable prices into swaps, minting, burning, and collateral valuation"
+          ],
+          "priority": 8,
+          "reasoning": "WHY NOW: This is the only remaining unvisited major system component tied directly to external assets and oracle sources, making it the broadest uncovered entry point for price manipulation after the dedicated TWAP and pool analyses. Assess whether untrusted token behavior, stale or inconsistent oracle data, or source-selection assumptions can inject manipulated prices into downstream protocol state. EXIT CRITERIA: Trace every external price and reserve input crossing the boundary into pricing-sensitive contracts, identify validation, freshness, decimal, and consistency checks, and either document a concrete exploitable manipulation path with affected state and impact or conclude that all such inputs are adequately constrained and no price-manipulation path remains at this boundary.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T20:33:24.555841",
+      "items": [
+        {
+          "goal": "System component review: Protocol user (actor_user)",
+          "focus_areas": [
+            "actor_user@SystemArchitecture"
+          ],
+          "priority": 7,
+          "reasoning": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+          "category": "aspect",
+          "expected_impact": "medium"
+        }
+      ]
+    }
+  ],
+  "token_usage": {
+    "total_usage": {
+      "input_tokens": 203590,
+      "output_tokens": 11458,
+      "total_tokens": 215048,
+      "call_count": 27
+    },
+    "by_model": {
+      "OpenAI:openai-codex/gpt-5.6-luna": {
+        "input_tokens": 203590,
+        "output_tokens": 11458,
+        "total_tokens": 215048,
+        "call_count": 27
+      }
+    },
+    "history": [
+      {
+        "timestamp": "2026-10-12T20:30:22.349512",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2158,
+        "output_tokens": 296,
+        "total_tokens": 2454,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:30:26.797866",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4042,
+        "output_tokens": 105,
+        "total_tokens": 4147,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:30:31.346145",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5950,
+        "output_tokens": 215,
+        "total_tokens": 6165,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:30:36.933081",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 12977,
+        "output_tokens": 226,
+        "total_tokens": 13203,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:30:42.565060",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 19288,
+        "output_tokens": 255,
+        "total_tokens": 19543,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:30:47.812627",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 19391,
+        "output_tokens": 332,
+        "total_tokens": 19723,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:30:57.315475",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2249,
+        "output_tokens": 412,
+        "total_tokens": 2661,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:31:01.110917",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4193,
+        "output_tokens": 185,
+        "total_tokens": 4378,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:31:07.240754",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8584,
+        "output_tokens": 341,
+        "total_tokens": 8925,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:31:12.271733",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8669,
+        "output_tokens": 242,
+        "total_tokens": 8911,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:31:17.827422",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 14390,
+        "output_tokens": 247,
+        "total_tokens": 14637,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:31:25.670286",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 14478,
+        "output_tokens": 142,
+        "total_tokens": 14620,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:31:46.668347",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 13458,
+        "output_tokens": 1845,
+        "total_tokens": 15303,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:31:53.113758",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2297,
+        "output_tokens": 515,
+        "total_tokens": 2812,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:31:57.624769",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4324,
+        "output_tokens": 119,
+        "total_tokens": 4443,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:32:04.275910",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7141,
+        "output_tokens": 492,
+        "total_tokens": 7633,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:32:08.989041",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7208,
+        "output_tokens": 199,
+        "total_tokens": 7407,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:32:13.904253",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 11318,
+        "output_tokens": 237,
+        "total_tokens": 11555,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:32:21.375722",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 12906,
+        "output_tokens": 264,
+        "total_tokens": 13170,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:32:27.112214",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2148,
+        "output_tokens": 337,
+        "total_tokens": 2485,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:32:31.823352",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4372,
+        "output_tokens": 313,
+        "total_tokens": 4685,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:32:58.649601",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 3372,
+        "output_tokens": 2541,
+        "total_tokens": 5913,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:33:01.732640",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 986,
+        "output_tokens": 89,
+        "total_tokens": 1075,
+        "profile": "lightweight"
+      },
+      {
+        "timestamp": "2026-10-12T20:33:06.662585",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5368,
+        "output_tokens": 236,
+        "total_tokens": 5604,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:33:17.899011",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4400,
+        "output_tokens": 1040,
+        "total_tokens": 5440,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:33:21.096053",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5717,
+        "output_tokens": 122,
+        "total_tokens": 5839,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:33:24.554701",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2206,
+        "output_tokens": 111,
+        "total_tokens": 2317,
+        "profile": "strategist"
+      }
+    ]
+  },
+  "coverage": {
+    "nodes": {
+      "visited": 35,
+      "total": 38,
+      "percent": 92.1
+    },
+    "cards": {
+      "visited": 92,
+      "total": 270,
+      "percent": 34.1
+    },
+    "visited_node_ids": [
+      "external_token_boundary",
+      "fixed_point",
+      "usdv_token",
+      "vader_math",
+      "uniswap_pair",
+      "synth_factory",
+      "chainlink_interfaces",
+      "xvader",
+      "lp_wrapper",
+      "legacy_pool",
+      "vader_bond",
+      "v2_pool",
+      "bond_treasury",
+      "pausable_staking",
+      "swap_queue",
+      "uniswap_oracle_library",
+      "staking_rewards",
+      "protocol_constants",
+      "vader_token",
+      "synth",
+      "legacy_router",
+      "vader_reserve",
+      "legacy_pool_factory",
+      "lp_token",
+      "timelock",
+      "v2_factory",
+      "governor_alpha",
+      "lbt",
+      "owned_staking",
+      "math_utilities",
+      "converter",
+      "v2_router",
+      "linear_vesting",
+      "gas_throttle",
+      "rewards_recipient"
+    ],
+    "visited_card_ids": [
+      "card_c55362826ff6",
+      "card_7f83910d933b",
+      "card_0428095efef7",
+      "card_0c40ce4fb901",
+      "card_3f254330e060",
+      "card_7c7b3811f39a",
+      "card_40f4a4b80217",
+      "card_77d8b69fdf7b",
+      "card_3807dfa2993e",
+      "card_105e405a0b93",
+      "card_32bda140a8c1",
+      "card_f44b9498146b",
+      "card_a3657469f22c",
+      "card_d143cf4549fe",
+      "card_84eb5a5a2c20",
+      "card_20065f05e498",
+      "card_b5e3d2f49256",
+      "card_ae637f33b87a",
+      "card_6b5f7e234c1b",
+      "card_16baff134911",
+      "card_ad5f37192449",
+      "card_36758e3e50f4",
+      "card_ebf260a8d105",
+      "card_56ba7ac3931d",
+      "card_923760f10123",
+      "card_df4face1a521",
+      "card_860202b66abb",
+      "card_a9d2a9b6ea5b",
+      "card_6529612f828e",
+      "card_78bf96b9f82b",
+      "card_43e50f845ce6",
+      "card_0998d235e2e3",
+      "card_e44cd89dce8f",
+      "card_691e240955ec",
+      "card_5babd6428da3",
+      "card_a5e8048faf50",
+      "card_e3c06c7eecf0",
+      "card_2ae6b101daf9",
+      "card_01d9020874c5",
+      "card_46cb1f0642c7",
+      "card_5d51a42ea863",
+      "card_5dae498302da",
+      "card_22468b28f334",
+      "card_47f0b487e324",
+      "card_423f230d2a81",
+      "card_c74e5a2d6149",
+      "card_7b59e762ba1d",
+      "card_0106e6dba046",
+      "card_b6bec0cdad2d",
+      "card_4db0df2e4de5",
+      "card_31e6ba5e45ee",
+      "card_3ad8f87bfe7a",
+      "card_ef134ca63d5e",
+      "card_a4a31d7d40f3",
+      "card_9af052f5c65e",
+      "card_0a1e0d93ead2",
+      "card_c9dd1ded35cc",
+      "card_e73dd5072174",
+      "card_13db29a181b9",
+      "card_962d88c300cb",
+      "card_0b1c43f84106",
+      "card_d28e0dd2b268",
+      "card_d6b7ca7aa4b1",
+      "card_4510073cfe66",
+      "card_35d90b81ff93",
+      "card_5e7df7cec38b",
+      "card_14dd3004b7dc",
+      "card_8508cb796186",
+      "card_6c5f02f88d42",
+      "card_842589c8d8dc",
+      "card_204e1ae4b4bb",
+      "card_1f47e0900177",
+      "card_d968171f271d",
+      "card_54f672644624",
+      "card_1e6c3a23702b",
+      "card_df7d83f1374f",
+      "card_4dea36a41418",
+      "card_858e11b072a3",
+      "card_1ef80be66424",
+      "card_c3aa2fc554f7",
+      "card_3c1d074b2387",
+      "card_e87b1830e5b9",
+      "card_255c5661ef90",
+      "card_c0407c663f03",
+      "card_d25c7b17699e",
+      "card_58c3e6a2da87",
+      "card_70fe5b4871c2",
+      "card_0c0d1ce24ee0",
+      "card_f6a130df4dc2",
+      "card_8ffe304cf333",
+      "card_fb6d5358bacc",
+      "card_0bb3d34416f3"
+    ],
+    "node_visit_counts": {
+      "lbt": 1,
+      "chainlink_interfaces": 1,
+      "uniswap_pair": 1,
+      "v2_pool": 1,
+      "uniswap_oracle_library": 1,
+      "fixed_point": 1,
+      "usdv_token": 1,
+      "vader_reserve": 1,
+      "vader_math": 1,
+      "legacy_pool": 1,
+      "legacy_router": 1,
+      "vader_token": 1,
+      "xvader": 1,
+      "v2_router": 1,
+      "legacy_pool_factory": 1,
+      "synth_factory": 1,
+      "synth": 1,
+      "lp_wrapper": 1,
+      "lp_token": 1,
+      "v2_factory": 1,
+      "math_utilities": 1,
+      "protocol_constants": 1,
+      "external_token_boundary": 1,
+      "timelock": 1,
+      "governor_alpha": 1,
+      "staking_rewards": 1,
+      "pausable_staking": 1,
+      "rewards_recipient": 1,
+      "converter": 1,
+      "linear_vesting": 1,
+      "vader_bond": 1,
+      "bond_treasury": 1,
+      "gas_throttle": 1,
+      "swap_queue": 1,
+      "owned_staking": 1
+    }
+  },
+  "end_time": "2026-10-12T20:33:24.576713"
+}

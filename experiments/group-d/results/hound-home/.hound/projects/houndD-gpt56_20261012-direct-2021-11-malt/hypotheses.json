@@ -1,0 +1,56 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_36d029b59fa9": {
+      "title": "Reward reinvestment is vulnerable to spot-price sandwich manipulation",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: The reinvestment flow lacks a user-provided slippage bound and the downstream Uniswap swap accepts zero output protection, relying on manipulable instantaneous pool reserves.\nATTACK VECTOR: Monitor pending RewardReinvestor transactions, use a large swap or flash-loan-funded reserve trade to move the reward/Malt pool price before execution, let buyMalt execute with amountOutMin=0, then reverse the trade and retain the extracted value.\nAFFECTED NODES: contract_reward_reinvestor, contract_uniswap_handler, data_source_uniswap_reserves, interface_idex_handler\nAFFECTED CODE: src/contracts/RewardReinvestor.sol: reward withdrawal followed by IDexHandler.buyMalt() and rebonding, src/contracts/DexHandlers/UniswapHandler.sol: buyMalt() swaps the complete reward balance with amountOutMin=0\nSEVERITY: high\nREASONING: The loaded UniswapHandler implementation explicitly uses amountOutMin=0, and RewardReinvestor delegates reward-to-Malt conversion to this handler. Uniswap-style reserves are manipulable within the transaction ordering window, so an attacker can force an unfavorable but non-reverting execution. The attack is financially effective as long as the manipulated output remains nonzero and the subsequent bond operation accepts it.\nSUGGESTED MITIGATION: Require the reinvestment caller to supply a minimum acceptable Malt output and deadline, propagate that bound into the router swap, and revert when it is not met. Prefer a manipulation-resistant TWAP or oracle-derived bound for any system-level validation, and avoid calculating protection solely from the current pool reserves.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_reward_reinvestor",
+        "contract_uniswap_handler",
+        "data_source_uniswap_reserves",
+        "interface_idex_handler"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded UniswapHandler implementation explicitly uses amountOutMin=0, and RewardReinvestor delegates reward-to-Malt conversion to this handler. Uniswap-style reserves are manipulable within the transaction ordering window, so an attacker can force an unfavorable but non-reverting execution. The attack is financially effective as long as the manipulated output remains nonzero and the subsequent bond operation accepts it.",
+      "mitigation": "Require the reinvestment caller to supply a minimum acceptable Malt output and deadline, propagate that bound into the router swap, and revert when it is not met. Prefer a manipulation-resistant TWAP or oracle-derived bound for any system-level validation, and avoid calculating protection solely from the current pool reserves.",
+      "finding_description": "RewardReinvestor sends withdrawn reward tokens through IDexHandler.buyMalt(), while UniswapHandler.buyMalt() performs a router swap with amountOutMin set to zero. An attacker can front-run a public reinvestment transaction, temporarily skew the reward/Malt pool reserves, allow the reinvestor to execute at a severely unfavorable spot price, and then back-run to restore the pool. Because no minimum Malt output is enforced, the transaction can succeed while converting the user's rewards into materially less Malt than expected.",
+      "impact": "A user can lose most of the economic value of withdrawn rewards while receiving and bonding an attacker-manipulated, substantially smaller Malt amount; the attacker captures the difference through sandwich arbitrage.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/DexHandlers/UniswapHandler.sol",
+          "contract": "UniswapHandler",
+          "function": "buyMalt()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/RewardReinvestor.sol",
+          "src/contracts/LiquidityExtension.sol",
+          "src/contracts/MaltDataLab.sol",
+          "src/contracts/interfaces/IDexHandler.sol",
+          "src/contracts/DexHandlers/UniswapHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_202559",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:28:33.509033",
+      "id": "hyp_36d029b59fa9",
+      "qa_comment": "Upon reviewing RewardReinvestor.splitReinvest() in src/contracts/RewardReinvestor.sol and UniswapHandler.buyMalt() in src/contracts/DexHandlers/UniswapHandler.sol, I confirmed the alleged spot-price manipulation vulnerability. splitReinvest() withdraws rewards, transfers half to the handler, and invokes buyMalt() without accepting or propagating any user-supplied minimum Malt output or deadline. buyMalt() computes the complete reward balance and calls router.swapExactTokensForTokens() with amountOutMin set to 0 and deadline set only to now. Consequently, an attacker can front-run a pending reinvestment transaction by moving the reward/Malt Uniswap reserves, cause the swap to execute at an unfavorable but non-reverting rate, and reverse the reserve manipulation afterward. The subsequent _bondAccount() flow does not validate the purchased Malt amount against an expected price; its addLiquidity() call only applies a 95% balance-based minimum and is not a reliable protection against a modest sandwich. The same zero-output protection also exists in sellMalt(), although it is not required for this attack. No relevant oracle or TWAP guard is used in the reinvestment path."
+    }
+  },
+  "metadata": {
+    "total": 1,
+    "confirmed": 1,
+    "last_modified": "2026-10-12T20:28:33.510893"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "repo_id": "2023-04-blueberry",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_4583e7e9e72d",
+      "title": "Zero-slippage reward liquidation enables sandwich-based price manipulation",
+      "description": "CurveSpell.closePositionFarm swaps harvested CRV through a caller-supplied Uniswap V2 router and path with amountOutMin set to zero. An attacker can manipulate the selected pool around the transaction or route it through an illiquid pool so the swap executes at a severely unfavorable price, extracting the CRV value before the resulting debt-token balance is used for repayment or refund.",
+      "impact": "Users or the protocol can lose most or all harvested CRV value during position closure, reducing debt repayment and potentially leaving residual debt or causing value to be transferred to the manipulator.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/spell/CurveSpell.sol",
+          "contract": "CurveSpell",
+          "function": "closePositionFarm(ClosePosParam,IUniswapV2Router02,address[])"
+        }
+      ],
+      "mitigation": "Require a caller-specified minimum output constrained by a protocol-configured maximum slippage, validate the router and token path against an allowlist, and preferably compare the execution price with a manipulation-resistant oracle or TWAP before accepting the swap.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_c2e5eed50619",
+      "title": "PSwapLib forwards caller-controlled Paraswap slippage without oracle or minimum-output enforcement",
+      "description": "PSwapLib approves the requested source amount and directly invokes the unprotected Paraswap megaSwap using the caller-supplied MegaSwapSellData. Although the struct contains toAmount and expectedAmount fields, PSwapLib does not validate either against an oracle, an independently computed quote, or a strategy-level slippage bound. If ShortLongSpell exposes swapData to a position caller, the caller can set toAmount to zero or an excessively low value and route through an adversarially manipulated or otherwise unfavorable market, allowing the swap to execute at a materially manipulated price.",
+      "impact": "A position can receive substantially fewer destination tokens than intended, causing collateral loss, unfavorable entry or exit pricing, and possible insolvency or bad debt when the resulting asset value is used by the strategy.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "contract": "PSwapLib",
+          "function": "megaSwap"
+        },
+        {
+          "file": "blueberry-core/contracts/libraries/Paraswap/Utils.sol",
+          "contract": "Utils",
+          "function": "MegaSwapSellData"
+        },
+        {
+          "file": "blueberry-core/contracts/spell/ShortLongSpell.sol",
+          "contract": "ShortLongSpell",
+          "function": "_withdraw"
+        }
+      ],
+      "mitigation": "Validate swapData.toAmount against an independently obtained oracle or strategy quote and enforce a bounded maximum slippage before calling Paraswap. Reject zero or insufficient minimum outputs, constrain allowed routes and tokens, and prefer the protected Paraswap entry point where its beneficiary and execution protections are applicable.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_56d6074f3242",
+      "title": "AggregatorOracle can return flash-loan-manipulated Uniswap V2 spot prices",
+      "description": "AggregatorOracle accepts owner-configured BaseOracle routes, while UniswapV2Oracle derives prices from pool reserves. An attacker can temporarily skew a thin Uniswap V2 pool with a flash loan and cause the aggregator to return the manipulated quote when that route is used alone or alongside correlated routes. The aggregator's relative-deviation check does not provide protection unless an independently secured reference is always enforced.",
+      "impact": "Collateral or debt can be overvalued, enabling undercollateralized borrowing, excessive leverage, or incorrect liquidation and redemption amounts.",
+      "vulnerable_code": [],
+      "mitigation": "Disallow spot-reserve routes for collateral valuation, or require a sufficiently long TWAP and minimum-liquidity/depth checks. Require multiple independent sources, enforce a minimum source count, reject duplicate or correlated routes, and fail closed when sources deviate beyond the configured bound.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_90e07533de7c",
+      "title": "SoftVault Compound exchange-rate inflation can overvalue collateral",
+      "description": "SoftVault depends on an external Compound market whose exchange rate is exposed as the value of deposited cTokens. If SoftVault or the configured collateral oracle values shares using the live Compound exchange rate without a manipulation-resistant snapshot, an attacker can temporarily increase the market exchange rate by supplying or donating underlying assets, then present the inflated cToken position to BlueBerryBank for borrowing or other value extraction before the valuation normalizes.",
+      "impact": "An attacker may obtain excessive debt against an inflated SoftVault collateral position, causing bad debt for BlueBerryBank and losses to lenders if the inflated valuation cannot be unwound.",
+      "vulnerable_code": [],
+      "mitigation": "Use a conservative, bounded Compound exchange-rate adapter; base collateral value on a historical or independently verified rate, cap per-block changes, apply deviation checks, and prevent same-transaction deposits or valuation from using an attacker-controlled rate update.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_4c195cad1a8b",
+      "title": "Aura reward liquidation may use manipulable Uniswap spot pricing without an effective minimum-output bound",
+      "description": "AuraSpell directly calls the external Uniswap integration, while WAuraPools burns positions and claims Aura rewards. If the reward liquidation path derives the swap amount from the live Uniswap pool price or passes an unrestricted minimum output, an attacker can temporarily skew the relevant Uniswap reserves with a flash loan, execute the harvest/liquidation at an unfavorable rate, and restore the pool afterward.",
+      "impact": "Harvested AURA or other rewards can be sold for materially less underlying collateral, reducing user or protocol proceeds; if the resulting value is credited toward position accounting, an attacker may also extract collateral or make an undercollateralized position appear viable.",
+      "vulnerable_code": [],
+      "mitigation": "Use a bounded minimum-output parameter derived from a trusted TWAP or Chainlink-style oracle, enforce a maximum price-impact/deviation check, and reject swaps whose execution price deviates from the reference price beyond a strict threshold. Avoid valuing harvested rewards using a single-block Uniswap spot quote.",
+      "severity": "high"
+    }
+  ]
+}

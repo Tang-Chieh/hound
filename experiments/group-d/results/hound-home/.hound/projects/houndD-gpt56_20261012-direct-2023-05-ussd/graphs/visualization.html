@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Knowledge Graphs Visualization</title>
+    <meta charset="utf-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e6edf3;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #1c2128 0%, #2d333b 100%);
+            color: #e6edf3;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #30a14e33;
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #30a14e;
+        }
+        
+        #controls {
+            background: #161b22;
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .control-group label {
+            font-size: 11px;
+            color: #7d8590;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        select, button {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        select:hover, button:hover {
+            background: #30363d;
+            border-color: #30a14e;
+        }
+        
+        select:focus, button:focus {
+            outline: none;
+            border-color: #30a14e;
+            box-shadow: 0 0 0 2px #30a14e22;
+        }
+        
+        #main-container {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+        
+        #graph-container {
+            flex: 1;
+            background: #0d1117;
+            position: relative;
+        }
+        
+        #sidebar {
+            width: 380px;
+            background: #161b22;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #30363d;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-section h3 {
+            color: #e6edf3;
+            margin-bottom: 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        #node-info {
+            background: #21262d;
+            padding: 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #30363d;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .observation {
+            background: #21262d;
+            padding: 10px;
+            border-left: 3px solid #30a14e;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #30363d;
+            font-size: 13px;
+        }
+        
+        .stat-value {
+            color: #30a14e;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #tooltip {
+            position: absolute;
+            padding: 12px;
+            background: rgba(22, 27, 34, 0.95);
+            color: #e6edf3;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            font-size: 12px;
+            max-width: 300px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle {
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+        
+        .node:hover circle {
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+        
+        .link {
+            stroke-opacity: 0.4;
+            transition: stroke-opacity 0.3s;
+        }
+        
+        .link:hover {
+            stroke-opacity: 0.8;
+        }
+        
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 27, 34, 0.95);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            max-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        #legend h4 {
+            margin: 0 0 12px 0;
+            color: #e6edf3;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        .legend-section {
+            margin-bottom: 15px;
+        }
+        
+        .legend-section-title {
+            color: #7d8590;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .legend-item {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #8b949e;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .legend-line {
+            width: 18px;
+            height: 2px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔍 Hound3 Knowledge Graph</h1>
+        <div style="margin-top: 8px; opacity: 0.8; font-size: 13px; color: #8b949e;">
+            Dynamic Security Analysis Visualization
+        </div>
+    </div>
+    
+    <div id="controls">
+        <div class="control-group">
+            <label>Graph</label>
+            <select id="graph-selector">
+                <option value="SystemArchitecture">SystemArchitecture</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Node Type Filter</label>
+            <select id="type-filter">
+                <option value="all">All Types</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Layout</label>
+            <select id="layout-selector">
+                <option value="force">Force Directed</option>
+                <option value="hierarchical">Hierarchical</option>
+                <option value="circular">Circular</option>
+            </select>
+        </div>
+        
+        <button id="reset-view">Reset View</button>
+    </div>
+    
+    <div id="main-container">
+        <div id="graph-container">
+            <div id="legend"></div>
+        </div>
+        
+        <div id="sidebar">
+            <div class="sidebar-section">
+                <h3>Graph Statistics</h3>
+                <div id="stats"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Selected Node</h3>
+                <div id="node-info">
+                    <em style="color: #888;">Click a node to see details</em>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Source Cards</h3>
+                <div id="card-viewer" style="display: none;">
+                    <div style="margin-bottom: 10px;">
+                        <select id="card-selector" style="width: 100%;">
+                            <option value="">Select a card to view code</option>
+                        </select>
+                    </div>
+                    <div id="card-content" style="background: #0f3460; padding: 10px; border-radius: 6px; max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; white-space: pre-wrap;">
+                        <em style="color: #888;">Select a card above to view its content</em>
+                    </div>
+                </div>
+                <div id="no-cards" style="color: #888; font-style: italic;">
+                    No source cards for this node
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Agent Observations</h3>
+                <div id="observations"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tooltip"></div>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // All graph data
+        const allGraphs = {"SystemArchitecture": {"name": "SystemArchitecture", "internal_name": "SystemArchitecture", "focus": "High-level USSD system boundary and end-to-end flows: users call the upgradeable USSD token for collateral-backed minting and accounting; control-role administrators configure collateral, oracles, and the swap router; the authorized rebalancer reads pool and collateral data, calls USSD mint/burn/swap interfaces, and interacts with Uniswap; oracle implementations source prices from Chainlink feeds or Uniswap V3 TWAP pools. Show contracts, interfaces, external protocols and tokens, authorization boundaries, and the direction of calls and data.", "nodes": [{"id": "contract_USSD", "type": "contract", "label": "USSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_5d85bf434484"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_IUSSD", "type": "interface", "label": "IUSSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d7ce5a5c6b4d"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_IStableOracle", "type": "interface", "label": "IStableOracle", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b4fe1135d387"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_IUSSDRebalancer", "type": "interface", "label": "IUSSDRebalancer", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0301f7d2f911"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_IStaticOracle", "type": "interface", "label": "IStaticOracle", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_19e58aab8e35", "card_b13242c7d3f0", "card_b6712672a64c", "card_da5d604a73af"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_USSDRebalancer", "type": "contract", "label": "USSDRebalancer", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_224d350a6ddc"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_SimOracle", "type": "contract", "label": "SimOracle", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0deafbbad391"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_StableOracleDAI", "type": "contract", "label": "StableOracleDAI", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_2d2d17bbc105"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_StableOracleWBGL", "type": "contract", "label": "StableOracleWBGL", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_18bd1817024e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_StableOracleWBTC", "type": "contract", "label": "StableOracleWBTC", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a16317274c79"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_StableOracleWETH", "type": "contract", "label": "StableOracleWETH", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_12f067df3f23"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_StaticOracle", "type": "contract", "label": "StaticOracle (UniswapV3StaticOracle.sol)", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0fc2bc496182"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "storage_USSD_rebalancer", "type": "storage", "label": "USSD.rebalancer", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_5d85bf434484", "card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "role_USSD_control", "type": "role", "label": "USSD.STABLE_CONTROL_ROLE", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7178407581b7"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "storage_USSD_collateral", "type": "storage", "label": "USSD.collateral", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7178407581b7", "card_4af6b5c4a8be"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "storage_USSD_uniRouter", "type": "storage", "label": "USSD.uniRouter", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_initialize", "type": "function", "label": "USSD.initialize", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_5d85bf434484", "card_7178407581b7"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_addCollateral", "type": "function", "label": "USSD.addCollateral", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4af6b5c4a8be"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_removeCollateral", "type": "function", "label": "USSD.removeCollateral", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d299a44dc868"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_collateralList", "type": "function", "label": "USSD.collateralList", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4af6b5c4a8be"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_mintForToken", "type": "function", "label": "USSD.mintForToken", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d299a44dc868", "card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_calculateMint", "type": "function", "label": "USSD.calculateMint", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_collateralFactor", "type": "function", "label": "USSD.collateralFactor", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_fa9d487623b9", "card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_setRebalancer", "type": "function", "label": "USSD.setRebalancer", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_mintRebalancer", "type": "function", "label": "USSD.mintRebalancer", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_burnRebalancer", "type": "function", "label": "USSD.burnRebalancer", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_setUniswapRouter", "type": "function", "label": "USSD.setUniswapRouter", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_USSD_UniV3SwapInput", "type": "function", "label": "USSD.UniV3SwapInput", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e23f6436b911"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_rebalancer_initialize", "type": "function", "label": "USSDRebalancer.initialize", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "role_rebalancer_control", "type": "role", "label": "USSDRebalancer.STABLE_CONTROL_ROLE", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "storage_rebalancer_pool", "type": "storage", "label": "USSDRebalancer.uniPool", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_224d350a6ddc", "card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "storage_rebalancer_USSD", "type": "storage", "label": "USSDRebalancer.USSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_224d350a6ddc", "card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "storage_rebalancer_configuration", "type": "storage", "label": "USSDRebalancer threshold, flutterRatios, baseAsset", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_224d350a6ddc", "card_bd3ddc2b87a7", "card_982c30a35404"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_rebalancer_setPoolAddress", "type": "function", "label": "USSDRebalancer.setPoolAddress", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_rebalancer_setParameters", "type": "function", "label": "USSDRebalancer.setTreshold / setFlutterRatios / setBaseAsset", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_rebalancer_rebalance", "type": "function", "label": "USSDRebalancer.rebalance", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_rebalancer_getOwnValuation", "type": "function", "label": "USSDRebalancer.getOwnValuation", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_rebalancer_getSupplyProportion", "type": "function", "label": "USSDRebalancer.getSupplyProportion", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_rebalancer_buyUSSD", "type": "function", "label": "USSDRebalancer.BuyUSSDSellCollateral", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_53c04a9c6b94", "card_ded8693ba4f3"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_rebalancer_sellUSSD", "type": "function", "label": "USSDRebalancer.SellUSSDBuyCollateral", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_5b85e68dabe2", "card_ee0d050f6681"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_oracle_getPrice", "type": "function", "label": "IStableOracle.getPriceUSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b4fe1135d387"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_sim_getPrice", "type": "function", "label": "SimOracle.getPriceUSD / setPriceUSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0deafbbad391"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_dai_getPrice", "type": "function", "label": "StableOracleDAI.getPriceUSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_ac2ccad5a4fb"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_wbgl_getPrice", "type": "function", "label": "StableOracleWBGL.getPriceUSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_18bd1817024e", "card_b6c31ed8db14"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_wbtc_getPrice", "type": "function", "label": "StableOracleWBTC.getPriceUSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a16317274c79"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_weth_getPrice", "type": "function", "label": "StableOracleWETH.getPriceUSD", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_12f067df3f23"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_staticOracle_quote", "type": "function", "label": "StaticOracle.quoteSpecificPoolsWithTimePeriod", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c768249ed165"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "function_staticOracle_prepare", "type": "function", "label": "StaticOracle.prepare pools for time-period quotes", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_2c639746eac9", "card_aca7944a317f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}], "edges": [{"id": "edge_457e681f", "type": "implements", "source_id": "contract_USSD", "target_id": "interface_IUSSD", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_5d85bf434484"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_615c9274", "type": "implements", "source_id": "contract_USSDRebalancer", "target_id": "interface_IUSSDRebalancer", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_224d350a6ddc"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d3b633d0", "type": "implements", "source_id": "contract_SimOracle", "target_id": "interface_IStableOracle", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_0deafbbad391"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3c739a3c", "type": "implements", "source_id": "contract_StableOracleDAI", "target_id": "interface_IStableOracle", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_2d2d17bbc105"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_38c146ca", "type": "implements", "source_id": "contract_StableOracleWBGL", "target_id": "interface_IStableOracle", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_18bd1817024e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_524e6ed6", "type": "implements", "source_id": "contract_StableOracleWBTC", "target_id": "interface_IStableOracle", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_a16317274c79"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_861f8f21", "type": "implements", "source_id": "contract_StableOracleWETH", "target_id": "interface_IStableOracle", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_12f067df3f23"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_167bcbed", "type": "implements", "source_id": "contract_StaticOracle", "target_id": "interface_IStaticOracle", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_0fc2bc496182"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_69cbd7f7", "type": "guards", "source_id": "role_USSD_control", "target_id": "function_USSD_addCollateral", "properties": {}, "label": "guards", "confidence": 1.0, "evidence": ["card_4af6b5c4a8be", "card_7178407581b7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_de045f55", "type": "guards", "source_id": "role_USSD_control", "target_id": "function_USSD_removeCollateral", "properties": {}, "label": "guards", "confidence": 1.0, "evidence": ["card_d299a44dc868", "card_7178407581b7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_253a98ec", "type": "guards", "source_id": "role_USSD_control", "target_id": "function_USSD_setRebalancer", "properties": {}, "label": "guards", "confidence": 1.0, "evidence": ["card_05ea1a267c09", "card_7178407581b7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_bcdf84b1", "type": "guards", "source_id": "role_USSD_control", "target_id": "function_USSD_setUniswapRouter", "properties": {}, "label": "guards", "confidence": 1.0, "evidence": ["card_05ea1a267c09", "card_7178407581b7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_eb6476a1", "type": "guards", "source_id": "role_rebalancer_control", "target_id": "function_rebalancer_setPoolAddress", "properties": {}, "label": "guards", "confidence": 1.0, "evidence": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5b114f3a", "type": "guards", "source_id": "role_rebalancer_control", "target_id": "function_rebalancer_setParameters", "properties": {}, "label": "guards", "confidence": 1.0, "evidence": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9b8f1932", "type": "writes", "source_id": "function_USSD_addCollateral", "target_id": "storage_USSD_collateral", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_4af6b5c4a8be"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4643fbbc", "type": "writes", "source_id": "function_USSD_removeCollateral", "target_id": "storage_USSD_collateral", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_d299a44dc868"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_cd0aaf31", "type": "reads", "source_id": "function_USSD_collateralList", "target_id": "storage_USSD_collateral", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_4af6b5c4a8be"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ef33b136", "type": "writes", "source_id": "function_USSD_setRebalancer", "target_id": "storage_USSD_rebalancer", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_cb1d6c28", "type": "writes", "source_id": "function_USSD_setUniswapRouter", "target_id": "storage_USSD_uniRouter", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_05ea1a267c09"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ac3e8dc1", "type": "writes", "source_id": "function_rebalancer_setPoolAddress", "target_id": "storage_rebalancer_pool", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8825bc70", "type": "writes", "source_id": "function_rebalancer_setParameters", "target_id": "storage_rebalancer_configuration", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a1234827", "type": "calls", "source_id": "function_USSD_mintForToken", "target_id": "function_USSD_calculateMint", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_35c2eeeb", "type": "reads_price_from", "source_id": "function_USSD_calculateMint", "target_id": "function_oracle_getPrice", "properties": {}, "label": "reads_price_from", "confidence": 1.0, "evidence": ["card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4bc6bf35", "type": "calls", "source_id": "function_USSD_calculateMint", "target_id": "function_USSD_collateralList", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_d299a44dc868", "card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4c55e507", "type": "transfers", "source_id": "function_USSD_mintForToken", "target_id": "storage_USSD_collateral", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b106f6b4", "type": "mints", "source_id": "function_USSD_mintForToken", "target_id": "contract_USSD", "properties": {}, "label": "mints", "confidence": 1.0, "evidence": ["card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b6ec8c49", "type": "reads", "source_id": "function_USSD_collateralFactor", "target_id": "storage_USSD_collateral", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0d580b35", "type": "reads_price_from", "source_id": "function_USSD_collateralFactor", "target_id": "function_oracle_getPrice", "properties": {}, "label": "reads_price_from", "confidence": 1.0, "evidence": ["card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b71b5d0b", "type": "depends_on", "source_id": "contract_USSD", "target_id": "interface_IStableOracle", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_4af6b5c4a8be", "card_fa9d487623b9"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8806ba12", "type": "depends_on", "source_id": "contract_USSDRebalancer", "target_id": "interface_IUSSD", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_982c30a35404", "card_53c04a9c6b94", "card_5b85e68dabe2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_cf91b640", "type": "reads", "source_id": "function_rebalancer_rebalance", "target_id": "function_rebalancer_getOwnValuation", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2847516e", "type": "reads", "source_id": "function_rebalancer_rebalance", "target_id": "function_rebalancer_getSupplyProportion", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0b38dced", "type": "calls", "source_id": "function_rebalancer_rebalance", "target_id": "function_rebalancer_buyUSSD", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_edc2580e", "type": "calls", "source_id": "function_rebalancer_rebalance", "target_id": "function_USSD_mintRebalancer", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_bcb54100", "type": "calls", "source_id": "function_rebalancer_rebalance", "target_id": "function_rebalancer_sellUSSD", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_810ef33a", "type": "reads", "source_id": "function_rebalancer_getOwnValuation", "target_id": "storage_rebalancer_pool", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_25d0f60f", "type": "reads", "source_id": "function_rebalancer_getSupplyProportion", "target_id": "storage_rebalancer_pool", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_982c30a35404"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0e6c0354", "type": "reads", "source_id": "function_rebalancer_buyUSSD", "target_id": "function_USSD_collateralList", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_53c04a9c6b94"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ba3dff98", "type": "reads_price_from", "source_id": "function_rebalancer_buyUSSD", "target_id": "function_oracle_getPrice", "properties": {}, "label": "reads_price_from", "confidence": 1.0, "evidence": ["card_53c04a9c6b94"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4be0010d", "type": "calls", "source_id": "function_rebalancer_buyUSSD", "target_id": "function_USSD_UniV3SwapInput", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_53c04a9c6b94", "card_ded8693ba4f3"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9b30f909", "type": "calls", "source_id": "function_rebalancer_buyUSSD", "target_id": "function_USSD_burnRebalancer", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_5b85e68dabe2", "card_ded8693ba4f3"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_fbfb939c", "type": "calls", "source_id": "function_rebalancer_sellUSSD", "target_id": "function_USSD_UniV3SwapInput", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_5b85e68dabe2", "card_ee0d050f6681"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_19510163", "type": "reads", "source_id": "function_rebalancer_sellUSSD", "target_id": "function_USSD_collateralFactor", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_5b85e68dabe2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a56659bd", "type": "reads", "source_id": "function_rebalancer_sellUSSD", "target_id": "function_USSD_collateralList", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_ee0d050f6681"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ee1c9985", "type": "reads_price_from", "source_id": "function_rebalancer_sellUSSD", "target_id": "function_oracle_getPrice", "properties": {}, "label": "reads_price_from", "confidence": 1.0, "evidence": ["card_ee0d050f6681"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_22f3fcdd", "type": "guards", "source_id": "storage_USSD_rebalancer", "target_id": "function_USSD_UniV3SwapInput", "properties": {}, "label": "guards", "confidence": 1.0, "evidence": ["card_05ea1a267c09", "card_e23f6436b911"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5a17d735", "type": "calls", "source_id": "function_USSD_UniV3SwapInput", "target_id": "storage_USSD_uniRouter", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_e23f6436b911"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4cdc83e6", "type": "swaps_through", "source_id": "function_USSD_UniV3SwapInput", "target_id": "storage_USSD_uniRouter", "properties": {}, "label": "swaps_through", "confidence": 1.0, "evidence": ["card_e23f6436b911"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9589df15", "type": "calls", "source_id": "function_sim_getPrice", "target_id": "function_oracle_getPrice", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_0deafbbad391"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6de9a763", "type": "calls", "source_id": "function_dai_getPrice", "target_id": "function_oracle_getPrice", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_ac2ccad5a4fb"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_35e615c2", "type": "calls", "source_id": "function_wbgl_getPrice", "target_id": "function_oracle_getPrice", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_18bd1817024e", "card_b6c31ed8db14"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c56ac950", "type": "calls", "source_id": "function_wbtc_getPrice", "target_id": "function_oracle_getPrice", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_a16317274c79"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e7d62d27", "type": "calls", "source_id": "function_weth_getPrice", "target_id": "function_oracle_getPrice", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_12f067df3f23"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_658fa7c8", "type": "quotes_from", "source_id": "function_dai_getPrice", "target_id": "function_staticOracle_quote", "properties": {}, "label": "quotes_from", "confidence": 1.0, "evidence": ["card_ac2ccad5a4fb"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c32d77ad", "type": "quotes_from", "source_id": "function_wbgl_getPrice", "target_id": "function_staticOracle_quote", "properties": {}, "label": "quotes_from", "confidence": 1.0, "evidence": ["card_18bd1817024e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_91cfd4d9", "type": "reads", "source_id": "function_staticOracle_quote", "target_id": "interface_IStaticOracle", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_c768249ed165"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_27324792", "type": "calls", "source_id": "function_rebalancer_setPoolAddress", "target_id": "storage_rebalancer_pool", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_bd3ddc2b87a7"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8648c7ea", "type": "reads", "source_id": "function_staticOracle_quote", "target_id": "function_staticOracle_prepare", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_2c639746eac9", "card_aca7944a317f"], "created_by": "iteration_0", "iteration": 0}], "metadata": {"created_at": 1791138110.0363781, "display_name": "SystemArchitecture"}, "stats": {"num_nodes": 48, "num_edges": 58, "node_types": ["interface", "storage", "role", "function", "contract"], "edge_types": ["writes", "reads_price_from", "guards", "implements", "depends_on", "quotes_from", "calls", "reads", "swaps_through", "mints", "transfers"]}}};
+        const observations = [];
+        const cardStore = {"card_b4fe1135d387": {"id": "card_b4fe1135d387", "relpath": "ussd-contracts/contracts/interfaces/IStableOracle.sol", "char_start": 0, "char_end": 194, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\ninterface IStableOracle {\n    // return 18 ", "peek_tail": "rn 18 decimals USD price of an asset\n    function getPriceUSD() external view returns (uint256);\n}\n\n", "shingle_hash": "90e4f272e379cdbf", "top_tokens": ["spdx", "license", "identifier", "mit", "pragma", "solidity", "interface", "istableoracle", "return", "decimals"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\ninterface IStableOracle {\n    // return 18 decimals USD price of an asset\n    function getPriceUSD() external view returns (uint256);\n}\n"}, "card_982c30a35404": {"id": "card_982c30a35404", "relpath": "ussd-contracts/contracts/USSDRebalancer.sol", "char_start": 2112, "char_end": 3910, "peek_head": "    /// @dev get price estimation to DAI using pool address and uniswap price\n    function getOwnVal", "peek_tail": "100); // mint ourselves amount till balance recover\n        SellUSSDBuyCollateral();\n      }\n    }\n\n", "shingle_hash": "35a3a076aafce3da", "top_tokens": ["uint256", "price", "unipool", "sqrtpricex96", "ussd", "uint", "1e6", "1e12", "dai", "pool"], "content": "    /// @dev get price estimation to DAI using pool address and uniswap price\n    function getOwnValuation() public view returns (uint256 price) {\n      (uint160 sqrtPriceX96,,,,,,) =  uniPool.slot0();\n      if(uniPool.token0() == USSD) {\n        price = uint(sqrtPriceX96)*(uint(sqrtPriceX96))/(1e6) >> (96 * 2);\n      } else {\n        price = uint(sqrtPriceX96)*(uint(sqrtPriceX96))*(1e18 /* 1e12 + 1e6 decimal representation */) >> (96 * 2);\n        // flip the fraction\n        price = (1e24 / price) / 1e12;\n      }\n    }\n\n    /// @dev return pool balances with USSD first\n    function getSupplyProportion() public view returns (uint256, uint256) {\n      uint256 vol1 = IERC20Upgradeable(uniPool.token0()).balanceOf(address(uniPool));\n      uint256 vol2 = IERC20Upgradeable(uniPool.token1()).balanceOf(address(uniPool));\n      if (uniPool.token0() == USSD) {\n        return (vol1, vol2);\n      }\n      return (vol2, vol1);\n    }\n\n    function rebalance() override public {\n      uint256 ownval = getOwnValuation();\n      (uint256 USSDamount, uint256 DAIamount) = getSupplyProportion();\n      if (ownval < 1e6 - threshold) {\n        // peg-down recovery\n        BuyUSSDSellCollateral((USSDamount - DAIamount / 1e12)/2);\n      } else if (ownval > 1e6 + threshold) {\n        // mint and buy collateral\n        // never sell too much USSD for DAI so it 'overshoots' (becomes more in quantity than DAI on the pool)\n        // otherwise could be arbitraged through mint/redeem\n        // the execution difference due to fee should be taken into accounting too\n        // take 1% safety margin (estimated as 2 x 0.5% fee)\n        IUSSD(USSD).mintRebalancer(((DAIamount / 1e12 - USSDamount)/2) * 99 / 100); // mint ourselves amount till balance recover\n        SellUSSDBuyCollateral();\n      }\n    }\n\n"}, "card_05ea1a267c09": {"id": "card_05ea1a267c09", "relpath": "ussd-contracts/contracts/USSD.sol", "char_start": 6104, "char_end": 7168, "peek_head": "        return (totalAssetsUSD * 1e6) / totalSupply();\n    }\n\n    /*////////////////////////////////", "peek_tail": "swapRouter(address _router) public onlyControl {\n        uniRouter = IV3SwapRouter(_router);\n    }\n\n", "shingle_hash": "2edffb89cfdd63ca", "top_tokens": ["rebalancer", "address", "public", "function", "amount", "router", "onlycontrol", "uint256", "override", "this"], "content": "        return (totalAssetsUSD * 1e6) / totalSupply();\n    }\n\n    /*//////////////////////////////////////////////////////////////\n                               REBALANCER\n    //////////////////////////////////////////////////////////////*/\n\n    function setRebalancer(address _rebalancer) public onlyControl {\n        rebalancer = IUSSDRebalancer(_rebalancer);\n    }\n\n    function mintRebalancer(uint256 amount) public override {\n        _mint(address(this), amount);\n    }\n\n    function burnRebalancer(uint256 amount) public override {\n        _burn(address(this), amount);\n    }\n\n    modifier onlyBalancer() {\n        require(msg.sender == address(rebalancer), \"bal\");\n        _;\n    }\n\n    /*//////////////////////////////////////////////////////////////\n                               UNISWAP\n    //////////////////////////////////////////////////////////////*/\n\n    IV3SwapRouter public uniRouter; // uniswap router to handle operations\n\n    function setUniswapRouter(address _router) public onlyControl {\n        uniRouter = IV3SwapRouter(_router);\n    }\n\n"}, "card_2c639746eac9": {"id": "card_2c639746eac9", "relpath": "ussd-contracts/contracts/oracles/UniswapV3StaticOracle.sol", "char_start": 3690, "char_end": 5065, "peek_head": "  /// @inheritdoc IStaticOracle\n  function prepareSpecificFeeTiersWithTimePeriod(\n    address _token", "peek_tail": "feeTiers.length, 'Given tier does not have pool');\n    _prepare(_preparedPools, _cardinality);\n  }\n\n", "shingle_hash": "d9484597040ce048", "top_tokens": ["address", "preparedpools", "tokena", "tokenb", "feetiers", "inheritdoc", "istaticoracle", "function", "period", "override"], "content": "  /// @inheritdoc IStaticOracle\n  function prepareSpecificFeeTiersWithTimePeriod(\n    address _tokenA,\n    address _tokenB,\n    uint24[] calldata _feeTiers,\n    uint32 _period\n  ) external override returns (address[] memory _preparedPools) {\n    return prepareSpecificFeeTiersWithCardinality(_tokenA, _tokenB, _feeTiers, _getCardinalityForTimePeriod(_period));\n  }\n\n  /// @inheritdoc IStaticOracle\n  function prepareSpecificPoolsWithTimePeriod(address[] calldata _pools, uint32 _period) external override {\n    prepareSpecificPoolsWithCardinality(_pools, _getCardinalityForTimePeriod(_period));\n  }\n\n  /// @inheritdoc IStaticOracle\n  function prepareAllAvailablePoolsWithCardinality(\n    address _tokenA,\n    address _tokenB,\n    uint16 _cardinality\n  ) public override returns (address[] memory _preparedPools) {\n    _preparedPools = getAllPoolsForPair(_tokenA, _tokenB);\n    _prepare(_preparedPools, _cardinality);\n  }\n\n  /// @inheritdoc IStaticOracle\n  function prepareSpecificFeeTiersWithCardinality(\n    address _tokenA,\n    address _tokenB,\n    uint24[] calldata _feeTiers,\n    uint16 _cardinality\n  ) public override returns (address[] memory _preparedPools) {\n    _preparedPools = _getPoolsForTiers(_tokenA, _tokenB, _feeTiers);\n    require(_preparedPools.length == _feeTiers.length, 'Given tier does not have pool');\n    _prepare(_preparedPools, _cardinality);\n  }\n\n"}, "card_fa9d487623b9": {"id": "card_fa9d487623b9", "relpath": "ussd-contracts/contracts/USSD.sol", "char_start": 4635, "char_end": 6104, "peek_head": "        IERC20Upgradeable(token).safeTransferFrom(\n            msg.sender,\n            address(this)", "peek_tail": "ls())) *\n                    collateral[i].oracle.getPriceUSD()) /\n                1e18;\n        }\n\n", "shingle_hash": "6f58bc920cc9c624", "top_tokens": ["token", "uint256", "collateral", "stablecoinamount", "address", "tokenamount", "amount", "1e18", "decimals", "ierc20upgradeable"], "content": "        IERC20Upgradeable(token).safeTransferFrom(\n            msg.sender,\n            address(this),\n            tokenAmount\n        );\n        stableCoinAmount = calculateMint(token, tokenAmount);\n        _mint(to, stableCoinAmount);\n\n        emit Mint(msg.sender, to, token, tokenAmount, stableCoinAmount);\n    }\n\n    /// @dev Return how much STABLECOIN does user receive for AMOUNT of asset\n    function calculateMint(address _token, uint256 _amount) public view returns (uint256 stableCoinAmount) {\n        uint256 assetPrice = collateral[getCollateralIndex(_token)].oracle.getPriceUSD();\n        return (((assetPrice * _amount) / 1e18) * (10 ** decimals())) / (10 ** IERC20MetadataUpgradeable(_token).decimals());\n    }\n\n    /*//////////////////////////////////////////////////////////////\n                         ACCOUNTING LOGIC\n    //////////////////////////////////////////////////////////////*/\n\n    function collateralFactor() public view override returns (uint256) {\n        uint256 totalAssetsUSD = 0;\n        for (uint256 i = 0; i < collateral.length; i++) {\n            totalAssetsUSD +=\n                (((IERC20Upgradeable(collateral[i].token).balanceOf(\n                    address(this)\n                ) * 1e18) /\n                    (10 **\n                        IERC20MetadataUpgradeable(collateral[i].token)\n                            .decimals())) *\n                    collateral[i].oracle.getPriceUSD()) /\n                1e18;\n        }\n\n"}, "card_19e58aab8e35": {"id": "card_19e58aab8e35", "relpath": "ussd-contracts/contracts/interfaces/IStaticOracle.sol", "char_start": 0, "char_end": 1024, "peek_head": "// SPDX-License-Identifier: GPL-2.0-or-later\n\npragma solidity >=0.7.6 <0.9.0;\n\nimport '@uniswap/v3-c", "peek_tail": "rn The supported fee tiers\n  function supportedFeeTiers() external view returns (uint24[] memory);\n\n", "shingle_hash": "d3ec9f6ff3ad1e35", "top_tokens": ["uniswap", "returns", "the", "notice", "factory", "return", "function", "external", "view", "per"], "content": "// SPDX-License-Identifier: GPL-2.0-or-later\n\npragma solidity >=0.7.6 <0.9.0;\n\nimport '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';\n\n/// @title Uniswap V3 Static Oracle\n/// @notice Oracle contract for calculating price quoting against Uniswap V3\ninterface IStaticOracle {\n  /// @notice Returns the address of the Uniswap V3 factory\n  /// @dev This value is assigned during deployment and cannot be changed\n  /// @return The address of the Uniswap V3 factory\n  function UNISWAP_V3_FACTORY() external view returns (IUniswapV3Factory);\n\n  /// @notice Returns how many observations are needed per minute in Uniswap V3 oracles, on the deployed chain\n  /// @dev This value is assigned during deployment and cannot be changed\n  /// @return Number of observation that are needed per minute\n  function CARDINALITY_PER_MINUTE() external view returns (uint8);\n\n  /// @notice Returns all supported fee tiers\n  /// @return The supported fee tiers\n  function supportedFeeTiers() external view returns (uint24[] memory);\n\n"}, "card_ee0d050f6681": {"id": "card_ee0d050f6681", "relpath": "ussd-contracts/contracts/USSDRebalancer.sol", "char_start": 8083, "char_end": 9314, "peek_head": "      CollateralInfo[] memory collateral = IUSSD(USSD).collateralList();\n      uint portions = 0;\n  ", "peek_tail": ").UniV3SwapInput(collateral[i].pathbuy, daibought/portions);\n          }\n        }\n      }\n    }\n}\n\n", "shingle_hash": "bd30016c6d45f3e1", "top_tokens": ["collateral", "1e18", "ussd", "token", "uint256", "collateralval", "iussd", "portions", "ownval", "uint"], "content": "      CollateralInfo[] memory collateral = IUSSD(USSD).collateralList();\n      uint portions = 0;\n      uint ownval = (getOwnValuation() * 1e18 / 1e6) * IUSSD(USSD).totalSupply() / 1e6; // 1e18 total USSD value\n      for (uint256 i = 0; i < collateral.length; i++) {\n        uint256 collateralval = IERC20Upgradeable(collateral[i].token).balanceOf(USSD) * 1e18 / (10**IERC20MetadataUpgradeable(collateral[i].token).decimals()) * collateral[i].oracle.getPriceUSD() / 1e18;\n        if (collateralval * 1e18 / ownval < collateral[i].ratios[flutter]) {\n          portions++;\n        }\n      }\n\n      for (uint256 i = 0; i < collateral.length; i++) {\n        uint256 collateralval = IERC20Upgradeable(collateral[i].token).balanceOf(USSD) * 1e18 / (10**IERC20MetadataUpgradeable(collateral[i].token).decimals()) * collateral[i].oracle.getPriceUSD() / 1e18;\n        if (collateralval * 1e18 / ownval < collateral[i].ratios[flutter]) {\n          if (collateral[i].token != uniPool.token0() || collateral[i].token != uniPool.token1()) {\n            // don't touch DAI if it's needed to be bought (it's already bought)\n            IUSSD(USSD).UniV3SwapInput(collateral[i].pathbuy, daibought/portions);\n          }\n        }\n      }\n    }\n}\n"}, "card_18bd1817024e": {"id": "card_18bd1817024e", "relpath": "ussd-contracts/contracts/oracles/StableOracleWBGL.sol", "char_start": 0, "char_end": 1204, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"./UniswapV3StaticOracle.sol\";\n\nimpo", "peek_tail": "oken)\n                pools, // WBGL/WETH pool uni v3\n                600 // period\n            );\n\n", "shingle_hash": "4f0a52312e2ee78a", "top_tokens": ["istableoracle", "wbgl", "import", "sol", "istaticoracle", "weth", "0x982152a6c7f732ec7c9ea998ddd9ebde00dfa16e", "staticoracleuniv3", "address", "pools"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"./UniswapV3StaticOracle.sol\";\n\nimport \"../interfaces/IStableOracle.sol\";\nimport \"../interfaces/IStaticOracle.sol\";\n\n/* \n    wbgl 0x2bA64EFB7A4Ec8983E22A49c81fa216AC33f383A;\n    wbgl/weth uni v3 0x982152A6C7f732Ec7C9EA998dDD9Ebde00Dfa16e\n*/\ncontract StableOracleWBGL is IStableOracle {\n    IStaticOracle staticOracleUniV3;\n    IStableOracle ethOracle;\n\n    constructor(address _WETHoracle) {\n        staticOracleUniV3 = IStaticOracle(\n            0x982152A6C7f732Ec7C9EA998dDD9Ebde00Dfa16e\n        );\n        ethOracle = IStableOracle(_WETHoracle);\n    }\n\n    function getPriceUSD() external view override returns (uint256) {\n        address[] memory pools = new address[](1);\n        pools[0] = 0x982152A6C7f732Ec7C9EA998dDD9Ebde00Dfa16e;\n        uint256 wbglWethPrice = staticOracleUniV3\n            .quoteSpecificPoolsWithTimePeriod(\n                1000000000000000000, // 1 Eth\n                0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, // WETH (base token)\n                0x2bA64EFB7A4Ec8983E22A49c81fa216AC33f383A, // WBGL (quote token)\n                pools, // WBGL/WETH pool uni v3\n                600 // period\n            );\n\n"}, "card_2d2d17bbc105": {"id": "card_2d2d17bbc105", "relpath": "ussd-contracts/contracts/oracles/StableOracleDAI.sol", "char_start": 0, "char_end": 1197, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"@chainlink/contracts/src/v0.8/inter", "peek_tail": "acle = IStableOracle(0x0000000000000000000000000000000000000000); // TODO: WETH oracle price\n    }\n\n", "shingle_hash": "a15a1040b00c1e2d", "top_tokens": ["dai", "import", "sol", "istableoracle", "eth", "interfaces", "aggregatorv3interface", "istaticoracle", "tvl", "chainlink"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\";\nimport \"./UniswapV3StaticOracle.sol\";\n\nimport \"../interfaces/IStableOracle.sol\";\nimport \"../interfaces/IStaticOracle.sol\";\n\n/*\n    Oracle for DAI using WETH/DAI UniV3 pools (this could also use several DEX pools)\n    \n    curve DAI 3pool 0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7 (400m TVL) -- to other stables\n    curve tricrypto2 0xd51a44d3fae010294c616388b506acda1bfaae46 (200m TVL) -- to ETH, to BTC\n    uniswap DAI/ETH 0x60594a405d53811d3bc4766596efd80fd545a270 (200m TVL) -- to ETH\n    0x773616e4d11a78f511299002da57a0a94577f1f4 Chainlink DAI/ETH feed\n*/\ncontract StableOracleDAI is IStableOracle {\n    AggregatorV3Interface priceFeedDAIETH;\n    IStaticOracle DAIEthOracle;\n    IStableOracle ethOracle;\n\n    constructor() {\n        priceFeedDAIETH = AggregatorV3Interface(\n            0x773616E4d11A78F511299002da57A0a94577F1f4\n        );\n        DAIEthOracle = IStaticOracle(\n            0x982152A6C7f732Ec7C9EA998dDD9Ebde00Dfa16e\n        );\n        ethOracle = IStableOracle(0x0000000000000000000000000000000000000000); // TODO: WETH oracle price\n    }\n\n"}, "card_7178407581b7": {"id": "card_7178407581b7", "relpath": "ussd-contracts/contracts/USSD.sol", "char_start": 1171, "char_end": 2187, "peek_head": "        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());\n\n        // mint 10k USSD to create initial po", "peek_tail": "//////////////////////////////////////////////////////*/\n\n    CollateralInfo[] private collateral;\n\n", "shingle_hash": "800512ecc081721f", "top_tokens": ["role", "mint", "control", "address", "msg", "sender", "only", "stable", "indexed", "uint256"], "content": "        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());\n\n        // mint 10k USSD to create initial pool\n        _mint(msg.sender, 10_000 * 1e6);\n    }\n\n    function decimals() public view virtual override returns (uint8) {\n        return 6;\n    }\n\n    /**\n        @dev restrict calls only by STABLE_CONTROL_ROLE role\n     */\n    modifier onlyControl() {\n        require(hasRole(STABLE_CONTROL_ROLE, msg.sender), \"control only\");\n        _;\n    }\n\n    /*//////////////////////////////////////////////////////////////\n                                Events\n    //////////////////////////////////////////////////////////////*/\n\n    event Mint(\n        address indexed from,\n        address indexed to,\n        address token,\n        uint256 amountToken,\n        uint256 amountStable\n    );\n\n    /*//////////////////////////////////////////////////////////////\n                          COLLATERAL MANAGEMENT\n    //////////////////////////////////////////////////////////////*/\n\n    CollateralInfo[] private collateral;\n\n"}, "card_aca7944a317f": {"id": "card_aca7944a317f", "relpath": "ussd-contracts/contracts/oracles/UniswapV3StaticOracle.sol", "char_start": 5065, "char_end": 6857, "peek_head": "  /// @inheritdoc IStaticOracle\n  function prepareSpecificPoolsWithCardinality(address[] calldata _p", "peek_tail": "\n    return OracleLibrary.getQuoteAtTick(_weightedTick, _baseAmount, _baseToken, _quoteToken);\n  }\n\n", "shingle_hash": "9eeaf688eaba3170", "top_tokens": ["pools", "cardinality", "length", "oraclelibrary", "tickdata", "function", "address", "period", "uint16", "feetier"], "content": "  /// @inheritdoc IStaticOracle\n  function prepareSpecificPoolsWithCardinality(address[] calldata _pools, uint16 _cardinality) public override {\n    _prepare(_pools, _cardinality);\n  }\n\n  /// @inheritdoc IStaticOracle\n  function addNewFeeTier(uint24 _feeTier) external override {\n    require(UNISWAP_V3_FACTORY.feeAmountTickSpacing(_feeTier) != 0, 'Invalid fee tier');\n    for (uint256 i; i < _knownFeeTiers.length; i++) {\n      require(_knownFeeTiers[i] != _feeTier, 'Tier already supported');\n    }\n    _knownFeeTiers.push(_feeTier);\n  }\n\n  function _getCardinalityForTimePeriod(uint32 _period) internal view returns (uint16 _cardinality) {\n    // We add 1 just to be on the safe side\n    _cardinality = uint16((_period * CARDINALITY_PER_MINUTE) / 60) + 1;\n  }\n\n  function _prepare(address[] memory _pools, uint16 _cardinality) internal {\n    for (uint256 i; i < _pools.length; i++) {\n      IUniswapV3Pool(_pools[i]).increaseObservationCardinalityNext(_cardinality);\n    }\n  }\n\n  function _quote(\n    uint128 _baseAmount,\n    address _baseToken,\n    address _quoteToken,\n    address[] memory _pools,\n    uint32 _period\n  ) internal view returns (uint256 _quoteAmount) {\n    require(_pools.length > 0, 'No defined pools');\n    OracleLibrary.WeightedTickData[] memory _tickData = new OracleLibrary.WeightedTickData[](_pools.length);\n    for (uint256 i; i < _pools.length; i++) {\n      (_tickData[i].tick, _tickData[i].weight) = _period > 0\n        ? OracleLibrary.consult(_pools[i], _period)\n        : OracleLibrary.getBlockStartingTickAndLiquidity(_pools[i]);\n    }\n    int24 _weightedTick = _tickData.length == 1 ? _tickData[0].tick : OracleLibrary.getWeightedArithmeticMeanTick(_tickData);\n    return OracleLibrary.getQuoteAtTick(_weightedTick, _baseAmount, _baseToken, _quoteToken);\n  }\n\n"}, "card_ac2ccad5a4fb": {"id": "card_ac2ccad5a4fb", "relpath": "ussd-contracts/contracts/oracles/StableOracleDAI.sol", "char_start": 1197, "char_end": 2236, "peek_head": "    function getPriceUSD() external view override returns (uint256) {\n        address[] memory pools", "peek_tail": "         (wethPriceUSD * 1e18) /\n            ((DAIWethPrice + uint256(price) * 1e10) / 2);\n    }\n}\n\n", "shingle_hash": "36b4e6eabec2e85c", "top_tokens": ["uint256", "price", "pools", "weth", "getpriceusd", "address", "daiwethprice", "token", "dai", "wethpriceusd"], "content": "    function getPriceUSD() external view override returns (uint256) {\n        address[] memory pools = new address[](1);\n        pools[0] = 0x60594a405d53811d3BC4766596EFD80fd545A270;\n        uint256 DAIWethPrice = DAIEthOracle.quoteSpecificPoolsWithTimePeriod(\n            1000000000000000000, // 1 Eth\n            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, // WETH (base token)\n            0x6B175474E89094C44Da98b954EedeAC495271d0F, // DAI (quote token)\n            pools, // DAI/WETH pool uni v3\n            600 // period\n        );\n\n        uint256 wethPriceUSD = ethOracle.getPriceUSD();\n\n        // chainlink price data is 8 decimals for WETH/USD, so multiply by 10 decimals to get 18 decimal fractional\n        //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeedDAIETH.latestRoundData();\n        (, int256 price, , , ) = priceFeedDAIETH.latestRoundData();\n\n        return\n            (wethPriceUSD * 1e18) /\n            ((DAIWethPrice + uint256(price) * 1e10) / 2);\n    }\n}\n"}, "card_d299a44dc868": {"id": "card_d299a44dc868", "relpath": "ussd-contracts/contracts/USSD.sol", "char_start": 3439, "char_end": 4635, "peek_head": "    function removeCollateral(uint256 _index) public onlyControl {\n        collateral[_index] = coll", "peek_tail": "turns (uint256 stableCoinAmount) {\n        require(hasCollateralMint(token), \"unsupported token\");\n\n", "shingle_hash": "a01527b75100b6eb", "top_tokens": ["token", "collateral", "index", "uint256", "function", "public", "address", "length", "returns", "return"], "content": "    function removeCollateral(uint256 _index) public onlyControl {\n        collateral[_index] = collateral[collateral.length - 1];\n        collateral.pop();\n    }\n\n    function getCollateralIndex(\n        address _token\n    ) public view returns (uint256 index) {\n        for (index = 0; index < collateral.length; index++) {\n            if (collateral[index].token == _token) {\n                return index;\n            }\n        }\n    }\n\n    function hasCollateralMint(\n        address _token\n    ) public view returns (bool present) {\n        for (uint256 i = 0; i < collateral.length; i++) {\n            if (collateral[i].token == _token && collateral[i].mint) {\n                return true;\n            }\n        }\n        return false;\n    }\n\n    /*//////////////////////////////////////////////////////////////\n                             MINT LOGIC\n    //////////////////////////////////////////////////////////////*/\n\n    /// Mint specific AMOUNT OF STABLE by giving token\n    function mintForToken(\n        address token,\n        uint256 tokenAmount,\n        address to\n    ) public returns (uint256 stableCoinAmount) {\n        require(hasCollateralMint(token), \"unsupported token\");\n\n"}, "card_d7ce5a5c6b4d": {"id": "card_d7ce5a5c6b4d", "relpath": "ussd-contracts/contracts/interfaces/IUSSDRebalancer.sol", "char_start": 1018, "char_end": 1382, "peek_head": "interface IUSSD is IERC20Upgradeable {\n    function mintRebalancer(uint256 amount) external;\n    fun", "peek_tail": "returns(uint256);\n    function UniV3SwapInput(bytes memory _path, uint256 _sellAmount) external;\n}\n\n", "shingle_hash": "12723bef732bccd3", "top_tokens": ["function", "external", "uint256", "amount", "returns", "interface", "iussd", "ierc20upgradeable", "mintrebalancer", "burnrebalancer"], "content": "interface IUSSD is IERC20Upgradeable {\n    function mintRebalancer(uint256 amount) external;\n    function burnRebalancer(uint256 amount) external;\n    function collateralList() external returns (CollateralInfo[] calldata);\n    function collateralFactor() external returns(uint256);\n    function UniV3SwapInput(bytes memory _path, uint256 _sellAmount) external;\n}\n"}, "card_b13242c7d3f0": {"id": "card_b13242c7d3f0", "relpath": "ussd-contracts/contracts/interfaces/IStaticOracle.sol", "char_start": 1024, "char_end": 2635, "peek_head": "  /// @notice Returns whether a specific pair can be supported by the oracle\n  /// @dev The pair can", "peek_tail": "\n    uint32 period\n  ) external view returns (uint256 quoteAmount, address[] memory queriedPools);\n\n", "shingle_hash": "823c5c2a52422166", "top_tokens": ["the", "address", "pair", "returns", "tokena", "tokenb", "pools", "given", "for", "can"], "content": "  /// @notice Returns whether a specific pair can be supported by the oracle\n  /// @dev The pair can be provided in tokenA/tokenB or tokenB/tokenA order\n  /// @return Whether the given pair can be supported by the oracle\n  function isPairSupported(address tokenA, address tokenB) external view returns (bool);\n\n  /// @notice Returns all existing pools for the given pair\n  /// @dev The pair can be provided in tokenA/tokenB or tokenB/tokenA order\n  /// @return All existing pools for the given pair\n  function getAllPoolsForPair(address tokenA, address tokenB) external view returns (address[] memory);\n\n  /// @notice Returns a quote, based on the given tokens and amount, by querying all of the pair's pools\n  /// @dev If some pools are not configured correctly for the given period, then they will be ignored\n  /// @dev Will revert if there are no pools available/configured for the pair and period combination\n  /// @param baseAmount Amount of token to be converted\n  /// @param baseToken Address of an ERC20 token contract used as the baseAmount denomination\n  /// @param quoteToken Address of an ERC20 token contract used as the quoteAmount denomination\n  /// @param period Number of seconds from which to calculate the TWAP\n  /// @return quoteAmount Amount of quoteToken received for baseAmount of baseToken\n  /// @return queriedPools The pools that were queried to calculate the quote\n  function quoteAllAvailablePoolsWithTimePeriod(\n    uint128 baseAmount,\n    address baseToken,\n    address quoteToken,\n    uint32 period\n  ) external view returns (uint256 quoteAmount, address[] memory queriedPools);\n\n"}, "card_0301f7d2f911": {"id": "card_0301f7d2f911", "relpath": "ussd-contracts/contracts/interfaces/IUSSDRebalancer.sol", "char_start": 0, "char_end": 1018, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"./IStableOracle.sol\";\n\nimport \"@ope", "peek_tail": "ncer {\n    function rebalance() external;\n    function getPool() external returns(address pool);\n}\n\n", "shingle_hash": "b86a9ffb250473c2", "top_tokens": ["collateral", "for", "the", "address", "import", "istableoracle", "sol", "token", "erc20", "struct"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"./IStableOracle.sol\";\n\nimport \"@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol\";\n\n// to keep processing concise:\n// - collateral struct indexes in collateral array could be swapped by admin\n//   - order of collateral means the priority by which collateral is sold to force re-peg\n// - pools indexes in array could be swapped by admin\n//   - order of pools means the priority by which collateral is sold fo force re-peg\nstruct CollateralInfo {\n    address token; // address of ERC20 collateral\n    bool mint;  // can be used for minting\n    bool redeem; // can be used for redeeming\n    IStableOracle oracle; // oracle for getting the price in USD\n    bytes pathbuy; // for rebalancing/swapping\n    bytes pathsell; // for rebalancing/swapping\n    uint256[] ratios; // target ratios for overcollateralization\n}\n\ninterface IUSSDRebalancer {\n    function rebalance() external;\n    function getPool() external returns(address pool);\n}\n\n"}, "card_4af6b5c4a8be": {"id": "card_4af6b5c4a8be", "relpath": "ussd-contracts/contracts/USSD.sol", "char_start": 2187, "char_end": 3439, "peek_head": "    function collateralList()\n        public\n        view\n        override\n        returns (Collater", "peek_tail": "dex1];\n        collateral[_index1] = collateral[_index2];\n        collateral[_index2] = tmp;\n    }\n\n", "shingle_hash": "e7151e1ca7fffe25", "top_tokens": ["collateral", "memory", "collateralinfo", "address", "uint256", "function", "public", "oracle", "mint", "redeem"], "content": "    function collateralList()\n        public\n        view\n        override\n        returns (CollateralInfo[] memory)\n    {\n        return collateral;\n    }\n\n    function addCollateral(\n        address _address,\n        address _oracle,\n        bool _mint,\n        bool _redeem,\n        uint256[] calldata _ratios,\n        bytes memory _pathbuy,\n        bytes memory _pathsell,\n        uint256 index\n    ) public onlyControl {\n        CollateralInfo memory newCollateral = CollateralInfo({\n            token: _address,\n            mint: _mint,\n            redeem: _redeem,\n            oracle: IStableOracle(_oracle),\n            pathbuy: _pathbuy,\n            pathsell: _pathsell,\n            ratios: _ratios\n        });\n        if (index < collateral.length) {\n            collateral[index] = newCollateral; // for editing\n        } else {\n            collateral.push(newCollateral); // for adding new collateral\n        }\n    }\n\n    function swapCollateralIndexes(\n        uint256 _index1,\n        uint256 _index2\n    ) public onlyControl {\n        // cannot use (a, b) = (b, a) for storage variables\n        CollateralInfo memory tmp = collateral[_index1];\n        collateral[_index1] = collateral[_index2];\n        collateral[_index2] = tmp;\n    }\n\n"}, "card_224d350a6ddc": {"id": "card_224d350a6ddc", "relpath": "ussd-contracts/contracts/USSDRebalancer.sol", "char_start": 0, "char_end": 1060, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"./interfaces/IUSSDRebalancer.sol\";\n", "peek_tail": "of collateralization for different collateral accumulating\n    uint256[] public flutterRatios;\n    \n", "shingle_hash": "f3bb25cd82b0f69b", "top_tokens": ["ussd", "import", "sol", "for", "contracts", "token", "openzeppelin", "upgradeable", "erc20", "collateral"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"./interfaces/IUSSDRebalancer.sol\";\n\nimport \"@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol\";\n\nimport \"@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol\";\nimport \"@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol\";\n\nimport \"@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol\";\n\n/**\n    @dev rebalancer module for USSD ERC20 token. Performs swaps to return USSD/DAI pool balance 1-to-1\n         selling USSD for buying collateral or buying and burning USSD for selling collateral\n */\ncontract USSDRebalancer is AccessControlUpgradeable, IUSSDRebalancer {\n    using SafeERC20Upgradeable for IERC20Upgradeable;\n\n    // main USSD/DAI pool\n    IUniswapV3Pool public uniPool;\n\n    // USSD token\n    address public USSD;\n\n    // boundary to make rebalancing\n    uint256 private threshold;\n\n    // ratios of collateralization for different collateral accumulating\n    uint256[] public flutterRatios;\n    \n"}, "card_e23f6436b911": {"id": "card_e23f6436b911", "relpath": "ussd-contracts/contracts/USSD.sol", "char_start": 7168, "char_end": 7871, "peek_head": "    function UniV3SwapInput(\n        bytes memory _path,\n        uint256 _sellAmount\n    ) public ov", "peek_tail": "\n            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\n        );\n    }\n}\n\n", "shingle_hash": "e6dd9c7d90485ce3", "top_tokens": ["path", "address", "function", "memory", "sellamount", "public", "iv3swaprouter", "exactinputparams", "params", "unirouter"], "content": "    function UniV3SwapInput(\n        bytes memory _path,\n        uint256 _sellAmount\n    ) public override onlyBalancer {\n        IV3SwapRouter.ExactInputParams memory params = IV3SwapRouter\n            .ExactInputParams({\n                path: _path,\n                recipient: address(this),\n                //deadline: block.timestamp,\n                amountIn: _sellAmount,\n                amountOutMinimum: 0\n            });\n        uniRouter.exactInput(params);\n    }\n\n    function approveToRouter(address _token) public {\n        IERC20Upgradeable(_token).approve(\n            address(uniRouter),\n            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\n        );\n    }\n}\n"}, "card_ded8693ba4f3": {"id": "card_ded8693ba4f3", "relpath": "ussd-contracts/contracts/USSDRebalancer.sol", "char_start": 5884, "char_end": 6917, "peek_head": "            DAItosell += (IERC20Upgradeable(baseAsset).balanceOf(USSD) - amountBefore);\n          }\n", "peek_tail": "(abi.encodePacked(uniPool.token0(), hex\"0001f4\", uniPool.token1())), DAItosell);\n        }\n      }\n\n", "shingle_hash": "7561069a04168c28", "top_tokens": ["daitosell", "ussd", "unipool", "dai", "the", "token0", "sell", "too", "should", "due"], "content": "            DAItosell += (IERC20Upgradeable(baseAsset).balanceOf(USSD) - amountBefore);\n          }\n        }\n      }\n\n      // buy USSD (sell DAI) to burn\n      // never sell too much DAI so USSD 'overshoots' (becomes less in quantity than DAI on the pool)\n      // otherwise could be arbitraged through mint/redeem\n      // the remainder (should be small, due to oracle twap lag) to be left as DAI collateral\n      // the execution difference due to fee should be taken into accounting too\n      // take 1% safety margin (estimated as 2 x 0.5% fee)\n      if (DAItosell > amountToBuy * 1e12 * 99 / 100) {\n        DAItosell = amountToBuy * 1e12 * 99 / 100;\n      }\n\n      if (DAItosell > 0) {\n        if (uniPool.token0() == USSD) {\n            IUSSD(USSD).UniV3SwapInput(bytes.concat(abi.encodePacked(uniPool.token1(), hex\"0001f4\", uniPool.token0())), DAItosell);\n        } else {\n            IUSSD(USSD).UniV3SwapInput(bytes.concat(abi.encodePacked(uniPool.token0(), hex\"0001f4\", uniPool.token1())), DAItosell);\n        }\n      }\n\n"}, "card_5b85e68dabe2": {"id": "card_5b85e68dabe2", "relpath": "ussd-contracts/contracts/USSDRebalancer.sol", "char_start": 6917, "char_end": 8083, "peek_head": "      IUSSD(USSD).burnRebalancer(IUSSD(USSD).balanceOf(USSD));\n    }\n\n    function SellUSSDBuyCollat", "peek_tail": "length; flutter++) {\n        if (cf < flutterRatios[flutter]) {\n          break;\n        }\n      }\n\n", "shingle_hash": "b6dd1fec256b467c", "top_tokens": ["ussd", "daibought", "iussd", "balanceof", "unipool", "flutter", "uint256", "ierc20upgradeable", "baseasset", "amount"], "content": "      IUSSD(USSD).burnRebalancer(IUSSD(USSD).balanceOf(USSD));\n    }\n\n    function SellUSSDBuyCollateral() internal {\n      uint256 amount = IUSSD(USSD).balanceOf(USSD);\n      // sell for DAI then swap by DAI routes\n      uint256 daibought = 0;\n      if (uniPool.token0() == USSD) {\n        daibought = IERC20Upgradeable(baseAsset).balanceOf(USSD);\n        IUSSD(USSD).UniV3SwapInput(bytes.concat(abi.encodePacked(uniPool.token0(), hex\"0001f4\", uniPool.token1())), amount);\n        daibought = IERC20Upgradeable(baseAsset).balanceOf(USSD) - daibought; // would revert if not bought\n      } else {\n        daibought = IERC20Upgradeable(baseAsset).balanceOf(USSD);\n        IUSSD(USSD).UniV3SwapInput(bytes.concat(abi.encodePacked(uniPool.token1(), hex\"0001f4\", uniPool.token0())), amount);\n        daibought = IERC20Upgradeable(baseAsset).balanceOf(USSD) - daibought; // would revert if not bought\n      }\n\n      // total collateral portions\n      uint256 cf = IUSSD(USSD).collateralFactor();\n      uint256 flutter = 0;\n      for (flutter = 0; flutter < flutterRatios.length; flutter++) {\n        if (cf < flutterRatios[flutter]) {\n          break;\n        }\n      }\n\n"}, "card_da5d604a73af": {"id": "card_da5d604a73af", "relpath": "ussd-contracts/contracts/interfaces/IStaticOracle.sol", "char_start": 3724, "char_end": 5224, "peek_head": "  /// @notice Returns a quote, based on the given tokens and amount, by querying only the specified ", "peek_tail": "kenA,\n    address tokenB,\n    uint32 period\n  ) external returns (address[] memory preparedPools);\n\n", "shingle_hash": "074f29df4cd6ff5e", "top_tokens": ["the", "pools", "period", "param", "address", "given", "will", "for", "baseamount", "pair"], "content": "  /// @notice Returns a quote, based on the given tokens and amount, by querying only the specified pools\n  /// @dev Will revert if one of the pools is not prepared/configured correctly for the given period\n  /// @param baseAmount Amount of token to be converted\n  /// @param baseToken Address of an ERC20 token contract used as the baseAmount denomination\n  /// @param quoteToken Address of an ERC20 token contract used as the quoteAmount denomination\n  /// @param pools The pools to consider when calculating the quote\n  /// @param period Number of seconds from which to calculate the TWAP\n  /// @return quoteAmount Amount of quoteToken received for baseAmount of baseToken\n  function quoteSpecificPoolsWithTimePeriod(\n    uint128 baseAmount,\n    address baseToken,\n    address quoteToken,\n    address[] calldata pools,\n    uint32 period\n  ) external view returns (uint256 quoteAmount);\n\n  /// @notice Will initialize all existing pools for the given pair, so that they can be queried with the given period in the future\n  /// @dev Will revert if there are no pools available for the pair and period combination\n  /// @param tokenA One of the pair's tokens\n  /// @param tokenB The other of the pair's tokens\n  /// @param period The period that will be guaranteed when quoting\n  /// @return preparedPools The pools that were prepared\n  function prepareAllAvailablePoolsWithTimePeriod(\n    address tokenA,\n    address tokenB,\n    uint32 period\n  ) external returns (address[] memory preparedPools);\n\n"}, "card_0deafbbad391": {"id": "card_0deafbbad391", "relpath": "ussd-contracts/contracts/oracles/SimOracle.sol", "char_start": 0, "char_end": 478, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"../interfaces/IStableOracle.sol\";\n\n", "peek_tail": "rn price;\n    }\n\n    function setPriceUSD(uint256 _price) public {\n        price = _price;\n    }\n}\n\n", "shingle_hash": "b235e2f8ee1464ec", "top_tokens": ["price", "uint256", "istableoracle", "public", "function", "spdx", "license", "identifier", "mit", "pragma"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"../interfaces/IStableOracle.sol\";\n\n/// @notice oracle for simulation/test with direct price setting\ncontract SimOracle is IStableOracle {\n\n    uint256 public price;\n\n    constructor(uint256 _price) {\n        price = _price;\n    }\n\n    function getPriceUSD() override external view returns (uint256) {\n        return price;\n    }\n\n    function setPriceUSD(uint256 _price) public {\n        price = _price;\n    }\n}\n"}, "card_53c04a9c6b94": {"id": "card_53c04a9c6b94", "relpath": "ussd-contracts/contracts/USSDRebalancer.sol", "char_start": 3910, "char_end": 5884, "peek_head": "    function BuyUSSDSellCollateral(uint256 amountToBuy) internal {\n      CollateralInfo[] memory col", "peek_tail": ");\n            amountToBuyLeftUSD -= (IERC20Upgradeable(baseAsset).balanceOf(USSD) - amountBefore);\n", "shingle_hash": "5898aaaf34e93153", "top_tokens": ["collateral", "ussd", "ierc20upgradeable", "balanceof", "amounttobuyleftusd", "uint256", "collateralval", "token", "1e18", "amountbefore"], "content": "    function BuyUSSDSellCollateral(uint256 amountToBuy) internal {\n      CollateralInfo[] memory collateral = IUSSD(USSD).collateralList();\n      //uint amountToBuyLeftUSD = amountToBuy * 1e12 * 1e6 / getOwnValuation();\n      uint amountToBuyLeftUSD = amountToBuy * 1e12;\n      uint DAItosell = 0;\n      // Sell collateral in order of collateral array\n      for (uint256 i = 0; i < collateral.length; i++) {\n        uint256 collateralval = IERC20Upgradeable(collateral[i].token).balanceOf(USSD) * 1e18 / (10**IERC20MetadataUpgradeable(collateral[i].token).decimals()) * collateral[i].oracle.getPriceUSD() / 1e18;\n        if (collateralval > amountToBuyLeftUSD) {\n          // sell a portion of collateral and exit\n          if (collateral[i].pathsell.length > 0) {\n            uint256 amountBefore = IERC20Upgradeable(baseAsset).balanceOf(USSD);\n            uint256 amountToSellUnits = IERC20Upgradeable(collateral[i].token).balanceOf(USSD) * ((amountToBuyLeftUSD * 1e18 / collateralval) / 1e18) / 1e18;\n            IUSSD(USSD).UniV3SwapInput(collateral[i].pathsell, amountToSellUnits);\n            amountToBuyLeftUSD -= (IERC20Upgradeable(baseAsset).balanceOf(USSD) - amountBefore);\n            DAItosell += (IERC20Upgradeable(baseAsset).balanceOf(USSD) - amountBefore);\n          } else {\n            // no need to swap DAI\n            DAItosell = IERC20Upgradeable(collateral[i].token).balanceOf(USSD) * amountToBuyLeftUSD / collateralval;\n          }\n          break;\n        } else {\n          // sell all or skip (if collateral is too little, 5% treshold)\n          if (collateralval >= amountToBuyLeftUSD / 20) {\n            uint256 amountBefore = IERC20Upgradeable(baseAsset).balanceOf(USSD);\n            // sell all collateral and move to next one\n            IUSSD(USSD).UniV3SwapInput(collateral[i].pathsell, IERC20Upgradeable(collateral[i].token).balanceOf(USSD));\n            amountToBuyLeftUSD -= (IERC20Upgradeable(baseAsset).balanceOf(USSD) - amountBefore);\n"}, "card_a16317274c79": {"id": "card_a16317274c79", "relpath": "ussd-contracts/contracts/oracles/StableOracleWBTC.sol", "char_start": 0, "char_end": 904, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"@chainlink/contracts/src/v0.8/inter", "peek_tail": "  // chainlink price data is 8 decimals for WETH/USD\n        return uint256(price) * 1e10;\n    }\n}\n\n", "shingle_hash": "bdf3611d84a065e6", "top_tokens": ["pricefeed", "uint256", "price", "chainlink", "aggregatorv3interface", "import", "interfaces", "sol", "istableoracle", "usd"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\";\n\nimport \"../interfaces/IStableOracle.sol\";\n\n/*\n    wbtc 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;\n    chainlink btc/usd priceFeed 0xf4030086522a5beea4988f8ca5b36dbc97bee88c;\n*/\ncontract StableOracleWBTC is IStableOracle {\n    AggregatorV3Interface priceFeed;\n\n    constructor() {\n        priceFeed = AggregatorV3Interface(\n            0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419\n        );\n    }\n\n    function getPriceUSD() external view override returns (uint256) {\n        //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeed.latestRoundData();\n        (, int256 price, , , ) = priceFeed.latestRoundData();\n        // chainlink price data is 8 decimals for WETH/USD\n        return uint256(price) * 1e10;\n    }\n}\n"}, "card_b6c31ed8db14": {"id": "card_b6c31ed8db14", "relpath": "ussd-contracts/contracts/oracles/StableOracleWBGL.sol", "char_start": 1204, "char_end": 1324, "peek_head": "        uint256 wethPriceUSD = ethOracle.getPriceUSD();\n\n        return (wethPriceUSD * 1e18) / wbgl", "peek_tail": "PriceUSD = ethOracle.getPriceUSD();\n\n        return (wethPriceUSD * 1e18) / wbglWethPrice;\n    }\n}\n\n", "shingle_hash": "f4e78d7912a5b10d", "top_tokens": ["wethpriceusd", "uint256", "ethoracle", "getpriceusd", "return", "1e18", "wbglwethprice"], "content": "        uint256 wethPriceUSD = ethOracle.getPriceUSD();\n\n        return (wethPriceUSD * 1e18) / wbglWethPrice;\n    }\n}\n"}, "card_bd3ddc2b87a7": {"id": "card_bd3ddc2b87a7", "relpath": "ussd-contracts/contracts/USSDRebalancer.sol", "char_start": 1060, "char_end": 2112, "peek_head": "    // base asset for other pool leg (DAI)\n    address private baseAsset;\n\n    // role to perform re", "peek_tail": "function setBaseAsset(address _baseAsset) public onlyControl {\n      baseAsset = _baseAsset;\n    }\n\n", "shingle_hash": "b1a807908aad04ce", "top_tokens": ["public", "address", "function", "onlycontrol", "baseasset", "role", "threshold", "pool", "control", "ussd"], "content": "    // base asset for other pool leg (DAI)\n    address private baseAsset;\n\n    // role to perform rebalancer management functions\n    bytes32 public constant STABLE_CONTROL_ROLE = keccak256(\"STABLECONTROL\");\n\n    function initialize(address _ussd) public initializer {\n        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());\n\n        threshold = 1e4;\n        USSD = _ussd;\n    }\n\n    modifier onlyControl() {\n        require(hasRole(STABLE_CONTROL_ROLE, msg.sender), \"control only\");\n        _;\n    }\n\n    function setPoolAddress(address _pool) public onlyControl {\n      uniPool = IUniswapV3Pool(_pool);\n    }\n\n    function getPool() public view override returns (address) {\n        return address(uniPool);\n    }\n\n    function setTreshold(uint256 _threshold) public onlyControl {\n      threshold = _threshold;\n    }\n\n    function setFlutterRatios(uint256[] calldata _flutterRatios) public onlyControl {\n      flutterRatios = _flutterRatios;\n    }\n\n    function setBaseAsset(address _baseAsset) public onlyControl {\n      baseAsset = _baseAsset;\n    }\n\n"}, "card_0fc2bc496182": {"id": "card_0fc2bc496182", "relpath": "ussd-contracts/contracts/oracles/UniswapV3StaticOracle.sol", "char_start": 0, "char_end": 1083, "peek_head": "// SPDX-License-Identifier: GPL-2.0-or-later\npragma solidity ^0.8.6;\npragma abicoder v2;\n\nimport '@o", "peek_tail": "   UNISWAP_V3_FACTORY = _UNISWAP_V3_FACTORY;\n    CARDINALITY_PER_MINUTE = _CARDINALITY_PER_MINUTE;\n\n", "shingle_hash": "cb9797795ffb0942", "top_tokens": ["uniswap", "sol", "import", "contracts", "istaticoracle", "factory", "cardinality", "per", "minute", "oracle"], "content": "// SPDX-License-Identifier: GPL-2.0-or-later\npragma solidity ^0.8.6;\npragma abicoder v2;\n\nimport '@openzeppelin/contracts/utils/Address.sol';\nimport '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';\nimport '@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol';\nimport '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';\nimport '../interfaces/IStaticOracle.sol';\n\n/// @notice this file is taken from https://github.com/Mean-Finance/uniswap-v3-oracle/blob/main/solidity/contracts/StaticOracle.sol\n\n/// @title Uniswap V3 Static Oracle\n/// @notice Oracle contract for price quoting against Uniswap V3 pools\ncontract StaticOracle is IStaticOracle {\n  /// @inheritdoc IStaticOracle\n  IUniswapV3Factory public immutable override UNISWAP_V3_FACTORY;\n  /// @inheritdoc IStaticOracle\n  uint8 public immutable override CARDINALITY_PER_MINUTE;\n  uint24[] internal _knownFeeTiers;\n\n  constructor(IUniswapV3Factory _UNISWAP_V3_FACTORY, uint8 _CARDINALITY_PER_MINUTE) {\n    UNISWAP_V3_FACTORY = _UNISWAP_V3_FACTORY;\n    CARDINALITY_PER_MINUTE = _CARDINALITY_PER_MINUTE;\n\n"}, "card_b6712672a64c": {"id": "card_b6712672a64c", "relpath": "ussd-contracts/contracts/interfaces/IStaticOracle.sol", "char_start": 2635, "char_end": 3724, "peek_head": "  /// @notice Returns a quote, based on the given tokens and amount, by querying only the specified ", "peek_tail": "\n    uint32 period\n  ) external view returns (uint256 quoteAmount, address[] memory queriedPools);\n\n", "shingle_hash": "71ff347baa056d85", "top_tokens": ["the", "param", "address", "baseamount", "quote", "given", "amount", "fee", "tiers", "for"], "content": "  /// @notice Returns a quote, based on the given tokens and amount, by querying only the specified fee tiers\n  /// @dev Will revert if the pair does not have a pool for one of the given fee tiers, or if one of the pools\n  /// is not prepared/configured correctly for the given period\n  /// @param baseAmount Amount of token to be converted\n  /// @param baseToken Address of an ERC20 token contract used as the baseAmount denomination\n  /// @param quoteToken Address of an ERC20 token contract used as the quoteAmount denomination\n  /// @param feeTiers The fee tiers to consider when calculating the quote\n  /// @param period Number of seconds from which to calculate the TWAP\n  /// @return quoteAmount Amount of quoteToken received for baseAmount of baseToken\n  /// @return queriedPools The pools that were queried to calculate the quote\n  function quoteSpecificFeeTiersWithTimePeriod(\n    uint128 baseAmount,\n    address baseToken,\n    address quoteToken,\n    uint24[] calldata feeTiers,\n    uint32 period\n  ) external view returns (uint256 quoteAmount, address[] memory queriedPools);\n\n"}, "card_c768249ed165": {"id": "card_c768249ed165", "relpath": "ussd-contracts/contracts/oracles/UniswapV3StaticOracle.sol", "char_start": 2471, "char_end": 3690, "peek_head": "  /// @inheritdoc IStaticOracle\n  function quoteSpecificFeeTiersWithTimePeriod(\n    uint128 _baseAmo", "peek_tail": "pareAllAvailablePoolsWithCardinality(_tokenA, _tokenB, _getCardinalityForTimePeriod(_period));\n  }\n\n", "shingle_hash": "13cbd4058c7da7c7", "top_tokens": ["address", "period", "basetoken", "quotetoken", "baseamount", "queriedpools", "inheritdoc", "istaticoracle", "function", "feetiers"], "content": "  /// @inheritdoc IStaticOracle\n  function quoteSpecificFeeTiersWithTimePeriod(\n    uint128 _baseAmount,\n    address _baseToken,\n    address _quoteToken,\n    uint24[] calldata _feeTiers,\n    uint32 _period\n  ) external view override returns (uint256 _quoteAmount, address[] memory _queriedPools) {\n    _queriedPools = _getPoolsForTiers(_baseToken, _quoteToken, _feeTiers);\n    require(_queriedPools.length == _feeTiers.length, 'Given tier does not have pool');\n    _quoteAmount = _quote(_baseAmount, _baseToken, _quoteToken, _queriedPools, _period);\n  }\n\n  /// @inheritdoc IStaticOracle\n  function quoteSpecificPoolsWithTimePeriod(\n    uint128 _baseAmount,\n    address _baseToken,\n    address _quoteToken,\n    address[] calldata _pools,\n    uint32 _period\n  ) external view override returns (uint256 _quoteAmount) {\n    return _quote(_baseAmount, _baseToken, _quoteToken, _pools, _period);\n  }\n\n  /// @inheritdoc IStaticOracle\n  function prepareAllAvailablePoolsWithTimePeriod(\n    address _tokenA,\n    address _tokenB,\n    uint32 _period\n  ) external override returns (address[] memory _preparedPools) {\n    return prepareAllAvailablePoolsWithCardinality(_tokenA, _tokenB, _getCardinalityForTimePeriod(_period));\n  }\n\n"}, "card_12f067df3f23": {"id": "card_12f067df3f23", "relpath": "ussd-contracts/contracts/oracles/StableOracleWETH.sol", "char_start": 0, "char_end": 905, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"@chainlink/contracts/src/v0.8/inter", "peek_tail": "  // chainlink price data is 8 decimals for WETH/USD\n        return uint256(price) * 1e10;\n    }\n}\n\n", "shingle_hash": "cf6e1bc4a10468c6", "top_tokens": ["pricefeed", "uint256", "price", "chainlink", "aggregatorv3interface", "weth", "import", "interfaces", "sol", "istableoracle"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\n\nimport \"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\";\n\nimport \"../interfaces/IStableOracle.sol\";\n\n/*\n    weth 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;\n    chainlink weth/usd priceFeed 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;\n*/\ncontract StableOracleWETH is IStableOracle {\n    AggregatorV3Interface priceFeed;\n\n    constructor() {\n        priceFeed = AggregatorV3Interface(\n            0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419\n        );\n    }\n\n    function getPriceUSD() external view override returns (uint256) {\n        //(uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) = priceFeed.latestRoundData();\n        (, int256 price, , , ) = priceFeed.latestRoundData();\n        // chainlink price data is 8 decimals for WETH/USD\n        return uint256(price) * 1e10;\n    }\n}\n"}, "card_5d85bf434484": {"id": "card_5d85bf434484", "relpath": "ussd-contracts/contracts/USSD.sol", "char_start": 0, "char_end": 1171, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\npragma abicoder v2;\n\nimport \"@openzeppelin/c", "peek_tail": "chained();\n        __AccessControl_init_unchained();\n        __ERC20_init_unchained(name, symbol);\n\n", "shingle_hash": "6c8d4a7ad861b889", "top_tokens": ["import", "sol", "contracts", "openzeppelin", "upgradeable", "erc20", "interfaces", "public", "init", "unchained"], "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.6;\npragma abicoder v2;\n\nimport \"@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol\";\nimport \"@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol\";\n\nimport \"@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol\";\n\nimport \"./interfaces/IStableOracle.sol\";\nimport \"./interfaces/IUSSDRebalancer.sol\";\n\nimport \"@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol\";\n\n/**\n    @notice USSD: Autonomous on-chain stablecoin\n */\ncontract USSD is\n    IUSSD,\n    ERC20Upgradeable,\n    AccessControlUpgradeable\n{\n    using SafeERC20Upgradeable for IERC20Upgradeable;\n    using AddressUpgradeable for address payable;\n\n    IUSSDRebalancer public rebalancer;\n\n    // allowed to manage collateral, set tresholds and perform management tasks\n    bytes32 public constant STABLE_CONTROL_ROLE = keccak256(\"STABLECONTROL\");\n\n    function initialize(\n        string memory name,\n        string memory symbol\n    ) public initializer {\n        __Context_init_unchained();\n        __AccessControl_init_unchained();\n        __ERC20_init_unchained(name, symbol);\n\n"}};
+        
+        let currentGraph = null;
+        let currentGraphName = Object.keys(allGraphs)[0];
+        let simulation = null;
+        
+        // Professional color schemes with tech accent
+        const typeColors = {
+            // Common node types from graph generation
+            'contract': '#30a14e',         // GitHub green - main contracts
+            'interface': '#58a6ff',        // GitHub blue - interfaces
+            'library': '#a371f7',          // Purple - library contracts
+            'function': '#56d364',         // Light green - functions
+            'storage': '#f9826c',          // Warm orange - storage/state
+            'event': '#79c0ff',            // Light blue - events
+            'modifier': '#bc8cff',         // Light purple - modifiers
+            'external_actor': '#d29922',   // Gold - external entities
+            'role': '#ffa657',             // Orange - roles/permissions
+            
+            // Legacy/alternative types
+            'code': '#30a14e',             // GitHub green
+            'concept': '#58a6ff',          // GitHub blue
+            'invariant': '#f9826c',        // Warm orange
+            'observation': '#a371f7',      // Purple
+            'hypothesis': '#d29922',       // Gold
+            'issue': '#f85149',            // GitHub red
+            'pattern': '#56d364',          // Light green
+            'dataflow': '#79c0ff',         // Light blue
+            'control': '#ff7b72',          // Coral
+            'vulnerability': '#da3633',   // Danger red
+            'assumption': '#ffa657',       // Orange
+            'constraint': '#bc8cff',      // Light purple
+            'custom': '#8b949e'            // Gray - fallback
+        };
+        
+        // Edge type colors - expanded palette with more distinct colors
+        const edgeColors = {
+            // Primary relationships (high contrast)
+            'calls': '#30a14e',           // Green
+            'contains': '#58a6ff',         // Blue  
+            'depends_on': '#f9826c',       // Light red/orange
+            'references': '#a371f7',       // Purple
+            'uses': '#79c0ff',             // Light blue
+            'implements': '#56d364',       // Bright green
+            'extends': '#bc8cff',          // Light purple
+            'imports': '#d29922',          // Gold
+            
+            // Data flow (warm colors)
+            'dataflow': '#ffa657',         // Orange
+            'reads': '#39d353',            // Green
+            'writes': '#ff7b72',           // Coral
+            'modifies': '#f85149',         // Red
+            
+            // Control flow (cool colors)
+            'control': '#ffea7f',          // Yellow
+            'triggers': '#db61a2',         // Pink
+            'validates': '#2ea043',        // Dark green
+            'checks': '#539bf5',           // Sky blue
+            
+            // Security/Analysis (strong colors)
+            'violates': '#da3633',         // Danger red
+            'protects': '#1f6feb',         // Royal blue
+            'trusts': '#8957e5',           // Violet
+            'restricts': '#f778ba',        // Light pink
+            
+            // Structural (purple spectrum)
+            'inherits': '#986ee2',         // Lavender
+            'overrides': '#ff9492',        // Salmon
+            'delegates': '#56d4dd',        // Cyan
+            'aggregates': '#a475f9',       // Medium purple
+            
+            // Associations (varied)
+            'relates_to': '#8b949e',       // Gray (neutral)
+            'links_to': '#7ee787',         // Mint green
+            'connects': '#ffc680',         // Peach
+            'maps_to': '#c297ff',          // Light violet
+            
+            // State/Lifecycle (traffic light colors)
+            'initializes': '#3fb950',      // Green
+            'creates': '#58a6ff',          // Blue
+            'destroys': '#f85149',         // Red
+            'updates': '#d29922',          // Gold
+            
+            // Additional common relationships
+            'emits': '#ff6b6b',            // Light red
+            'listens': '#4ecdc4',          // Teal
+            'owns': '#95e1d3',             // Mint
+            'manages': '#f38181',          // Rose
+            'requires': '#aa96da',         // Soft purple
+            'provides': '#8fcaca',         // Soft cyan
+            'processes': '#ffd93d',        // Bright yellow
+            'handles': '#6bcf7f',          // Fresh green
+            
+            // Default fallback - will cycle through palette for unknowns
+            'custom': '#8b949e'            // Gray
+        };
+        
+        // Color palette for unknown edge types (will cycle through)
+        const fallbackColors = [
+            '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181', '#aa96da',
+            '#8fcaca', '#ffd93d', '#6bcf7f', '#ffbe76', '#ff7979',
+            '#badc58', '#dfe4ea', '#5f27cd', '#00d2d3', '#48dbfb',
+            '#0abde3', '#ee5a24', '#f368e0', '#feca57', '#ff9ff3'
+        ];
+        
+        // Function to get edge color (with fallback for unknown types)
+        function getEdgeColor(type) {
+            if (edgeColors[type]) {
+                return edgeColors[type];
+            }
+            // Generate consistent color for unknown types
+            let hash = 0;
+            for (let i = 0; i < type.length; i++) {
+                hash = ((hash << 5) - hash) + type.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return fallbackColors[Math.abs(hash) % fallbackColors.length];
+        }
+        
+        // Initialize
+        function init() {
+            loadGraph(currentGraphName);
+            setupEventListeners();
+            updateObservations();
+        }
+        
+        function loadGraph(graphName) {
+            currentGraphName = graphName;
+            currentGraph = allGraphs[graphName];
+            
+            // Clear existing graph
+            d3.select("#graph-container svg").remove();
+            
+            // Create new graph
+            createGraph(currentGraph);
+            updateStats();
+            updateTypeFilter();
+            updateLegend();
+        }
+        
+        function createGraph(graphData) {
+            const width = document.getElementById('graph-container').clientWidth;
+            const height = document.getElementById('graph-container').clientHeight;
+            
+            const svg = d3.select("#graph-container")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            const g = svg.append("g");
+            
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // Process nodes and edges
+            const nodes = graphData.nodes || [];
+            const edges = graphData.edges || [];
+            
+            // Create node ID set for validation
+            const nodeIds = new Set(nodes.map(n => n.id));
+            
+            // Create links data, filtering out invalid edges
+            const links = edges
+                .filter(e => {
+                    if (!nodeIds.has(e.source_id)) {
+                        console.warn(`Edge references non-existent source node: ${e.source_id}`);
+                        return false;
+                    }
+                    if (!nodeIds.has(e.target_id)) {
+                        console.warn(`Edge references non-existent target node: ${e.target_id}`);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(e => ({
+                    source: e.source_id,
+                    target: e.target_id,
+                    type: e.type,
+                    label: e.label,
+                    confidence: e.confidence || 1
+                }));
+            
+            // Create force simulation with better spacing
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(150))  // Increased distance
+                .force("charge", d3.forceManyBody().strength(-800))  // Stronger repulsion
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(50))  // Larger collision radius
+                .force("x", d3.forceX(width / 2).strength(0.05))  // Gentle centering
+                .force("y", d3.forceY(height / 2).strength(0.05));
+            
+            // Create arrow markers for edge types
+            const allEdgeTypes = [...new Set(edges.map(e => e.type))];
+            svg.append("defs").selectAll("marker")
+                .data(allEdgeTypes)
+                .enter().append("marker")
+                .attr("id", d => `arrow-${d}`)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 25)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", d => getEdgeColor(d));
+            
+            // Create link group for lines and labels
+            const linkGroup = g.append("g").attr("class", "links");
+            
+            // Create links with edge-specific colors
+            const link = linkGroup.selectAll("line")
+                .data(links)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("stroke", d => getEdgeColor(d.type))
+                .attr("stroke-width", d => 1 + Math.sqrt(d.confidence * 2))
+                .attr("marker-end", d => `url(#arrow-${d.type})`);
+            
+            // Create edge labels
+            const linkLabel = linkGroup.selectAll("text")
+                .data(links)
+                .enter().append("text")
+                .attr("class", "link-label")
+                .attr("font-size", "9px")
+                .attr("fill", d => getEdgeColor(d.type))
+                .attr("text-anchor", "middle")
+                .attr("opacity", 0.7)
+                .text(d => d.label || d.type);
+            
+            // Create nodes
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+            
+            node.append("circle")
+                .attr("r", d => {
+                    const confidence = d.confidence || 1;
+                    return 10 + confidence * 8;
+                })
+                .attr("fill", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("stroke", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("fill-opacity", 0.8);
+            
+            // Node label
+            node.append("text")
+                .attr("dx", 18)
+                .attr("dy", 4)
+                .text(d => d.label ? (d.label.length > 30 ? d.label.substring(0, 30) + "..." : d.label) : "")
+                .style("fill", "#e6edf3")
+                .style("font-size", "12px")
+                .style("font-weight", "500")
+                .style("text-shadow", "1px 1px 3px rgba(0,0,0,0.5)");
+            
+            // Add observations/assumptions box if they exist
+            node.each(function(d) {
+                const g = d3.select(this);
+                const hasObs = d.observations && d.observations.length > 0;
+                const hasAssump = d.assumptions && d.assumptions.length > 0;
+                
+                if (hasObs || hasAssump) {
+                    // Create background box
+                    const bbox = g.append("rect")
+                        .attr("x", 16)
+                        .attr("y", 10)
+                        .attr("rx", 3)
+                        .attr("ry", 3)
+                        .style("fill", "rgba(22, 27, 34, 0.8)")
+                        .style("stroke", "rgba(48, 54, 61, 0.8)")
+                        .style("stroke-width", "1px");
+                    
+                    let yOffset = 22;
+                    let maxWidth = 0;
+                    const textElements = [];
+                    
+                    // Add observations (up to 3)
+                    if (hasObs) {
+                        const obsToShow = d.observations
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 1) || 1;
+                                const confB = (typeof b === 'object' ? b.confidence : 1) || 1;
+                                return confB - confA;
+                            })
+                            .slice(0, 3);
+                        
+                        obsToShow.forEach(obs => {
+                            const obsText = typeof obs === 'object' ? 
+                                (obs.description || obs.content || '') : String(obs);
+                            if (obsText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("✓ " + (obsText.length > 25 ? obsText.substring(0, 25) + "..." : obsText))
+                                    .style("fill", "#30a14e")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Add assumptions (up to 2)
+                    if (hasAssump) {
+                        const assumToShow = d.assumptions
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 0.5) || 0.5;
+                                const confB = (typeof b === 'object' ? b.confidence : 0.5) || 0.5;
+                                return confB - confA;
+                            })
+                            .slice(0, 2);
+                        
+                        assumToShow.forEach(assum => {
+                            const assumText = typeof assum === 'object' ? 
+                                (assum.description || assum.content || '') : String(assum);
+                            if (assumText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("? " + (assumText.length > 25 ? assumText.substring(0, 25) + "..." : assumText))
+                                    .style("fill", "#d29922")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Calculate max width from text elements
+                    textElements.forEach(text => {
+                        const bbox = text.node().getBBox();
+                        maxWidth = Math.max(maxWidth, bbox.width);
+                    });
+                    
+                    // Update background box size
+                    bbox.attr("width", maxWidth + 8)
+                        .attr("height", yOffset - 14);
+                }
+            });
+            
+            // Tooltip
+            const tooltip = d3.select("#tooltip");
+            
+            node.on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                
+                let content = `<strong>${d.label}</strong><br/>`;
+                content += `Type: ${d.type}<br/>`;
+                if (d.confidence !== undefined) {
+                    content += `Confidence: ${(d.confidence * 100).toFixed(0)}%<br/>`;
+                }
+                if (d.description) {
+                    content += `<br/>${d.description}`;
+                }
+                if (d.observations && d.observations.length > 0) {
+                    content += `<br/><br/><strong style="color: #30a14e;">Observations:</strong><br/>`;
+                    d.observations.slice(0, 5).forEach(obs => {
+                        const obsText = typeof obs === 'object' ? 
+                            (obs.description || obs.content || JSON.stringify(obs)) : String(obs);
+                        content += `<span style="color: #30a14e;">✓</span> ${obsText}<br/>`;
+                    });
+                }
+                if (d.assumptions && d.assumptions.length > 0) {
+                    content += `<br/><strong style="color: #d29922;">Assumptions:</strong><br/>`;
+                    d.assumptions.slice(0, 3).forEach(assum => {
+                        const assumText = typeof assum === 'object' ? 
+                            (assum.description || assum.content || JSON.stringify(assum)) : String(assum);
+                        const conf = typeof assum === 'object' ? assum.confidence : 0.5;
+                        content += `<span style="color: #d29922;">?</span> ${assumText} <span style="opacity: 0.7;">(conf: ${conf})</span><br/>`;
+                    });
+                }
+                if (d.properties && Object.keys(d.properties).length > 0) {
+                    content += `<br/><br/>Properties:<br/>`;
+                    for (const [key, value] of Object.entries(d.properties)) {
+                        content += `${key}: ${value}<br/>`;
+                    }
+                }
+                
+                tooltip.html(content)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                showNodeDetails(d);
+            });
+            
+            // Update positions
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                linkLabel
+                    .attr("x", d => (d.source.x + d.target.x) / 2)
+                    .attr("y", d => (d.source.y + d.target.y) / 2);
+                
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function updateStats() {
+            const stats = currentGraph.stats || {};
+            let html = '';
+            
+            html += `<div class="stat"><span>Nodes</span><span class="stat-value">${stats.num_nodes || 0}</span></div>`;
+            html += `<div class="stat"><span>Edges</span><span class="stat-value">${stats.num_edges || 0}</span></div>`;
+            html += `<div class="stat"><span>Node Types</span><span class="stat-value">${(stats.node_types || []).length}</span></div>`;
+            html += `<div class="stat"><span>Edge Types</span><span class="stat-value">${(stats.edge_types || []).length}</span></div>`;
+            
+            document.getElementById('stats').innerHTML = html;
+        }
+        
+        function updateTypeFilter() {
+            const types = new Set();
+            (currentGraph.nodes || []).forEach(n => types.add(n.type));
+            
+            const select = document.getElementById('type-filter');
+            select.innerHTML = '<option value="all">All Types</option>';
+            
+            Array.from(types).sort().forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        }
+        
+        function updateLegend() {
+            // Get unique node types
+            const nodeTypes = new Set();
+            (currentGraph.nodes || []).forEach(n => nodeTypes.add(n.type));
+            
+            // Get unique edge types
+            const edgeTypes = new Set();
+            (currentGraph.edges || []).forEach(e => edgeTypes.add(e.type));
+            
+            let html = '<h4>Legend</h4>';
+            
+            // Node types section
+            if (nodeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Node Types</div>';
+                Array.from(nodeTypes).sort().forEach(type => {
+                    const color = typeColors[type?.toLowerCase()] || typeColors['custom'];
+                    html += `<div class="legend-item">
+                        <div class="legend-color" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Edge types section
+            if (edgeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Edge Types</div>';
+                Array.from(edgeTypes).sort().forEach(type => {
+                    const color = getEdgeColor(type);
+                    html += `<div class="legend-item">
+                        <div class="legend-line" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Add observations/assumptions legend
+            html += '<div class="legend-section">';
+            html += '<div class="legend-section-title">Annotations</div>';
+            html += '<div class="legend-item"><span style="color: #30a14e; font-weight: bold;">✓</span> <span>Verified observation</span></div>';
+            html += '<div class="legend-item"><span style="color: #d29922; font-weight: bold;">?</span> <span>Unverified assumption</span></div>';
+            html += '</div>';
+            
+            document.getElementById('legend').innerHTML = html;
+        }
+        
+        function showNodeDetails(node) {
+            const nodeColor = typeColors[node.type?.toLowerCase()] || typeColors['custom'];
+            let html = `<h4 style="margin: 0 0 10px 0; color: ${nodeColor};">${node.label}</h4>`;
+            html += `<div style="color: #8b949e;"><strong>Type:</strong> <span style="color: ${nodeColor};">${node.type}</span></div>`;
+            html += `<div style="color: #8b949e;"><strong>ID:</strong> <span style="color: #7d8590; font-family: 'JetBrains Mono', monospace; font-size: 11px;">${node.id}</span></div>`;
+            
+            if (node.confidence !== undefined) {
+                const confColor = node.confidence > 0.7 ? '#30a14e' : node.confidence > 0.4 ? '#d29922' : '#f9826c';
+                html += `<div style="color: #8b949e;"><strong>Confidence:</strong> <span style="color: ${confColor};">${(node.confidence * 100).toFixed(0)}%</span></div>`;
+            }
+            
+            if (node.created_by) {
+                html += `<div style="color: #8b949e;"><strong>Created:</strong> <span style="color: #7d8590;">${node.created_by}</span></div>`;
+            }
+            
+            if (node.description) {
+                html += `<div style="margin-top: 10px; color: #8b949e;"><strong>Description:</strong><br/><span style="color: #e6edf3;">${node.description}</span></div>`;
+            }
+            
+            // Observations (verified facts about the system)
+            if (node.observations && node.observations.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(48, 164, 78, 0.1); border-radius: 6px; border: 1px solid rgba(48, 164, 78, 0.3);">';
+                html += '<strong style="color: #30a14e; font-size: 11px; text-transform: uppercase;">✓ Verified Observations</strong>';
+                node.observations.forEach(obs => {
+                    let obsText, obsType = 'general', obsConf = 1.0;
+                    if (typeof obs === 'object') {
+                        obsText = obs.description || obs.content || JSON.stringify(obs);
+                        obsType = obs.type || 'general';
+                        obsConf = obs.confidence !== undefined ? obs.confidence : 1.0;
+                    } else {
+                        obsText = String(obs);
+                    }
+                    const typeLabel = obsType !== 'general' ? ` [${obsType}]` : '';
+                    const confLabel = obsConf < 1.0 ? ` (conf: ${obsConf.toFixed(1)})` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #30a14e; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${obsText}${typeLabel}${confLabel}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Assumptions (unverified, needs validation)
+            if (node.assumptions && node.assumptions.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(210, 153, 34, 0.1); border-radius: 6px; border: 1px solid rgba(210, 153, 34, 0.3);">';
+                html += '<strong style="color: #d29922; font-size: 11px; text-transform: uppercase;">? Unverified Assumptions</strong>';
+                node.assumptions.forEach(assum => {
+                    let assumText, assumType = 'general', assumConf = 0.5;
+                    if (typeof assum === 'object') {
+                        assumText = assum.description || assum.content || JSON.stringify(assum);
+                        assumType = assum.type || 'general';
+                        assumConf = assum.confidence !== undefined ? assum.confidence : 0.5;
+                    } else {
+                        assumText = String(assum);
+                    }
+                    const typeLabel = assumType !== 'general' ? ` [${assumType}]` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #d29922; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${assumText}${typeLabel} (conf: ${assumConf.toFixed(1)})</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (node.properties && Object.keys(node.properties).length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #58a6ff; font-size: 11px; text-transform: uppercase;">Properties</strong></div>';
+                for (const [key, value] of Object.entries(node.properties)) {
+                    html += `<div style="margin-left: 10px; color: #8b949e; font-size: 12px;">• ${key}: <span style="color: #7d8590;">${JSON.stringify(value)}</span></div>`;
+                }
+            }
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #56d364; font-size: 11px; text-transform: uppercase;">Source References</strong></div>';
+                node.source_refs.forEach(ref => {
+                    html += `<div style="margin-left: 10px; font-size: 10px; color: #7d8590; font-family: 'JetBrains Mono', monospace;">• ${ref}</div>`;
+                });
+            }
+            
+            document.getElementById('node-info').innerHTML = html;
+            
+            // Update card viewer
+            updateCardViewer(node);
+        }
+        
+        function updateCardViewer(node) {
+            const cardViewer = document.getElementById('card-viewer');
+            const noCards = document.getElementById('no-cards');
+            const cardSelector = document.getElementById('card-selector');
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                // Show card viewer
+                cardViewer.style.display = 'block';
+                noCards.style.display = 'none';
+                
+                // Clear and populate selector
+                cardSelector.innerHTML = '<option value="">Select a card to view code</option>';
+                
+                node.source_refs.forEach(cardId => {
+                    if (cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        const option = document.createElement('option');
+                        option.value = cardId;
+                        option.textContent = `${cardId} (${card.relpath || 'unknown file'})`;
+                        cardSelector.appendChild(option);
+                    }
+                });
+                
+                // Handle card selection
+                cardSelector.onchange = function() {
+                    const cardId = this.value;
+                    const cardContent = document.getElementById('card-content');
+                    
+                    if (cardId && cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        let content = '';
+                        
+                        // Show file path
+                        if (card.relpath) {
+                            content += `// File: ${card.relpath}\n`;
+                            if (card.char_start !== undefined && card.char_end !== undefined) {
+                                content += `// Characters: ${card.char_start}-${card.char_end}\n`;
+                            }
+                            content += '\n';
+                        }
+                        
+                        // Show actual code content
+                        if (card.content) {
+                            content += card.content;
+                        } else if (card.peek_head || card.peek_tail) {
+                            content += card.peek_head || '';
+                            if (card.peek_head && card.peek_tail) {
+                                content += '\n...\n';
+                            }
+                            content += card.peek_tail || '';
+                        } else {
+                            content = 'No content available for this card';
+                        }
+                        
+                        cardContent.textContent = content;
+                    } else {
+                        cardContent.innerHTML = '<em style="color: #888;">Select a card above to view its content</em>';
+                    }
+                };
+            } else {
+                // Hide card viewer
+                cardViewer.style.display = 'none';
+                noCards.style.display = 'block';
+            }
+        }
+        
+        function updateObservations() {
+            let html = '';
+            const recentObs = observations.slice(-10).reverse();
+            
+            recentObs.forEach(obs => {
+                html += `<div class="observation">${obs}</div>`;
+            });
+            
+            if (html === '') {
+                html = '<em style="color: #888;">No observations yet</em>';
+            }
+            
+            document.getElementById('observations').innerHTML = html;
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('graph-selector').addEventListener('change', (e) => {
+                loadGraph(e.target.value);
+            });
+            
+            document.getElementById('type-filter').addEventListener('change', (e) => {
+                filterNodesByType(e.target.value);
+            });
+            
+            document.getElementById('layout-selector').addEventListener('change', (e) => {
+                changeLayout(e.target.value);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                resetView();
+            });
+        }
+        
+        function filterNodesByType(type) {
+            d3.selectAll('.node').style('opacity', d => {
+                return type === 'all' || d.type === type ? 1 : 0.1;
+            });
+        }
+        
+        function changeLayout(layout) {
+            // Simplified - would implement different layout algorithms
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
+        
+        function resetView() {
+            const svg = d3.select("svg");
+            const width = svg.attr("width");
+            const height = svg.attr("height");
+            
+            svg.transition()
+                .duration(750)
+                .call(
+                    d3.zoom().transform,
+                    d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+                );
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_263e26479bba": {
+      "frame_id": "frame_263e26479bba",
+      "session_id": "sess_agent_20261012_203013",
+      "question": "Vulnerability analysis of LiquidityBasedTWAP",
+      "artifact_refs": [
+        "Cumulative-price and TWAP observation integrity",
+        "Chainlink and pool price-source selection and fallback behavior",
+        "Liquidity-weighted aggregation susceptibility to spot-price manipulation",
+        "Owner-configured pair and oracle parameter controls",
+        "Staleness, update-window, and decimal-normalization checks"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:30:22.350556",
+      "updated_at": "2026-10-12T20:30:47.864314",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:30:22.350770",
+          "status": "planned",
+          "rationale": "WHY NOW: LiquidityBasedTWAP is the central oracle component and directly combines Chainlink and pool-derived inputs; weaknesses in source selection, observation windows, liquidity weighting, or configuration could let a manipulated market price influence reserve, swap, or synthetic-asset valuation. EXIT CRITERIA: Trace every external price input through validation, weighting, normalization, and returned-price consumers; verify that prices cannot be derived from manipulable spot state or stale/incomplete observations; assess owner-configured pairs and fallback paths; record a price-manipulation finding only if an attacker can cause an economically meaningful incorrect valuation, otherwise document the reviewed paths and protections.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:30:22.360497",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:30:47.864417",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_bd75022de2c0": {
+      "frame_id": "frame_bd75022de2c0",
+      "session_id": "sess_agent_20261012_203013",
+      "question": "Vulnerability analysis of VaderPool / BasePool",
+      "artifact_refs": [
+        "AMM swap pricing and reserve-update logic",
+        "User-controlled inputs affecting asset valuation or pool reserves",
+        "Liquidity mint, burn, and withdrawal calculations that derive prices",
+        "Interactions with VaderMath, synth pricing, and any oracle-dependent paths",
+        "Same-transaction manipulation resistance and slippage or minimum-output enforcement"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:30:57.319930",
+      "updated_at": "2026-10-12T20:31:46.694650",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:30:57.320487",
+          "status": "planned",
+          "rationale": "WHY NOW: This is an unvisited core pricing component that directly determines exchange rates and liquidity outcomes, making it a high-value target for reserve, spot-price, and transaction-order manipulation. Its interaction with the already analyzed router and reserve/oracle components can expose exploitable pricing assumptions without repeating the LiquidityBasedTWAP investigation. EXIT CRITERIA: Trace every externally reachable swap, liquidity, burn, and pricing path; identify all price and reserve inputs; verify whether attacker-controlled state can distort valuations within a transaction or across transactions; and document either a concrete price-manipulation vulnerability with an exploit path and impact or sufficient evidence that relevant pricing paths are manipulation-resistant.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:30:57.338187",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:31:46.694802",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_c5fd7f1aa2d2": {
+      "frame_id": "frame_c5fd7f1aa2d2",
+      "session_id": "sess_agent_20261012_203013",
+      "question": "Vulnerability analysis of Timelock",
+      "artifact_refs": [
+        "Determine whether queued governance actions can alter oracle sources, TWAP configuration, pool pricing parameters, or other price-sensitive state without adequate delay or validation",
+        "Trace queue, execution, cancellation, eta, and grace-period handling for paths that enable premature, replayed, or unexpectedly ordered price-affecting actions",
+        "Assess whether arbitrary target calls or self-governed delay changes can be used to manipulate protocol prices before users can react"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:31:53.116855",
+      "updated_at": "2026-10-12T20:32:21.402998",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:31:53.117335",
+          "status": "planned",
+          "rationale": "WHY NOW: Timelock is an unvisited privileged execution component and is a direct control point for governance actions that may modify price feeds or pricing parameters; reviewing it now covers a critical permission boundary while avoiding the already completed LiquidityBasedTWAP and VaderPool investigations. EXIT CRITERIA: Map every externally reachable queue, cancel, and execute path; identify all price-sensitive targets and state changes reachable through arbitrary calls; verify delay, eta, grace, replay, and self-call restrictions; conclude whether any exploitable path permits price manipulation or document that none exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:31:53.136558",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:32:21.403131",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_200b761aa82f": {
+      "frame_id": "frame_200b761aa82f",
+      "session_id": "sess_agent_20261012_203013",
+      "question": "Vulnerability analysis of Vader protocol source boundary",
+      "artifact_refs": [
+        "External token price inputs and balance/reserve assumptions",
+        "Chainlink and cumulative-price oracle data entering protocol pricing",
+        "Cross-component propagation of manipulable prices into swaps, minting, burning, and collateral valuation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:32:27.115424",
+      "updated_at": "2026-10-12T20:33:21.112264",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:32:27.115906",
+          "status": "planned",
+          "rationale": "WHY NOW: This is the only remaining unvisited major system component tied directly to external assets and oracle sources, making it the broadest uncovered entry point for price manipulation after the dedicated TWAP and pool analyses. Assess whether untrusted token behavior, stale or inconsistent oracle data, or source-selection assumptions can inject manipulated prices into downstream protocol state. EXIT CRITERIA: Trace every external price and reserve input crossing the boundary into pricing-sensitive contracts, identify validation, freshness, decimal, and consistency checks, and either document a concrete exploitable manipulation path with affected state and impact or conclude that all such inputs are adequately constrained and no price-manipulation path remains at this boundary.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:32:27.133817",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:33:21.112465",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_cac943429f80": {
+      "frame_id": "frame_cac943429f80",
+      "session_id": "sess_agent_20261012_203013",
+      "question": "System component review: Protocol user (actor_user)",
+      "artifact_refs": [
+        "actor_user@SystemArchitecture"
+      ],
+      "priority": 7,
+      "status": "planned",
+      "rationale": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:33:24.558551",
+      "updated_at": "2026-10-12T20:33:24.558826",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:33:24.559064",
+          "status": "planned",
+          "rationale": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+          "created_by": "strategist"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 5,
+    "last_modified": "2026-10-12T20:33:24.559287"
+  }
+}

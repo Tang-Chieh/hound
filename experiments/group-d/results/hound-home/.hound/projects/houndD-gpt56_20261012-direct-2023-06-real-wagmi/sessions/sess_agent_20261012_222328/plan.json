@@ -1,0 +1,341 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_e73afa909213": {
+      "frame_id": "frame_e73afa909213",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of Multipool",
+      "artifact_refs": [
+        "Spot reserve derivation and whether deposits or withdrawals can be manipulated through token balances or Uniswap V3 slot0 state",
+        "TWAP observation configuration, fixed fee-500 pool selection, and resistance to short-term oracle manipulation",
+        "Rebalance pricing, strategy-selected ranges, swap execution, and consistency between TWAP outputs and accounted reserves"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:23:33.621698",
+      "updated_at": "2026-10-12T22:24:01.177790",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:23:33.621901",
+          "status": "planned",
+          "rationale": "WHY NOW: Multipool is the primary component combining user-facing share accounting, Uniswap V3 pricing, reserve calculations, and privileged rebalancing; the annotations explicitly indicate spot-derived reserves and slot0 marks alongside TWAP checks, making it the highest-value unvisited component for price-manipulation analysis. EXIT CRITERIA: Trace every path that reads price or reserves and every path that changes pool balances or share value, verify whether attacker-controlled spot state can affect deposits, withdrawals, rebalance decisions, or swap amounts, and document either a concrete exploitable manipulation path with impact or evidence that all relevant paths use manipulation-resistant pricing and enforce consistent accounting.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:23:33.631158",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:24:01.177917",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_a8cc07129841": {
+      "frame_id": "frame_a8cc07129841",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of External users and callers",
+      "artifact_refs": [
+        "Caller-controlled deposit and withdrawal flows that derive share value from manipulable token balances or pool prices",
+        "Whether users can trigger deposits, withdrawals, or callbacks around spot-price changes to extract disproportionate token value",
+        "Interactions between Dispatcher-held LP shares, caller-directed withdrawals, and Uniswap V3 price-sensitive accounting"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:24:07.002600",
+      "updated_at": "2026-10-12T22:25:09.673772",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:24:07.002917",
+          "status": "planned",
+          "rationale": "WHY NOW: This is an unvisited component and directly exercises the externally reachable value-transfer paths. The graph identifies caller-directed withdrawals, Dispatcher-held LP shares, and withdrawal payments to the caller, while reserve and valuation logic depends on balances and spot-derived prices. These characteristics warrant checking whether an attacker can manipulate prices or balances immediately before a user-directed operation and receive excess assets. EXIT CRITERIA: Trace every externally callable user flow through Dispatcher and Multipool state reads, identify all price or reserve inputs and their timing relative to transfers/callbacks, and determine whether any feasible price manipulation changes redemption or deposit value without adequate TWAP, slippage, or share-accounting protection. Record a concrete exploit path or conclude no price-manipulation exposure exists in these flows.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:24:07.016974",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:25:09.673896",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_b394af12f3e8": {
+      "frame_id": "frame_b394af12f3e8",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of Uniswap V3 underlying pools",
+      "artifact_refs": [
+        "Determine whether Multipool pricing, TWAP checks, range initialization, or reserve accounting rely on manipulable pool observations",
+        "Trace how short-term liquidity changes, concentrated-liquidity shifts, swaps, and observation cardinality affect the prices consumed by the system",
+        "Assess whether an attacker can manipulate the underlying pool price or observations within one transaction or over the TWAP window to influence deposits, withdrawals, rebalances, or swaps"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:25:16.742390",
+      "updated_at": "2026-10-12T22:26:47.916647",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:25:16.742838",
+          "status": "planned",
+          "rationale": "WHY NOW: The two existing price-manipulation hypotheses depend directly on the underlying Uniswap V3 pool's spot tick and TWAP behavior, while this component has not been selected for a dedicated investigation. EXIT CRITERIA: Establish the exact pool-derived price and observation flows, identify whether supported pools and configured TWAP windows provide manipulation resistance, and either document a concrete exploitable price-manipulation path with affected state transitions or conclude that the pool integration prevents such influence.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:25:16.758957",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:26:47.916799",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_210a1f7daaea": {
+      "frame_id": "frame_210a1f7daaea",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of Dispatcher",
+      "artifact_refs": [
+        "Reserve-based deposit and withdrawal share pricing",
+        "Snapshot-driven accounting and withdrawal deviation checks",
+        "Caller-directed withdrawals and Dispatcher-held LP shares",
+        "Manipulation of underlying Multipool reserves or spot-derived values affecting user balances"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:26:57.798721",
+      "updated_at": "2026-10-12T22:27:02.756359",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:26:57.799205",
+          "status": "planned",
+          "rationale": "WHY NOW: Dispatcher is a critical uncompleted component whose accounting directly prices deposits and withdrawals using reserve-based state, while current hypotheses identify instantaneous-reserve share pricing as a potentially high-impact price manipulation vector. Its interaction with Multipool liquidity and caller-directed withdrawals makes it the highest-priority remaining contract for determining whether an attacker can distort reserves or spot values and extract value from LP share accounting. EXIT CRITERIA: Trace every deposit, withdrawal, share-minting, share-burning, reserve snapshot, and deviation-check path; identify all price and reserve inputs and whether they can be manipulated within a transaction or across calls; verify consistency between Dispatcher accounting and actual Multipool/token balances; and conclude whether a concrete price manipulation exploit exists, or document why the pricing and withdrawal controls prevent it.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:26:57.817345",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:27:02.756521",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_30cfd355fcd6": {
+      "frame_id": "frame_30cfd355fcd6",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of MultiStrategy",
+      "artifact_refs": [
+        "Whether strategy-selected weights or position ranges can be manipulated to distort pool valuation or share pricing",
+        "Whether strategy updates can redirect liquidity toward manipulable pricing sources or trusted fee pools",
+        "Whether owner-controlled strategy changes lack price-impact, TWAP, or accounting safeguards"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:27:11.386788",
+      "updated_at": "2026-10-12T22:27:19.389234",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:27:11.387294",
+          "status": "planned",
+          "rationale": "WHY NOW: MultiStrategy is an unanalyzed stateful component whose owner-controlled strategy and weight selection directly influence Multipool liquidity allocation and therefore price-sensitive reserves and LP-share valuation. It is especially promising given the existing hypotheses around attacker-influenced ranges and instantaneous reserve-based accounting. EXIT CRITERIA: Trace every strategy update, weight calculation, multipool interaction, and trusted fee-pool dependency; determine whether any attacker-controllable price or allocation input can cause manipulated valuation or share pricing; conclude with evidence of a concrete price-manipulation path or document why the controls prevent one.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:27:11.405796",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:27:19.389416",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_1c195e841e6e": {
+      "frame_id": "frame_1c195e841e6e",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of Factory",
+      "artifact_refs": [
+        "Multipool creation parameters and initial pricing configuration",
+        "Validation of underlying pools, tokens, fee tiers, and trusted pool relationships",
+        "Whether attacker-controlled deployment inputs can establish manipulable reserves, ranges, or oracle assumptions"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:27:31.059291",
+      "updated_at": "2026-10-12T22:27:39.163486",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:27:31.059828",
+          "status": "planned",
+          "rationale": "WHY NOW: Factory is an unanalyzed state-creation component that can determine the pools and parameters later used for pricing, while existing hypotheses identify reserve-, range-, and instantaneous-price manipulation risks. Reviewing its deployment-time validation may reveal whether an attacker can create or register a configuration that bypasses those protections. EXIT CRITERIA: Trace every external entry point that creates or registers a Multipool, identify all price-relevant inputs and validation checks, and determine whether any caller can establish attacker-controlled pricing sources or parameters. Conclude with either a concrete price-manipulation path and impact or documented evidence that Factory inputs are sufficiently constrained and trusted.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:27:31.079699",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:27:39.163664",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9aae9ea3d6a6": {
+      "frame_id": "frame_9aae9ea3d6a6",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of Approved swap target/router",
+      "artifact_refs": [
+        "Whether approved swap targets can manipulate token prices or pool reserves used for valuation",
+        "Slippage, minimum-output, deadline, and quoted-price enforcement during swaps",
+        "Whether arbitrary calldata, callbacks, or routes allow execution at attacker-controlled prices",
+        "How swap results affect Multipool reserve accounting, TWAP checks, and share pricing"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:27:51.924232",
+      "updated_at": "2026-10-12T22:28:19.167284",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:27:51.924706",
+          "status": "planned",
+          "rationale": "WHY NOW: The router is an uncompleted external component at the boundary between operator-controlled rebalancing and reserve-based valuation. Price manipulation through an approved target could distort token balances or execution prices and then affect deposits, withdrawals, or subsequent strategy decisions. EXIT CRITERIA: Trace every swap-target call and its inputs/outputs; verify that execution is constrained by an independent oracle or TWAP, strict slippage and deadline checks, and exact token-flow accounting; conclude whether an attacker can profitably alter valuation or LP-share pricing, or document why manipulation is prevented.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:27:51.943509",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:28:19.167462",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_1d74709aa25a": {
+      "frame_id": "frame_1d74709aa25a",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of ERC20 token reserve integration",
+      "artifact_refs": [
+        "How token balances, transfers, rebasing, fee-on-transfer behavior, and direct token donations affect reserve-based share pricing",
+        "Whether reserve reads can diverge from economically attributable liquidity before deposits, withdrawals, or rebalances",
+        "Whether token accounting permits temporary balance manipulation that changes LP share value or withdrawal amounts"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:28:26.498859",
+      "updated_at": "2026-10-12T22:28:34.032130",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:28:26.499300",
+          "status": "planned",
+          "rationale": "WHY NOW: Core contracts are already covered, while the ERC20 integration remains a distinct price-sensitive boundary: reserve-based pricing appears to rely on token balances and may be affected by unsolicited transfers or non-standard token behavior. EXIT CRITERIA: Trace every balance and transfer used in deposit, withdrawal, valuation, and rebalance pricing; determine whether an attacker can manipulate those values within a transaction or across state transitions; document a concrete exploit path or conclude that all relevant token behaviors are safely constrained.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T22:28:26.518065",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T22:28:34.032331",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_cf014c3a99a3": {
+      "frame_id": "frame_cf014c3a99a3",
+      "session_id": "sess_agent_20261012_222328",
+      "question": "Vulnerability analysis of Uniswap V3 factory",
+      "artifact_refs": [
+        "Verify that all pools used for pricing and liquidity operations are canonical factory deployments",
+        "Check whether pool identity, token ordering, fee tier, and tick-spacing assumptions can be bypassed or cause pricing to use an unintended pool",
+        "Assess whether factory lookups permit attacker-controlled or economically manipulable pool selection"
+      ],
+      "priority": 6,
+      "status": "planned",
+      "rationale": "WHY NOW: The core pool, dispatcher, and strategy components have already been reviewed, but the factory boundary remains a distinct uncompleted external dependency that determines which Uniswap V3 pool is trusted for price-sensitive operations. An incorrect or insufficiently constrained factory lookup could redirect pricing to a thinly liquid or attacker-influenced pool. EXIT CRITERIA: Trace every factory lookup and pool-validation path, confirm canonical address and parameter enforcement, and determine whether any attacker can cause price-sensitive logic to use an unintended or manipulable pool; document the result or rule out a price-manipulation impact.",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T22:28:43.742329",
+      "updated_at": "2026-10-12T22:28:43.742531",
+      "history": [
+        {
+          "timestamp": "2026-10-12T22:28:43.742723",
+          "status": "planned",
+          "rationale": "WHY NOW: The core pool, dispatcher, and strategy components have already been reviewed, but the factory boundary remains a distinct uncompleted external dependency that determines which Uniswap V3 pool is trusted for price-sensitive operations. An incorrect or insufficiently constrained factory lookup could redirect pricing to a thinly liquid or attacker-influenced pool. EXIT CRITERIA: Trace every factory lookup and pool-validation path, confirm canonical address and parameter enforcement, and determine whether any attacker can cause price-sensitive logic to use an unintended or manipulable pool; document the result or rule out a price-manipulation impact.",
+          "created_by": "strategist"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 9,
+    "last_modified": "2026-10-12T22:28:43.742901"
+  }
+}

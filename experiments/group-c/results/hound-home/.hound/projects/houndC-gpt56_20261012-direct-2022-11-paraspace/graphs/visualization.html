@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Knowledge Graphs Visualization</title>
+    <meta charset="utf-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e6edf3;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #1c2128 0%, #2d333b 100%);
+            color: #e6edf3;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #30a14e33;
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #30a14e;
+        }
+        
+        #controls {
+            background: #161b22;
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .control-group label {
+            font-size: 11px;
+            color: #7d8590;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        select, button {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        select:hover, button:hover {
+            background: #30363d;
+            border-color: #30a14e;
+        }
+        
+        select:focus, button:focus {
+            outline: none;
+            border-color: #30a14e;
+            box-shadow: 0 0 0 2px #30a14e22;
+        }
+        
+        #main-container {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+        
+        #graph-container {
+            flex: 1;
+            background: #0d1117;
+            position: relative;
+        }
+        
+        #sidebar {
+            width: 380px;
+            background: #161b22;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #30363d;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-section h3 {
+            color: #e6edf3;
+            margin-bottom: 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        #node-info {
+            background: #21262d;
+            padding: 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #30363d;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .observation {
+            background: #21262d;
+            padding: 10px;
+            border-left: 3px solid #30a14e;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #30363d;
+            font-size: 13px;
+        }
+        
+        .stat-value {
+            color: #30a14e;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #tooltip {
+            position: absolute;
+            padding: 12px;
+            background: rgba(22, 27, 34, 0.95);
+            color: #e6edf3;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            font-size: 12px;
+            max-width: 300px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle {
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+        
+        .node:hover circle {
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+        
+        .link {
+            stroke-opacity: 0.4;
+            transition: stroke-opacity 0.3s;
+        }
+        
+        .link:hover {
+            stroke-opacity: 0.8;
+        }
+        
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 27, 34, 0.95);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            max-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        #legend h4 {
+            margin: 0 0 12px 0;
+            color: #e6edf3;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        .legend-section {
+            margin-bottom: 15px;
+        }
+        
+        .legend-section-title {
+            color: #7d8590;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .legend-item {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #8b949e;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .legend-line {
+            width: 18px;
+            height: 2px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔍 Hound3 Knowledge Graph</h1>
+        <div style="margin-top: 8px; opacity: 0.8; font-size: 13px; color: #8b949e;">
+            Dynamic Security Analysis Visualization
+        </div>
+    </div>
+    
+    <div id="controls">
+        <div class="control-group">
+            <label>Graph</label>
+            <select id="graph-selector">
+                <option value="SystemArchitecture">SystemArchitecture</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Node Type Filter</label>
+            <select id="type-filter">
+                <option value="all">All Types</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Layout</label>
+            <select id="layout-selector">
+                <option value="force">Force Directed</option>
+                <option value="hierarchical">Hierarchical</option>
+                <option value="circular">Circular</option>
+            </select>
+        </div>
+        
+        <button id="reset-view">Reset View</button>
+    </div>
+    
+    <div id="main-container">
+        <div id="graph-container">
+            <div id="legend"></div>
+        </div>
+        
+        <div id="sidebar">
+            <div class="sidebar-section">
+                <h3>Graph Statistics</h3>
+                <div id="stats"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Selected Node</h3>
+                <div id="node-info">
+                    <em style="color: #888;">Click a node to see details</em>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Source Cards</h3>
+                <div id="card-viewer" style="display: none;">
+                    <div style="margin-bottom: 10px;">
+                        <select id="card-selector" style="width: 100%;">
+                            <option value="">Select a card to view code</option>
+                        </select>
+                    </div>
+                    <div id="card-content" style="background: #0f3460; padding: 10px; border-radius: 6px; max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; white-space: pre-wrap;">
+                        <em style="color: #888;">Select a card above to view its content</em>
+                    </div>
+                </div>
+                <div id="no-cards" style="color: #888; font-style: italic;">
+                    No source cards for this node
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Agent Observations</h3>
+                <div id="observations"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tooltip"></div>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // All graph data
+        const allGraphs = {"SystemArchitecture": {"name": "SystemArchitecture", "internal_name": "SystemArchitecture", "focus": "High-level ParaSpace system boundary and protocol flow: user-facing pool and gateway entry points delegate to protocol logic libraries, read/write shared pool and reserve state, consult address-provider-managed ACL and price-oracle interfaces, and interact with tokenization contracts, external NFT/marketplace/staking integrations, and users or asset contracts. Show component contracts, interfaces, trust boundaries, and control/data-flow direction.", "nodes": [{"id": "pool_core", "type": "contract", "label": "PoolCore", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "pool_parameters", "type": "contract", "label": "PoolParameters", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_83dcbe8915c0"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "pool_storage_contract", "type": "contract", "label": "PoolStorage", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b663650684fb"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "pool_storage_data", "type": "storage", "label": "DataTypes.PoolStorage", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b663650684fb", "card_83dcbe8915c0", "card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "pool_logic", "type": "library", "label": "PoolLogic", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a13ab6b30bf9"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "reserve_logic", "type": "library", "label": "ReserveLogic", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_60041d57b3ae", "card_b663650684fb"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "supply_logic", "type": "library", "label": "SupplyLogic", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_f0cc06bf1983", "card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "liquidation_logic", "type": "library", "label": "LiquidationLogic", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4079ea2ae8a6"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "pool_interface", "type": "interface", "label": "IPool", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a595caf36a13", "card_215ccd4c19e6", "card_18d274941c14", "card_9a63a6c511bf", "card_7210eea0d88a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "addresses_provider_interface", "type": "interface", "label": "IPoolAddressesProvider", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c6bca0db7337", "card_c9092daa0212", "card_1b78dc662c31"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "acl_interface", "type": "interface", "label": "IACLManager", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e959bfb55735"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "price_oracle_interface", "type": "interface", "label": "IParaSpaceOracle", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_f70ce3ca5f31"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "nft_floor_oracle", "type": "oracle", "label": "NFTFloorOracle", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_eeb82485c272"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "erc721_oracle_wrapper", "type": "contract", "label": "ERC721OracleWrapper", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c9092daa0212"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "uniswap_oracle_wrapper", "type": "contract", "label": "UniswapV3OracleWrapper", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_6282767c6eaf"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "uniswap_position_info_interface", "type": "interface", "label": "IUniswapV3PositionInfoProvider", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_977c8dee70ef", "card_3488ebc6aa32"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "pool_marketplace_interface", "type": "interface", "label": "IPoolMarketplace", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_432f21403043"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "wpunk_gateway_interface", "type": "interface", "label": "IWPunkGateway", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_49822d82ee94"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "weth_gateway", "type": "contract", "label": "WETHGateway", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a595caf36a13"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "n_token_uniswap", "type": "contract", "label": "NTokenUniswapV3", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_bb159473bbed"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "n_token_ape_staking", "type": "contract", "label": "NTokenApeStaking", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7712ea29c0d8"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "ape_staking_logic", "type": "library", "label": "ApeStakingLogic", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7712ea29c0d8", "card_a03c2f4daeff"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "p_token_interface", "type": "interface", "label": "IPToken", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_1527eaa99a7c", "card_f0cc06bf1983"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "n_token_interface", "type": "interface", "label": "INToken", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_f0cc06bf1983"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "collateralizable_interface", "type": "interface", "label": "ICollateralizableERC721", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a6d1b4159604", "card_f0cc06bf1983"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "user", "type": "user", "label": "Protocol user", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a595caf36a13", "card_49822d82ee94"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "weth_token", "type": "token", "label": "WETH", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a595caf36a13", "card_bb159473bbed"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "nft_asset", "type": "external_system", "label": "NFT collection / underlying asset", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_c9092daa0212", "card_bb159473bbed"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "uniswap_position_manager", "type": "external_system", "label": "INonfungiblePositionManager", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_bb159473bbed"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "ape_coin_staking", "type": "staking_integration", "label": "ApeCoinStaking", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a03c2f4daeff", "card_7712ea29c0d8"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "marketplace", "type": "marketplace", "label": "NFT marketplace integration", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_432f21403043", "card_49822d82ee94"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}], "edges": [{"id": "edge_df732df4", "type": "exposes", "source_id": "pool_core", "target_id": "pool_interface", "properties": {}, "label": "exposes", "confidence": 1.0, "evidence": ["card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_05f2b52f", "type": "exposes", "source_id": "pool_parameters", "target_id": "pool_storage_data", "properties": {}, "label": "exposes", "confidence": 1.0, "evidence": ["card_83dc8dee70ef"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_64fb694f", "type": "reads", "source_id": "pool_core", "target_id": "pool_storage_data", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_831e8543", "type": "writes", "source_id": "pool_parameters", "target_id": "pool_storage_data", "properties": {}, "label": "writes", "confidence": 1.0, "evidence": ["card_83dc8dee70ef"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_57af410d", "type": "implements", "source_id": "pool_storage_contract", "target_id": "pool_storage_data", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_b663650684fb"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5152da63", "type": "depends_on", "source_id": "pool_storage_contract", "target_id": "reserve_logic", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_b663650684fb"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9ca37895", "type": "delegates_to", "source_id": "pool_parameters", "target_id": "pool_logic", "properties": {}, "label": "delegates_to", "confidence": 1.0, "evidence": ["card_83dc8dee70ef"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_1e6a6f43", "type": "depends_on", "source_id": "pool_core", "target_id": "supply_logic", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5a84d122", "type": "depends_on", "source_id": "supply_logic", "target_id": "reserve_logic", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_f0cc06bf1983"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f0c911a8", "type": "reads", "source_id": "liquidation_logic", "target_id": "pool_storage_data", "properties": {}, "label": "reads", "confidence": 1.0, "evidence": ["card_4079ea2ae8a6"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9465bd16", "type": "resolves_via", "source_id": "pool_core", "target_id": "addresses_provider_interface", "properties": {}, "label": "resolves_via", "confidence": 1.0, "evidence": ["card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_52dcacd4", "type": "resolves_via", "source_id": "addresses_provider_interface", "target_id": "acl_interface", "properties": {}, "label": "resolves_via", "confidence": 1.0, "evidence": ["card_e959bfb55735"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_cbaa9351", "type": "prices_via", "source_id": "pool_core", "target_id": "price_oracle_interface", "properties": {}, "label": "prices_via", "confidence": 1.0, "evidence": ["card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_637f28de", "type": "implements", "source_id": "nft_floor_oracle", "target_id": "price_oracle_interface", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_eeb82485c272", "card_c9092daa0212"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3e7a7dff", "type": "prices_via", "source_id": "erc721_oracle_wrapper", "target_id": "nft_floor_oracle", "properties": {}, "label": "prices_via", "confidence": 1.0, "evidence": ["card_c9092daa0212"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_469176e9", "type": "implements", "source_id": "uniswap_oracle_wrapper", "target_id": "uniswap_position_info_interface", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_6282767c6eaf"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_aa9b4ba1", "type": "calls_external", "source_id": "uniswap_oracle_wrapper", "target_id": "uniswap_position_manager", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_6282767c6eaf"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_44cbcfd0", "type": "exposes", "source_id": "weth_gateway", "target_id": "pool_interface", "properties": {}, "label": "exposes", "confidence": 1.0, "evidence": ["card_a595caf36a13"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7ffbabee", "type": "transfers_to", "source_id": "weth_gateway", "target_id": "weth_token", "properties": {}, "label": "transfers_to", "confidence": 1.0, "evidence": ["card_a595caf36a13"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_cf1e847d", "type": "crosses_trust_boundary", "source_id": "user", "target_id": "weth_gateway", "properties": {}, "label": "crosses_trust_boundary", "confidence": 1.0, "evidence": ["card_a595caf36a13"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8c9fc2f0", "type": "crosses_trust_boundary", "source_id": "weth_gateway", "target_id": "pool_interface", "properties": {}, "label": "crosses_trust_boundary", "confidence": 1.0, "evidence": ["card_a595caf36a13"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d89a7b2e", "type": "calls_external", "source_id": "n_token_uniswap", "target_id": "uniswap_position_manager", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_bb159473bbed"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3ad36ede", "type": "resolves_via", "source_id": "n_token_uniswap", "target_id": "addresses_provider_interface", "properties": {}, "label": "resolves_via", "confidence": 1.0, "evidence": ["card_bb159473bbed"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2277701d", "type": "depends_on", "source_id": "n_token_uniswap", "target_id": "pool_interface", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_7210eea0d88a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_50623c0b", "type": "depends_on", "source_id": "n_token_ape_staking", "target_id": "ape_staking_logic", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_7712ea29c0d8"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_270fa775", "type": "calls_external", "source_id": "ape_staking_logic", "target_id": "ape_coin_staking", "properties": {}, "label": "calls_external", "confidence": 1.0, "evidence": ["card_a03c2f4daeff"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_995c477e", "type": "depends_on", "source_id": "n_token_ape_staking", "target_id": "pool_interface", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_7712ea29c0d8"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0890abea", "type": "implements", "source_id": "n_token_uniswap", "target_id": "n_token_interface", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_f0cc06bf1983"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f5111ec0", "type": "implements", "source_id": "n_token_ape_staking", "target_id": "n_token_interface", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_f0cc06bf1983"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_51450e82", "type": "implements", "source_id": "pool_core", "target_id": "pool_interface", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3572b3c6", "type": "implements", "source_id": "p_token_interface", "target_id": "pool_interface", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_1527eaa99a7c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_118cb12b", "type": "authorizes", "source_id": "pool_core", "target_id": "n_token_interface", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_d22bda62e4a1"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3b5377c4", "type": "implements", "source_id": "n_token_interface", "target_id": "collateralizable_interface", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_a6d1b4159604", "card_f0cc06bf1983"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b0811cc0", "type": "exposes", "source_id": "pool_marketplace_interface", "target_id": "marketplace", "properties": {}, "label": "exposes", "confidence": 1.0, "evidence": ["card_432f21403043"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_affdd2f1", "type": "crosses_trust_boundary", "source_id": "user", "target_id": "marketplace", "properties": {}, "label": "crosses_trust_boundary", "confidence": 1.0, "evidence": ["card_49822d82ee94"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e2eecb4e", "type": "depends_on", "source_id": "wpunk_gateway_interface", "target_id": "pool_interface", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_49822d82ee94"], "created_by": "iteration_0", "iteration": 0}], "metadata": {"created_at": 1791137188.100065, "display_name": "SystemArchitecture"}, "stats": {"num_nodes": 31, "num_edges": 36, "node_types": ["staking_integration", "contract", "library", "token", "oracle", "storage", "user", "external_system", "interface", "marketplace"], "edge_types": ["reads", "crosses_trust_boundary", "authorizes", "delegates_to", "depends_on", "resolves_via", "transfers_to", "implements", "exposes", "calls_external", "prices_via", "writes"]}}};
+        const observations = [];
+        const cardStore = {"card_1527eaa99a7c": {"id": "card_1527eaa99a7c", "relpath": "paraspace-core/contracts/interfaces/IPToken.sol", "char_start": 0, "char_end": 1035, "peek_head": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\nimport {IERC20} from \"../dependencies/", "peek_tail": "  address onBehalfOf,\n        uint256 amount,\n        uint256 index\n    ) external returns (bool);\n\n", "shingle_hash": "85ccbe09bdb1e88b", "top_tokens": ["the", "import", "from", "sol", "amount", "param", "address", "ierc20", "iscaledbalancetoken", "iinitializableptoken"], "content": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\nimport {IERC20} from \"../dependencies/openzeppelin/contracts/IERC20.sol\";\nimport {IScaledBalanceToken} from \"./IScaledBalanceToken.sol\";\nimport {IInitializablePToken} from \"./IInitializablePToken.sol\";\nimport {IXTokenType} from \"./IXTokenType.sol\";\n\n/**\n * @title IPToken\n *\n * @notice Defines the basic interface for an PToken.\n **/\ninterface IPToken is\n    IERC20,\n    IScaledBalanceToken,\n    IInitializablePToken,\n    IXTokenType\n{\n    /**\n     * @notice Mints `amount` xTokens to `user`\n     * @param caller The address performing the mint\n     * @param onBehalfOf The address of the user that will receive the minted xTokens\n     * @param amount The amount of tokens getting minted\n     * @param index The next liquidity index of the reserve\n     * @return `true` if the the previous balance of the user was 0\n     */\n    function mint(\n        address caller,\n        address onBehalfOf,\n        uint256 amount,\n        uint256 index\n    ) external returns (bool);\n\n"}, "card_7712ea29c0d8": {"id": "card_7712ea29c0d8", "relpath": "paraspace-core/contracts/protocol/tokenization/NTokenApeStaking.sol", "char_start": 4286, "char_end": 5932, "peek_head": "    function POOL_ID() internal pure virtual returns (uint256) {\n        // should be overridden\n   ", "peek_tail": "nId: tokenId,\n                incentiveReceiver: incentiveReceiver\n            })\n        );\n    }\n\n", "shingle_hash": "a6232d79eb8565ff", "top_tokens": ["apestakinglogic", "function", "position", "pool", "apestakingdatastorage", "tokenid", "incentivereceiver", "internal", "uint256", "storage"], "content": "    function POOL_ID() internal pure virtual returns (uint256) {\n        // should be overridden\n        return 0;\n    }\n\n    function initializeStakingData() internal {\n        ApeStakingLogic.APEStakingParameter\n            storage dataStorage = apeStakingDataStorage();\n        ApeStakingLogic.executeSetUnstakeApeIncentive(dataStorage, 30);\n    }\n\n    function setUnstakeApeIncentive(uint256 incentive) external onlyPoolAdmin {\n        ApeStakingLogic.executeSetUnstakeApeIncentive(\n            apeStakingDataStorage(),\n            incentive\n        );\n    }\n\n    function apeStakingDataStorage()\n        internal\n        pure\n        returns (ApeStakingLogic.APEStakingParameter storage rgs)\n    {\n        bytes32 position = APE_STAKING_DATA_STORAGE_POSITION;\n        assembly {\n            rgs.slot := position\n        }\n    }\n\n    /**\n     * @notice Unstake Ape coin staking position and repay user debt\n     * @param tokenId Token id of the ape staking position on\n     * @param incentiveReceiver address to receive incentive\n     */\n    function unstakePositionAndRepay(uint256 tokenId, address incentiveReceiver)\n        external\n        onlyPool\n        nonReentrant\n    {\n        ApeStakingLogic.executeUnstakePositionAndRepay(\n            _ERC721Data.owners,\n            apeStakingDataStorage(),\n            ApeStakingLogic.UnstakeAndRepayParams({\n                POOL: POOL,\n                _apeCoinStaking: _apeCoinStaking,\n                _underlyingAsset: _underlyingAsset,\n                poolId: POOL_ID(),\n                tokenId: tokenId,\n                incentiveReceiver: incentiveReceiver\n            })\n        );\n    }\n\n"}, "card_977c8dee70ef": {"id": "card_977c8dee70ef", "relpath": "paraspace-core/contracts/interfaces/IUniswapV3PositionInfoProvider.sol", "char_start": 0, "char_end": 1034, "peek_head": "// SPDX-License-Identifier: agpl-3.0\npragma solidity 0.8.10;\n\nstruct UinswapV3PositionData {\n    add", "peek_tail": "ta memory positionData\n    ) external view returns (uint256 token0Amount, uint256 token1Amount);\n}\n\n", "shingle_hash": "fe1ab349a80a22a9", "top_tokens": ["uint256", "uinswapv3positiondata", "int24", "interface", "function", "external", "view", "returns", "memory", "address"], "content": "// SPDX-License-Identifier: agpl-3.0\npragma solidity 0.8.10;\n\nstruct UinswapV3PositionData {\n    address token0;\n    address token1;\n    uint24 fee;\n    int24 tickLower;\n    int24 tickUpper;\n    int24 currentTick;\n    uint160 currentPrice;\n    uint128 liquidity;\n    uint256 feeGrowthInside0LastX128;\n    uint256 feeGrowthInside1LastX128;\n    uint256 tokensOwed0;\n    uint256 tokensOwed1;\n}\n\n/************\n@title IUniswapV3PositionInfoProvider interface\n@notice Interface for UniswapV3 Lp token position info.*/\n\ninterface IUniswapV3PositionInfoProvider {\n    function getOnchainPositionData(uint256 tokenId)\n        external\n        view\n        returns (UinswapV3PositionData memory);\n\n    function getLiquidityAmountFromPositionData(\n        UinswapV3PositionData memory positionData\n    ) external view returns (uint256 token0Amount, uint256 token1Amount);\n\n    function getLpFeeAmountFromPositionData(\n        UinswapV3PositionData memory positionData\n    ) external view returns (uint256 token0Amount, uint256 token1Amount);\n}\n"}, "card_7210eea0d88a": {"id": "card_7210eea0d88a", "relpath": "paraspace-core/contracts/protocol/tokenization/NTokenMoonBirds.sol", "char_start": 0, "char_end": 1265, "peek_head": "// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.10;\n\nimport {IERC20} from \"../../dependenci", "peek_tail": "m \"../libraries/types/DataTypes.sol\";\nimport {XTokenType} from \"../../interfaces/IXTokenType.sol\";\n\n", "shingle_hash": "aed6d6ba34775cc3", "top_tokens": ["import", "from", "sol", "dependencies", "contracts", "openzeppelin", "imoonbird", "libraries", "interfaces", "ierc20"], "content": "// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.10;\n\nimport {IERC20} from \"../../dependencies/openzeppelin/contracts/IERC20.sol\";\nimport {IERC721} from \"../../dependencies/openzeppelin/contracts/IERC721.sol\";\nimport {IERC1155} from \"../../dependencies/openzeppelin/contracts/IERC1155.sol\";\nimport {IERC721Metadata} from \"../../dependencies/openzeppelin/contracts/IERC721Metadata.sol\";\nimport {Address} from \"../../dependencies/openzeppelin/contracts/Address.sol\";\nimport {GPv2SafeERC20} from \"../../dependencies/gnosis/contracts/GPv2SafeERC20.sol\";\nimport {SafeCast} from \"../../dependencies/openzeppelin/contracts/SafeCast.sol\";\nimport {IMoonBirdBase} from \"../../dependencies/erc721-collections/IMoonBird.sol\";\nimport {IMoonBird} from \"../../dependencies/erc721-collections/IMoonBird.sol\";\nimport {Errors} from \"../libraries/helpers/Errors.sol\";\nimport {WadRayMath} from \"../libraries/math/WadRayMath.sol\";\nimport {IPool} from \"../../interfaces/IPool.sol\";\nimport {NToken} from \"./NToken.sol\";\nimport {IRewardController} from \"../../interfaces/IRewardController.sol\";\nimport {IncentivizedERC20} from \"./base/IncentivizedERC20.sol\";\nimport {DataTypes} from \"../libraries/types/DataTypes.sol\";\nimport {XTokenType} from \"../../interfaces/IXTokenType.sol\";\n\n"}, "card_f70ce3ca5f31": {"id": "card_f70ce3ca5f31", "relpath": "paraspace-core/contracts/interfaces/IParaSpaceOracle.sol", "char_start": 2145, "char_end": 3279, "peek_head": "    /**\n     * @notice Returns the address of the source for an asset address\n     * @param asset Th", "peek_tail": "ess asset, uint256[] calldata tokenIds)\n        external\n        view\n        returns (uint256);\n}\n\n", "shingle_hash": "3d46d550a449b9df", "top_tokens": ["the", "address", "asset", "returns", "tokenids", "param", "list", "notice", "return", "function"], "content": "    /**\n     * @notice Returns the address of the source for an asset address\n     * @param asset The address of the asset\n     * @return The address of the source\n     */\n    function getSourceOfAsset(address asset) external view returns (address);\n\n    /**\n     * @notice Returns the address of the fallback oracle\n     * @return The address of the fallback oracle\n     */\n    function getFallbackOracle() external view returns (address);\n\n    /**\n     * @notice Returns a list of prices from a list of tokenIds\n     * @param asset the asset address\n     * @param tokenIds The list of token ids\n     * @return The prices of the given tokens\n     */\n    function getTokensPrices(address asset, uint256[] calldata tokenIds)\n        external\n        view\n        returns (uint256[] memory);\n\n    /**\n     * @notice Returns the sum of prices for list of tokenIds\n     * @param asset the asset address\n     * @param tokenIds The list of token ids\n     * @return The prices of the given tokens\n     */\n    function getTokensPricesSum(address asset, uint256[] calldata tokenIds)\n        external\n        view\n        returns (uint256);\n}\n"}, "card_a13ab6b30bf9": {"id": "card_a13ab6b30bf9", "relpath": "paraspace-core/contracts/protocol/libraries/logic/PoolLogic.sol", "char_start": 2300, "char_end": 3766, "peek_head": "        bool reserveAlreadyAdded = reservesData[params.asset].id != 0 ||\n            reservesList[0]", "peek_tail": "{\n            IERC721(token).safeTransferFrom(address(this), to, amountOrTokenId);\n        }\n    }\n\n", "shingle_hash": "bf73696adf33e66e", "top_tokens": ["params", "asset", "assettype", "the", "token", "address", "reserveslist", "reservescount", "param", "amountortokenid"], "content": "        bool reserveAlreadyAdded = reservesData[params.asset].id != 0 ||\n            reservesList[0] == params.asset;\n        require(!reserveAlreadyAdded, Errors.RESERVE_ALREADY_ADDED);\n\n        for (uint16 i = 0; i < params.reservesCount; i++) {\n            if (reservesList[i] == address(0)) {\n                reservesData[params.asset].id = i;\n                reservesList[i] = params.asset;\n                return false;\n            }\n        }\n\n        require(\n            params.reservesCount < params.maxNumberReserves,\n            Errors.NO_MORE_RESERVES_ALLOWED\n        );\n        reservesData[params.asset].id = params.reservesCount;\n        reservesList[params.reservesCount] = params.asset;\n        return true;\n    }\n\n    /**\n     * @notice Rescue and transfer tokens locked in this contract\n     * @param assetType The asset type of the token\n     * @param token The address of the token\n     * @param to The address of the recipient\n     * @param amountOrTokenId The amount or id of token to transfer\n     */\n    function executeRescueTokens(\n        DataTypes.AssetType assetType,\n        address token,\n        address to,\n        uint256 amountOrTokenId\n    ) external {\n        if (assetType == DataTypes.AssetType.ERC20) {\n            IERC20(token).safeTransfer(to, amountOrTokenId);\n        } else if (assetType == DataTypes.AssetType.ERC721) {\n            IERC721(token).safeTransferFrom(address(this), to, amountOrTokenId);\n        }\n    }\n\n"}, "card_a03c2f4daeff": {"id": "card_a03c2f4daeff", "relpath": "paraspace-core/contracts/protocol/tokenization/libraries/ApeStakingLogic.sol", "char_start": 3745, "char_end": 5488, "peek_head": "        //1 unstake all position\n        {\n            //1.1 unstake Main pool position\n            ", "peek_tail": "= new ApeCoinStaking.PairNftWithAmount[](\n                            0\n                        );\n\n", "shingle_hash": "fd7db567d9498d69", "top_tokens": ["params", "apecoinstaking", "stakedamount", "tokenid", "nfts", "pool", "bakctokenid", "pairnftwithamount", "nftpairs", "unstake"], "content": "        //1 unstake all position\n        {\n            //1.1 unstake Main pool position\n            (uint256 stakedAmount, ) = params._apeCoinStaking.nftPosition(\n                params.poolId,\n                params.tokenId\n            );\n            if (stakedAmount > 0) {\n                ApeCoinStaking.SingleNft[]\n                    memory nfts = new ApeCoinStaking.SingleNft[](1);\n                nfts[0].tokenId = params.tokenId;\n                nfts[0].amount = stakedAmount;\n                if (params.poolId == BAYC_POOL_ID) {\n                    params._apeCoinStaking.withdrawBAYC(nfts, address(this));\n                } else {\n                    params._apeCoinStaking.withdrawMAYC(nfts, address(this));\n                }\n            }\n            //1.2 unstake bakc pool position\n            (uint256 bakcTokenId, bool isPaired) = params\n                ._apeCoinStaking\n                .mainToBakc(params.poolId, params.tokenId);\n            if (isPaired) {\n                (stakedAmount, ) = params._apeCoinStaking.nftPosition(\n                    BAKC_POOL_ID,\n                    bakcTokenId\n                );\n                if (stakedAmount > 0) {\n                    ApeCoinStaking.PairNftWithAmount[]\n                        memory _nftPairs = new ApeCoinStaking.PairNftWithAmount[](\n                            1\n                        );\n                    _nftPairs[0].mainTokenId = params.tokenId;\n                    _nftPairs[0].bakcTokenId = bakcTokenId;\n                    _nftPairs[0].amount = stakedAmount;\n                    ApeCoinStaking.PairNftWithAmount[]\n                        memory _otherPairs = new ApeCoinStaking.PairNftWithAmount[](\n                            0\n                        );\n\n"}, "card_4079ea2ae8a6": {"id": "card_4079ea2ae8a6", "relpath": "paraspace-core/contracts/protocol/libraries/logic/LiquidationLogic.sol", "char_start": 26214, "char_end": 27532, "peek_head": "        return (collateralXToken, liquidationBonus);\n    }\n\n    /**\n     * @notice Calculates how mu", "peek_tail": "    uint256,\n            uint256\n        )\n    {\n        LiquidateParametersLocalVars memory vars;\n\n", "shingle_hash": "2ad0273f5a1b71ac", "top_tokens": ["the", "return", "liquidation", "amount", "function", "uint256", "collateral", "param", "memory", "given"], "content": "        return (collateralXToken, liquidationBonus);\n    }\n\n    /**\n     * @notice Calculates how much of a specific collateral can be liquidated, given\n     * a certain amount of debt asset.\n     * @dev This function needs to be called after all the checks to validate the liquidation have been performed,\n     *   otherwise it might fail.\n     * @param collateralReserve The data of the collateral reserve\n     * @param params The additional parameters needed to execute the liquidation function\n     * @param superVars the executeLiquidateERC20() function local vars\n     * @return The user collateral balance\n     * @return The maximum amount that is possible to liquidate given all the liquidation constraints (user balance, close factor)\n     * @return The amount to repay with the liquidation\n     * @return The fee taken from the liquidation bonus amount to be paid to the protocol\n     **/\n    function _calculateERC20LiquidationParameters(\n        DataTypes.ReserveData storage collateralReserve,\n        DataTypes.ExecuteLiquidateParams memory params,\n        ExecuteLiquidateLocalVars memory superVars\n    )\n        internal\n        view\n        returns (\n            uint256,\n            uint256,\n            uint256,\n            uint256\n        )\n    {\n        LiquidateParametersLocalVars memory vars;\n\n"}, "card_9a63a6c511bf": {"id": "card_9a63a6c511bf", "relpath": "paraspace-core/contracts/protocol/tokenization/ATokenDebtToken.sol", "char_start": 0, "char_end": 933, "peek_head": "// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.10;\n\nimport {IPool} from \"../../interfaces/", "peek_tail": "ncome(\n                IAToken(_underlyingAsset).UNDERLYING_ASSET_ADDRESS()\n            );\n    }\n}\n\n", "shingle_hash": "4bb66947af8b6ece", "top_tokens": ["import", "from", "sol", "rebasingdebttoken", "iatoken", "ipool", "atoken", "pool", "interfaces", "wadraymath"], "content": "// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.10;\n\nimport {IPool} from \"../../interfaces/IPool.sol\";\nimport {RebasingDebtToken} from \"./RebasingDebtToken.sol\";\nimport {WadRayMath} from \"../libraries/math/WadRayMath.sol\";\nimport {IAToken} from \"../../interfaces/IAToken.sol\";\n\n/**\n * @title aToken Rebasing Debt Token\n *\n * @notice Implementation of the interest bearing token for the ParaSpace protocol\n */\ncontract ATokenDebtToken is RebasingDebtToken {\n    constructor(IPool pool) RebasingDebtToken(pool) {\n        //intentionally empty\n    }\n\n    /**\n     * @return Current rebasing index of aToken in RAY\n     **/\n    function lastRebasingIndex() internal view override returns (uint256) {\n        // Returns Aave aToken liquidity index\n        return\n            IAToken(_underlyingAsset).POOL().getReserveNormalizedIncome(\n                IAToken(_underlyingAsset).UNDERLYING_ASSET_ADDRESS()\n            );\n    }\n}\n"}, "card_c9092daa0212": {"id": "card_c9092daa0212", "relpath": "paraspace-core/contracts/misc/ERC721OracleWrapper.sol", "char_start": 1187, "char_end": 2214, "peek_head": "    constructor(\n        address _provider,\n        address _oracleAddress,\n        address _asset\n ", "peek_tail": "ernal view override returns (int256) {\n        return int256(oracleAddress.getPrice(asset));\n    }\n\n", "shingle_hash": "9b81a05f3dfde7b9", "top_tokens": ["oracleaddress", "asset", "function", "external", "override", "returns", "return", "address", "int256", "uint256"], "content": "    constructor(\n        address _provider,\n        address _oracleAddress,\n        address _asset\n    ) {\n        ADDRESSES_PROVIDER = IPoolAddressesProvider(_provider);\n        oracleAddress = INFTFloorOracle(_oracleAddress);\n        asset = _asset;\n    }\n\n    function setOracle(address _oracleAddress)\n        external\n        onlyAssetListingOrPoolAdmins\n    {\n        oracleAddress = INFTFloorOracle(_oracleAddress);\n    }\n\n    function decimals() external pure override returns (uint8) {\n        return 18;\n    }\n\n    function latestAnswer() external view override returns (int256) {\n        return int256(oracleAddress.getPrice(asset));\n    }\n\n    function latestTimestamp() external view override returns (uint256) {\n        return uint256(oracleAddress.getLastUpdateTime(asset));\n    }\n\n    function latestRound() external pure override returns (uint256) {\n        return 0;\n    }\n\n    function getAnswer(uint256) external view override returns (int256) {\n        return int256(oracleAddress.getPrice(asset));\n    }\n\n"}, "card_a595caf36a13": {"id": "card_a595caf36a13", "relpath": "paraspace-core/contracts/ui/WETHGateway.sol", "char_start": 4002, "char_end": 5126, "peek_head": "        uint256 paybackAmount = variableDebt;\n\n        if (amount < paybackAmount) {\n            pay", "peek_tail": "e, msg.sender);\n        WETH.withdraw(amount);\n        _safeTransferETH(msg.sender, amount);\n    }\n\n", "shingle_hash": "1c1205e8cade4f04", "top_tokens": ["amount", "msg", "paybackamount", "value", "weth", "eth", "sender", "borrow", "and", "pool"], "content": "        uint256 paybackAmount = variableDebt;\n\n        if (amount < paybackAmount) {\n            paybackAmount = amount;\n        }\n        require(\n            msg.value >= paybackAmount,\n            \"msg.value is less than repayment amount\"\n        );\n        WETH.deposit{value: paybackAmount}();\n        IPool(pool).repay(address(WETH), msg.value, onBehalfOf);\n\n        // refund remaining dust eth\n        if (msg.value > paybackAmount)\n            _safeTransferETH(msg.sender, msg.value - paybackAmount);\n    }\n\n    /**\n     * @dev borrow WETH, unwraps to ETH and send both the ETH and DebtTokens to msg.sender, via `approveDelegation` and onBehalf argument in `Pool.borrow`.\n     * @param amount the amount of ETH to borrow\n     * @param referralCode integrators are assigned a referral code and can potentially receive rewards\n     */\n    function borrowETH(uint256 amount, uint16 referralCode)\n        external\n        override\n        nonReentrant\n    {\n        IPool(pool).borrow(address(WETH), amount, referralCode, msg.sender);\n        WETH.withdraw(amount);\n        _safeTransferETH(msg.sender, amount);\n    }\n\n"}, "card_432f21403043": {"id": "card_432f21403043", "relpath": "paraspace-core/contracts/interfaces/IPoolMarketplace.sol", "char_start": 3056, "char_end": 3971, "peek_head": "    /**\n     * @notice Implements the batchAcceptBidWithCredit feature. AcceptBidWithCredit allows u", "peek_tail": "edit[] calldata credits,\n        address onBehalfOf,\n        uint16 referralCode\n    ) external;\n}\n\n", "shingle_hash": "37c7c00c36aaccc0", "top_tokens": ["the", "param", "nft", "marketplace", "credits", "calldata", "batchacceptbidwithcredit", "users", "leveraged", "bid"], "content": "    /**\n     * @notice Implements the batchAcceptBidWithCredit feature. AcceptBidWithCredit allows users to\n     * accept a leveraged bid on ParaSpace NFT marketplace. Users can submit leveraged bid and pay\n     * at most (1 - LTV) * $NFT\n     * @dev The nft receiver just needs to do the downpayment\n     * @param marketplaceIds The marketplace identifiers\n     * @param payloads The encoded parameters to be passed to marketplace contract (selector eliminated)\n     * @param credits The credits that the makers have approved to use for this purchase\n     * @param onBehalfOf Address of the user who will sell the NFTs\n     * @param referralCode The referral code used\n     */\n    function batchAcceptBidWithCredit(\n        bytes32[] calldata marketplaceIds,\n        bytes[] calldata payloads,\n        DataTypes.Credit[] calldata credits,\n        address onBehalfOf,\n        uint16 referralCode\n    ) external;\n}\n"}, "card_f0cc06bf1983": {"id": "card_f0cc06bf1983", "relpath": "paraspace-core/contracts/protocol/libraries/logic/SupplyLogic.sol", "char_start": 0, "char_end": 1302, "peek_head": "// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.10;\n\nimport {IERC20} from \"../../../depende", "peek_tail": "faces/IXTokenType.sol\";\nimport {INTokenUniswapV3} from \"../../../interfaces/INTokenUniswapV3.sol\";\n\n", "shingle_hash": "fb83c5977f67af2f", "top_tokens": ["import", "from", "sol", "interfaces", "dependencies", "contracts", "ierc20", "openzeppelin", "ierc721", "gpv2safeerc20"], "content": "// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.10;\n\nimport {IERC20} from \"../../../dependencies/openzeppelin/contracts/IERC20.sol\";\nimport {IERC721} from \"../../../dependencies/openzeppelin/contracts/IERC721.sol\";\nimport {GPv2SafeERC20} from \"../../../dependencies/gnosis/contracts/GPv2SafeERC20.sol\";\nimport {IPToken} from \"../../../interfaces/IPToken.sol\";\nimport {INonfungiblePositionManager} from \"../../../dependencies/uniswap/INonfungiblePositionManager.sol\";\nimport {INToken} from \"../../../interfaces/INToken.sol\";\nimport {INTokenApeStaking} from \"../../../interfaces/INTokenApeStaking.sol\";\nimport {ICollateralizableERC721} from \"../../../interfaces/ICollateralizableERC721.sol\";\nimport {IAuctionableERC721} from \"../../../interfaces/IAuctionableERC721.sol\";\nimport {Errors} from \"../helpers/Errors.sol\";\nimport {UserConfiguration} from \"../configuration/UserConfiguration.sol\";\nimport {DataTypes} from \"../types/DataTypes.sol\";\nimport {WadRayMath} from \"../math/WadRayMath.sol\";\nimport {PercentageMath} from \"../math/PercentageMath.sol\";\nimport {ValidationLogic} from \"./ValidationLogic.sol\";\nimport {ReserveLogic} from \"./ReserveLogic.sol\";\nimport {XTokenType} from \"../../../interfaces/IXTokenType.sol\";\nimport {INTokenUniswapV3} from \"../../../interfaces/INTokenUniswapV3.sol\";\n\n"}, "card_c6bca0db7337": {"id": "card_c6bca0db7337", "relpath": "paraspace-core/contracts/ui/WalletBalanceProvider.sol", "char_start": 2235, "char_end": 3385, "peek_head": "    /**\n     * @notice Fetches, for a list of _users and _tokens (ETH included with mock address), t", "peek_tail": "y, uint256[] memory)\n    {\n        IPool pool = IPool(IPoolAddressesProvider(provider).getPool());\n\n", "shingle_hash": "73752b34a372ebf8", "top_tokens": ["tokens", "users", "address", "balances", "uint256", "for", "the", "length", "memory", "list"], "content": "    /**\n     * @notice Fetches, for a list of _users and _tokens (ETH included with mock address), the balances\n     * @param users The list of users\n     * @param tokens The list of tokens\n     * @return And array with the concatenation of, for each user, his/her balances\n     **/\n    function batchBalanceOf(address[] calldata users, address[] calldata tokens)\n        external\n        view\n        returns (uint256[] memory)\n    {\n        uint256[] memory balances = new uint256[](users.length * tokens.length);\n\n        for (uint256 i = 0; i < users.length; i++) {\n            for (uint256 j = 0; j < tokens.length; j++) {\n                balances[i * tokens.length + j] = balanceOf(\n                    users[i],\n                    tokens[j]\n                );\n            }\n        }\n\n        return balances;\n    }\n\n    /**\n    @dev provides balances of user wallet for all reserves available on the pool\n    */\n    function getUserWalletBalances(address provider, address user)\n        external\n        view\n        returns (address[] memory, uint256[] memory)\n    {\n        IPool pool = IPool(IPoolAddressesProvider(provider).getPool());\n\n"}, "card_d22bda62e4a1": {"id": "card_d22bda62e4a1", "relpath": "paraspace-core/contracts/protocol/pool/PoolCore.sol", "char_start": 22866, "char_end": 23879, "peek_head": "        require(\n            msg.sender == ps._reserves[asset].xTokenAddress,\n            Errors.CAL", "peek_tail": "es.AuctionData memory auctionData)\n    {\n        DataTypes.PoolStorage storage ps = poolStorage();\n\n", "shingle_hash": "270be59aec4cfd62", "top_tokens": ["asset", "datatypes", "tokenid", "reserves", "from", "usedascollateral", "balancefrombefore", "balancetobefore", "reservescount", "auctiondata"], "content": "        require(\n            msg.sender == ps._reserves[asset].xTokenAddress,\n            Errors.CALLER_NOT_XTOKEN\n        );\n        SupplyLogic.executeFinalizeTransferERC721(\n            ps._reserves,\n            ps._reservesList,\n            ps._usersConfig,\n            DataTypes.FinalizeTransferERC721Params({\n                asset: asset,\n                from: from,\n                to: to,\n                usedAsCollateral: usedAsCollateral,\n                tokenId: tokenId,\n                balanceFromBefore: balanceFromBefore,\n                balanceToBefore: balanceToBefore,\n                reservesCount: ps._reservesCount,\n                oracle: ADDRESSES_PROVIDER.getPriceOracle()\n            })\n        );\n    }\n\n    /// @inheritdoc IPoolCore\n    function getAuctionData(address ntokenAsset, uint256 tokenId)\n        external\n        view\n        virtual\n        override\n        returns (DataTypes.AuctionData memory auctionData)\n    {\n        DataTypes.PoolStorage storage ps = poolStorage();\n\n"}, "card_18d274941c14": {"id": "card_18d274941c14", "relpath": "paraspace-core/contracts/interfaces/IInitializablePToken.sol", "char_start": 0, "char_end": 1134, "peek_head": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\nimport {IRewardController} from \"./IRe", "peek_tail": "TokenDecimals,\n        string pTokenName,\n        string pTokenSymbol,\n        bytes params\n    );\n\n", "shingle_hash": "d9822e611b3e5965", "top_tokens": ["the", "param", "address", "ptoken", "for", "pool", "treasury", "import", "irewardcontroller", "from"], "content": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\nimport {IRewardController} from \"./IRewardController.sol\";\nimport {IPool} from \"./IPool.sol\";\n\n/**\n * @title IInitializablePToken\n *\n * @notice Interface for the initialize function on PToken\n **/\ninterface IInitializablePToken {\n    /**\n     * @dev Emitted when an pToken is initialized\n     * @param underlyingAsset The address of the underlying asset\n     * @param pool The address of the associated pool\n     * @param treasury The address of the treasury\n     * @param incentivesController The address of the incentives controller for this pToken\n     * @param pTokenDecimals The decimals of the underlying\n     * @param pTokenName The name of the pToken\n     * @param pTokenSymbol The symbol of the pToken\n     * @param params A set of encoded parameters for additional initialization\n     **/\n    event Initialized(\n        address indexed underlyingAsset,\n        address indexed pool,\n        address treasury,\n        address incentivesController,\n        uint8 pTokenDecimals,\n        string pTokenName,\n        string pTokenSymbol,\n        bytes params\n    );\n\n"}, "card_eeb82485c272": {"id": "card_eeb82485c272", "relpath": "paraspace-core/contracts/misc/NFTFloorOracle.sol", "char_start": 4961, "char_end": 6937, "peek_head": "    /// @notice Allows owner to add feeders.\n    /// @param _feeders feeders to add\n    function add", "peek_tail": "wap);\n        if (dataValidity) {\n            _finalizePrice(_asset, medianPrice);\n        }\n    }\n\n", "shingle_hash": "167bc77e78ae8253", "top_tokens": ["asset", "twap", "feeder", "notice", "allows", "feeders", "function", "role", "price", "datavalidity"], "content": "    /// @notice Allows owner to add feeders.\n    /// @param _feeders feeders to add\n    function addFeeders(address[] calldata _feeders)\n        external\n        onlyRole(DEFAULT_ADMIN_ROLE)\n    {\n        _addFeeders(_feeders);\n    }\n\n    /// @notice Allows owner to remove feeder.\n    /// @param _feeder feeder to remove\n    function removeFeeder(address _feeder)\n        external\n        onlyWhenFeederExisted(_feeder)\n    {\n        _removeFeeder(_feeder);\n    }\n\n    /// @notice Allows owner to update oracle configs\n    function setConfig(uint128 expirationPeriod, uint128 maxPriceDeviation)\n        external\n        onlyRole(DEFAULT_ADMIN_ROLE)\n    {\n        _setConfig(expirationPeriod, maxPriceDeviation);\n    }\n\n    /// @notice Allows owner to pause asset\n    function setPause(address _asset, bool _flag)\n        external\n        onlyRole(DEFAULT_ADMIN_ROLE)\n    {\n        assetFeederMap[_asset].paused = _flag;\n        emit AssetPaused(_asset, _flag);\n    }\n\n    /// @notice Allows updater to set new price on PriceInformation and updates the\n    /// internal Median cumulativePrice.\n    /// @param _asset The nft contract to set a floor price for\n    /// @param _twap The last floor twap\n    function setPrice(address _asset, uint256 _twap)\n        public\n        onlyRole(UPDATER_ROLE)\n        onlyWhenAssetExisted(_asset)\n        whenNotPaused(_asset)\n    {\n        bool dataValidity = false;\n        if (hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {\n            _finalizePrice(_asset, _twap);\n            return;\n        }\n        dataValidity = _checkValidity(_asset, _twap);\n        require(dataValidity, \"NFTOracle: invalid price data\");\n        // add price to raw feeder storage\n        _addRawValue(_asset, _twap);\n        uint256 medianPrice;\n        // set twap price only when median value is valid\n        (dataValidity, medianPrice) = _combine(_asset, _twap);\n        if (dataValidity) {\n            _finalizePrice(_asset, medianPrice);\n        }\n    }\n\n"}, "card_bb159473bbed": {"id": "card_bb159473bbed", "relpath": "paraspace-core/contracts/protocol/tokenization/NTokenUniswapV3.sol", "char_start": 3128, "char_end": 4131, "peek_head": "            INonfungiblePositionManager(_underlyingAsset).decreaseLiquidity(\n                params\n", "peek_tail": "nt0, amount1) = INonfungiblePositionManager(_underlyingAsset)\n            .collect(collectParams);\n\n", "shingle_hash": "2ed4c40c229ca8ca", "top_tokens": ["inonfungiblepositionmanager", "address", "collectparams", "underlyingasset", "tokenid", "weth", "receiveethasweth", "token0", "token1", "type"], "content": "            INonfungiblePositionManager(_underlyingAsset).decreaseLiquidity(\n                params\n            );\n        }\n\n        (\n            ,\n            ,\n            address token0,\n            address token1,\n            ,\n            ,\n            ,\n            ,\n            ,\n            ,\n            ,\n\n        ) = INonfungiblePositionManager(_underlyingAsset).positions(tokenId);\n\n        address weth = _addressesProvider.getWETH();\n        receiveEthAsWeth = (receiveEthAsWeth &&\n            (token0 == weth || token1 == weth));\n\n        INonfungiblePositionManager.CollectParams\n            memory collectParams = INonfungiblePositionManager.CollectParams({\n                tokenId: tokenId,\n                recipient: receiveEthAsWeth ? address(this) : user,\n                amount0Max: type(uint128).max,\n                amount1Max: type(uint128).max\n            });\n\n        (amount0, amount1) = INonfungiblePositionManager(_underlyingAsset)\n            .collect(collectParams);\n\n"}, "card_1b78dc662c31": {"id": "card_1b78dc662c31", "relpath": "paraspace-core/contracts/ui/interfaces/IUiIncentiveDataProvider.sol", "char_start": 0, "char_end": 1191, "peek_head": "// SPDX-License-Identifier: agpl-3.0\npragma solidity 0.8.10;\n\nimport {IPoolAddressesProvider} from \"", "peek_tail": "rIncentiveData vTokenIncentivesUserData;\n        UserIncentiveData sTokenIncentivesUserData;\n    }\n\n", "shingle_hash": "d7ac7e16c1ee6c21", "top_tokens": ["address", "struct", "incentivedata", "uint256", "uint8", "userincentivedata", "ipooladdressesprovider", "underlyingasset", "rewardinfo", "spdx"], "content": "// SPDX-License-Identifier: agpl-3.0\npragma solidity 0.8.10;\n\nimport {IPoolAddressesProvider} from \"../../interfaces/IPoolAddressesProvider.sol\";\n\ninterface IUiIncentiveDataProvider {\n    struct AggregatedReserveIncentiveData {\n        address underlyingAsset;\n        IncentiveData aIncentiveData;\n        IncentiveData vIncentiveData;\n        IncentiveData sIncentiveData;\n    }\n\n    struct IncentiveData {\n        address tokenAddress;\n        address incentiveControllerAddress;\n        RewardInfo[] rewardsTokenInformation;\n    }\n\n    struct RewardInfo {\n        string rewardTokenSymbol;\n        address rewardTokenAddress;\n        address rewardOracleAddress;\n        uint256 emissionPerSecond;\n        uint256 incentivesLastUpdateTimestamp;\n        uint256 tokenIncentivesIndex;\n        uint256 emissionEndTimestamp;\n        int256 rewardPriceFeed;\n        uint8 rewardTokenDecimals;\n        uint8 precision;\n        uint8 priceFeedDecimals;\n    }\n\n    struct UserReserveIncentiveData {\n        address underlyingAsset;\n        UserIncentiveData xTokenIncentivesUserData;\n        UserIncentiveData vTokenIncentivesUserData;\n        UserIncentiveData sTokenIncentivesUserData;\n    }\n\n"}, "card_a6d1b4159604": {"id": "card_a6d1b4159604", "relpath": "paraspace-core/contracts/interfaces/ICollateralizableERC721.sol", "char_start": 0, "char_end": 1210, "peek_head": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\n/**\n * @title ICollateralizableERC721\n", "peek_tail": "\n        bool useAsCollateral,\n        address sender\n    ) external returns (uint256, uint256);\n}\n\n", "shingle_hash": "47a2dd16f07d99b5", "top_tokens": ["the", "uint256", "dev", "user", "function", "external", "returns", "bool", "collateralized", "balance"], "content": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\n/**\n * @title ICollateralizableERC721\n * @author Parallel\n * @notice Defines the basic interface for an CollateralizableERC721.\n **/\ninterface ICollateralizableERC721 {\n    /**\n     * @dev get the collateralized balance of a specific user\n     */\n    function collateralizedBalanceOf(address user)\n        external\n        view\n        returns (uint256);\n\n    /**\n     * @dev get the the collateral configuration of a specific token\n     */\n    function isUsedAsCollateral(uint256 tokenId) external view returns (bool);\n\n    /**\n     * @dev changes the collateral state/config of a token\n     * @return if the state has changed\n     */\n    function setIsUsedAsCollateral(\n        uint256 tokenId,\n        bool useAsCollateral,\n        address sender\n    ) external returns (bool);\n\n    /**\n     * @dev the ids of the token want to change the collateral state\n     * @return uint256 (user's old collateralized balance), uint256 (user's new collateralized balance)\n     */\n    function batchSetIsUsedAsCollateral(\n        uint256[] calldata tokenIds,\n        bool useAsCollateral,\n        address sender\n    ) external returns (uint256, uint256);\n}\n"}, "card_83dcbe8915c0": {"id": "card_83dcbe8915c0", "relpath": "paraspace-core/contracts/protocol/pool/PoolParameters.sol", "char_start": 5074, "char_end": 6190, "peek_head": "    /// @inheritdoc IPoolParameters\n    function dropReserve(address asset)\n        external\n       ", "peek_tail": " virtual override onlyPoolConfigurator {\n        DataTypes.PoolStorage storage ps = poolStorage();\n\n", "shingle_hash": "e74f1e0253ce9fc5", "top_tokens": ["asset", "address", "poolstorage", "inheritdoc", "ipoolparameters", "function", "external", "virtual", "override", "onlypoolconfigurator"], "content": "    /// @inheritdoc IPoolParameters\n    function dropReserve(address asset)\n        external\n        virtual\n        override\n        onlyPoolConfigurator\n    {\n        DataTypes.PoolStorage storage ps = poolStorage();\n\n        PoolLogic.executeDropReserve(ps._reserves, ps._reservesList, asset);\n    }\n\n    /// @inheritdoc IPoolParameters\n    function setReserveInterestRateStrategyAddress(\n        address asset,\n        address rateStrategyAddress\n    ) external virtual override onlyPoolConfigurator {\n        DataTypes.PoolStorage storage ps = poolStorage();\n\n        require(asset != address(0), Errors.ZERO_ADDRESS_NOT_VALID);\n        require(\n            ps._reserves[asset].id != 0 || ps._reservesList[0] == asset,\n            Errors.ASSET_NOT_LISTED\n        );\n        ps._reserves[asset].interestRateStrategyAddress = rateStrategyAddress;\n    }\n\n    /// @inheritdoc IPoolParameters\n    function setReserveAuctionStrategyAddress(\n        address asset,\n        address auctionStrategyAddress\n    ) external virtual override onlyPoolConfigurator {\n        DataTypes.PoolStorage storage ps = poolStorage();\n\n"}, "card_49822d82ee94": {"id": "card_49822d82ee94", "relpath": "paraspace-core/contracts/ui/interfaces/IWPunkGateway.sol", "char_start": 0, "char_end": 1054, "peek_head": "// SPDX-License-Identifier: agpl-3.0\npragma solidity 0.8.10;\n\nimport {DataTypes} from \"../../protoco", "peek_tail": "ata credits,\n        uint256[] calldata punkIndexes,\n        uint16 referralCode\n    ) external;\n}\n\n", "shingle_hash": "01a25bc6d3f518a5", "top_tokens": ["calldata", "datatypes", "address", "uint256", "function", "punkindexes", "external", "uint16", "referralcode", "credit"], "content": "// SPDX-License-Identifier: agpl-3.0\npragma solidity 0.8.10;\n\nimport {DataTypes} from \"../../protocol/libraries/types/DataTypes.sol\";\n\ninterface IWPunkGateway {\n    event EmergencyERC721TokenTransfer(\n        address token,\n        uint256 tokenId,\n        address to\n    );\n\n    event EmergencyPunkTransfer(address to, uint256 punkIndex);\n\n    function supplyPunk(\n        DataTypes.ERC721SupplyParams[] calldata punkIndexes,\n        address onBehalfOf,\n        uint16 referralCode\n    ) external;\n\n    function withdrawPunk(uint256[] calldata punkIndexes, address to) external;\n\n    function acceptBidWithCredit(\n        bytes32 marketplaceId,\n        bytes calldata payload,\n        DataTypes.Credit calldata credit,\n        uint256[] calldata punkIndexes,\n        uint16 referralCode\n    ) external;\n\n    function batchAcceptBidWithCredit(\n        bytes32[] calldata marketplaceIds,\n        bytes[] calldata payloads,\n        DataTypes.Credit[] calldata credits,\n        uint256[] calldata punkIndexes,\n        uint16 referralCode\n    ) external;\n}\n"}, "card_b663650684fb": {"id": "card_b663650684fb", "relpath": "paraspace-core/contracts/protocol/pool/PoolStorage.sol", "char_start": 0, "char_end": 892, "peek_head": "// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.10;\n\nimport {UserConfiguration} from \"../li", "peek_tail": "ion = POOL_STORAGE_POSITION;\n        assembly {\n            rgs.slot := position\n        }\n    }\n}\n\n", "shingle_hash": "57c5ac123775e55a", "top_tokens": ["storage", "pool", "import", "from", "libraries", "sol", "poolstorage", "contract", "position", "datatypes"], "content": "// SPDX-License-Identifier: BUSL-1.1\npragma solidity 0.8.10;\n\nimport {UserConfiguration} from \"../libraries/configuration/UserConfiguration.sol\";\nimport {ReserveConfiguration} from \"../libraries/configuration/ReserveConfiguration.sol\";\nimport {ReserveLogic} from \"../libraries/logic/ReserveLogic.sol\";\nimport {DataTypes} from \"../libraries/types/DataTypes.sol\";\n\n/**\n * @title PoolStorage\n *\n * @notice Contract used as storage of the Pool contract.\n * @dev It defines the storage layout of the Pool contract.\n */\ncontract PoolStorage {\n    bytes32 constant POOL_STORAGE_POSITION =\n        bytes32(uint256(keccak256(\"paraspace.proxy.pool.storage\")) - 1);\n\n    function poolStorage()\n        internal\n        pure\n        returns (DataTypes.PoolStorage storage rgs)\n    {\n        bytes32 position = POOL_STORAGE_POSITION;\n        assembly {\n            rgs.slot := position\n        }\n    }\n}\n"}, "card_3488ebc6aa32": {"id": "card_3488ebc6aa32", "relpath": "paraspace-core/contracts/interfaces/IUniswapV3OracleWrapper.sol", "char_start": 0, "char_end": 345, "peek_head": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\nimport {IAtomicPriceAggregator} from \"", "peek_tail": "rface IUniswapV3OracleWrapper is\n    IAtomicPriceAggregator,\n    IUniswapV3PositionInfoProvider\n{}\n\n", "shingle_hash": "d5c4e3a2ac672489", "top_tokens": ["iatomicpriceaggregator", "iuniswapv3positioninfoprovider", "import", "from", "interfaces", "sol", "spdx", "license", "identifier", "agpl"], "content": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\nimport {IAtomicPriceAggregator} from \"../interfaces/IAtomicPriceAggregator.sol\";\nimport {IUniswapV3PositionInfoProvider} from \"../interfaces/IUniswapV3PositionInfoProvider.sol\";\n\ninterface IUniswapV3OracleWrapper is\n    IAtomicPriceAggregator,\n    IUniswapV3PositionInfoProvider\n{}\n"}, "card_215ccd4c19e6": {"id": "card_215ccd4c19e6", "relpath": "paraspace-core/contracts/interfaces/IInitializableDebtToken.sol", "char_start": 0, "char_end": 1109, "peek_head": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\nimport {IRewardController} from \"./IRe", "peek_tail": "ecimals,\n        string debtTokenName,\n        string debtTokenSymbol,\n        bytes params\n    );\n\n", "shingle_hash": "1d1607504141ad6b", "top_tokens": ["the", "param", "address", "debt", "token", "for", "pool", "import", "irewardcontroller", "from"], "content": "// SPDX-License-Identifier: AGPL-3.0\npragma solidity 0.8.10;\n\nimport {IRewardController} from \"./IRewardController.sol\";\nimport {IPool} from \"./IPool.sol\";\n\n/**\n * @title IInitializableDebtToken\n *\n * @notice Interface for the initialize function common between debt tokens\n **/\ninterface IInitializableDebtToken {\n    /**\n     * @dev Emitted when a debt token is initialized\n     * @param underlyingAsset The address of the underlying asset\n     * @param pool The address of the associated pool\n     * @param incentivesController The address of the incentives controller for this xToken\n     * @param debtTokenDecimals The decimals of the debt token\n     * @param debtTokenName The name of the debt token\n     * @param debtTokenSymbol The symbol of the debt token\n     * @param params A set of encoded parameters for additional initialization\n     **/\n    event Initialized(\n        address indexed underlyingAsset,\n        address indexed pool,\n        address incentivesController,\n        uint8 debtTokenDecimals,\n        string debtTokenName,\n        string debtTokenSymbol,\n        bytes params\n    );\n\n"}, "card_6282767c6eaf": {"id": "card_6282767c6eaf", "relpath": "paraspace-core/contracts/misc/UniswapV3OracleWrapper.sol", "char_start": 3504, "char_end": 4572, "peek_head": "    /**\n     * @notice get onchain liquidity amount for the specified tokenId.\n     */\n    function ", "peek_tail": "th.getSqrtRatioAtTick(positionData.tickUpper),\n            positionData.liquidity\n        );\n    }\n\n", "shingle_hash": "fc1d4befd9775adb", "top_tokens": ["positiondata", "uint256", "token0amount", "token1amount", "liquidity", "the", "tokenid", "notice", "amount", "for"], "content": "    /**\n     * @notice get onchain liquidity amount for the specified tokenId.\n     */\n    function getLiquidityAmount(uint256 tokenId)\n        external\n        view\n        returns (uint256 token0Amount, uint256 token1Amount)\n    {\n        UinswapV3PositionData memory positionData = getOnchainPositionData(\n            tokenId\n        );\n        (token0Amount, token1Amount) = getLiquidityAmountFromPositionData(\n            positionData\n        );\n    }\n\n    /**\n     * @notice calculate liquidity amount for the position data.\n     * @param positionData The specified position data\n     */\n    function getLiquidityAmountFromPositionData(\n        UinswapV3PositionData memory positionData\n    ) public pure returns (uint256 token0Amount, uint256 token1Amount) {\n        (token0Amount, token1Amount) = LiquidityAmounts.getAmountsForLiquidity(\n            positionData.currentPrice,\n            TickMath.getSqrtRatioAtTick(positionData.tickLower),\n            TickMath.getSqrtRatioAtTick(positionData.tickUpper),\n            positionData.liquidity\n        );\n    }\n\n"}, "card_60041d57b3ae": {"id": "card_60041d57b3ae", "relpath": "paraspace-core/contracts/protocol/libraries/logic/ReserveLogic.sol", "char_start": 3543, "char_end": 5024, "peek_head": "    /**\n     * @notice Updates the liquidity cumulative index and the variable borrow index.\n     * ", "peek_tail": "liquidityIndex);\n        reserve.liquidityIndex = result.toUint128();\n        return result;\n    }\n\n", "shingle_hash": "84a92990f59f5176", "top_tokens": ["the", "reserve", "amount", "param", "reservecache", "totalliquidity", "liquidity", "index", "uint256", "for"], "content": "    /**\n     * @notice Updates the liquidity cumulative index and the variable borrow index.\n     * @param reserve The reserve object\n     * @param reserveCache The caching layer for the reserve data\n     **/\n    function updateState(\n        DataTypes.ReserveData storage reserve,\n        DataTypes.ReserveCache memory reserveCache\n    ) internal {\n        _updateIndexes(reserve, reserveCache);\n        _accrueToTreasury(reserve, reserveCache);\n    }\n\n    /**\n     * @notice Accumulates a predefined amount of asset to the reserve as a fixed, instantaneous income. Used for example\n     * to accumulate the flashloan fee to the reserve, and spread it between all the suppliers.\n     * @param reserve The reserve object\n     * @param totalLiquidity The total liquidity available in the reserve\n     * @param amount The amount to accumulate\n     * @return The next liquidity index of the reserve\n     **/\n    function cumulateToLiquidityIndex(\n        DataTypes.ReserveData storage reserve,\n        uint256 totalLiquidity,\n        uint256 amount\n    ) internal returns (uint256) {\n        //next liquidity index is calculated this way: `((amount / totalLiquidity) + 1) * liquidityIndex`\n        //division `amount / totalLiquidity` done in ray for precision\n        uint256 result = (amount.wadToRay().rayDiv(totalLiquidity.wadToRay()) +\n            WadRayMath.RAY).rayMul(reserve.liquidityIndex);\n        reserve.liquidityIndex = result.toUint128();\n        return result;\n    }\n\n"}, "card_e959bfb55735": {"id": "card_e959bfb55735", "relpath": "paraspace-core/contracts/interfaces/IACLManager.sol", "char_start": 1071, "char_end": 2134, "peek_head": "    /**\n     * @notice Returns the identifier of the FlashBorrower role\n     * @return The id of the", "peek_tail": "aram admin The address of the new admin\n     */\n    function addPoolAdmin(address admin) external;\n\n", "shingle_hash": "9ff6c6f981f2c744", "top_tokens": ["the", "role", "admin", "returns", "notice", "function", "external", "bytes32", "identifier", "return"], "content": "    /**\n     * @notice Returns the identifier of the FlashBorrower role\n     * @return The id of the FlashBorrower role\n     */\n    function FLASH_BORROWER_ROLE() external view returns (bytes32);\n\n    /**\n     * @notice Returns the identifier of the Bridge role\n     * @return The id of the Bridge role\n     */\n    function BRIDGE_ROLE() external view returns (bytes32);\n\n    /**\n     * @notice Returns the identifier of the AssetListingAdmin role\n     * @return The id of the AssetListingAdmin role\n     */\n    function ASSET_LISTING_ADMIN_ROLE() external view returns (bytes32);\n\n    /**\n     * @notice Set the role as admin of a specific role.\n     * @dev By default the admin role for all roles is `DEFAULT_ADMIN_ROLE`.\n     * @param role The role to be managed by the admin role\n     * @param adminRole The admin role\n     */\n    function setRoleAdmin(bytes32 role, bytes32 adminRole) external;\n\n    /**\n     * @notice Adds a new admin as PoolAdmin\n     * @param admin The address of the new admin\n     */\n    function addPoolAdmin(address admin) external;\n\n"}};
+        
+        let currentGraph = null;
+        let currentGraphName = Object.keys(allGraphs)[0];
+        let simulation = null;
+        
+        // Professional color schemes with tech accent
+        const typeColors = {
+            // Common node types from graph generation
+            'contract': '#30a14e',         // GitHub green - main contracts
+            'interface': '#58a6ff',        // GitHub blue - interfaces
+            'library': '#a371f7',          // Purple - library contracts
+            'function': '#56d364',         // Light green - functions
+            'storage': '#f9826c',          // Warm orange - storage/state
+            'event': '#79c0ff',            // Light blue - events
+            'modifier': '#bc8cff',         // Light purple - modifiers
+            'external_actor': '#d29922',   // Gold - external entities
+            'role': '#ffa657',             // Orange - roles/permissions
+            
+            // Legacy/alternative types
+            'code': '#30a14e',             // GitHub green
+            'concept': '#58a6ff',          // GitHub blue
+            'invariant': '#f9826c',        // Warm orange
+            'observation': '#a371f7',      // Purple
+            'hypothesis': '#d29922',       // Gold
+            'issue': '#f85149',            // GitHub red
+            'pattern': '#56d364',          // Light green
+            'dataflow': '#79c0ff',         // Light blue
+            'control': '#ff7b72',          // Coral
+            'vulnerability': '#da3633',   // Danger red
+            'assumption': '#ffa657',       // Orange
+            'constraint': '#bc8cff',      // Light purple
+            'custom': '#8b949e'            // Gray - fallback
+        };
+        
+        // Edge type colors - expanded palette with more distinct colors
+        const edgeColors = {
+            // Primary relationships (high contrast)
+            'calls': '#30a14e',           // Green
+            'contains': '#58a6ff',         // Blue  
+            'depends_on': '#f9826c',       // Light red/orange
+            'references': '#a371f7',       // Purple
+            'uses': '#79c0ff',             // Light blue
+            'implements': '#56d364',       // Bright green
+            'extends': '#bc8cff',          // Light purple
+            'imports': '#d29922',          // Gold
+            
+            // Data flow (warm colors)
+            'dataflow': '#ffa657',         // Orange
+            'reads': '#39d353',            // Green
+            'writes': '#ff7b72',           // Coral
+            'modifies': '#f85149',         // Red
+            
+            // Control flow (cool colors)
+            'control': '#ffea7f',          // Yellow
+            'triggers': '#db61a2',         // Pink
+            'validates': '#2ea043',        // Dark green
+            'checks': '#539bf5',           // Sky blue
+            
+            // Security/Analysis (strong colors)
+            'violates': '#da3633',         // Danger red
+            'protects': '#1f6feb',         // Royal blue
+            'trusts': '#8957e5',           // Violet
+            'restricts': '#f778ba',        // Light pink
+            
+            // Structural (purple spectrum)
+            'inherits': '#986ee2',         // Lavender
+            'overrides': '#ff9492',        // Salmon
+            'delegates': '#56d4dd',        // Cyan
+            'aggregates': '#a475f9',       // Medium purple
+            
+            // Associations (varied)
+            'relates_to': '#8b949e',       // Gray (neutral)
+            'links_to': '#7ee787',         // Mint green
+            'connects': '#ffc680',         // Peach
+            'maps_to': '#c297ff',          // Light violet
+            
+            // State/Lifecycle (traffic light colors)
+            'initializes': '#3fb950',      // Green
+            'creates': '#58a6ff',          // Blue
+            'destroys': '#f85149',         // Red
+            'updates': '#d29922',          // Gold
+            
+            // Additional common relationships
+            'emits': '#ff6b6b',            // Light red
+            'listens': '#4ecdc4',          // Teal
+            'owns': '#95e1d3',             // Mint
+            'manages': '#f38181',          // Rose
+            'requires': '#aa96da',         // Soft purple
+            'provides': '#8fcaca',         // Soft cyan
+            'processes': '#ffd93d',        // Bright yellow
+            'handles': '#6bcf7f',          // Fresh green
+            
+            // Default fallback - will cycle through palette for unknowns
+            'custom': '#8b949e'            // Gray
+        };
+        
+        // Color palette for unknown edge types (will cycle through)
+        const fallbackColors = [
+            '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181', '#aa96da',
+            '#8fcaca', '#ffd93d', '#6bcf7f', '#ffbe76', '#ff7979',
+            '#badc58', '#dfe4ea', '#5f27cd', '#00d2d3', '#48dbfb',
+            '#0abde3', '#ee5a24', '#f368e0', '#feca57', '#ff9ff3'
+        ];
+        
+        // Function to get edge color (with fallback for unknown types)
+        function getEdgeColor(type) {
+            if (edgeColors[type]) {
+                return edgeColors[type];
+            }
+            // Generate consistent color for unknown types
+            let hash = 0;
+            for (let i = 0; i < type.length; i++) {
+                hash = ((hash << 5) - hash) + type.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return fallbackColors[Math.abs(hash) % fallbackColors.length];
+        }
+        
+        // Initialize
+        function init() {
+            loadGraph(currentGraphName);
+            setupEventListeners();
+            updateObservations();
+        }
+        
+        function loadGraph(graphName) {
+            currentGraphName = graphName;
+            currentGraph = allGraphs[graphName];
+            
+            // Clear existing graph
+            d3.select("#graph-container svg").remove();
+            
+            // Create new graph
+            createGraph(currentGraph);
+            updateStats();
+            updateTypeFilter();
+            updateLegend();
+        }
+        
+        function createGraph(graphData) {
+            const width = document.getElementById('graph-container').clientWidth;
+            const height = document.getElementById('graph-container').clientHeight;
+            
+            const svg = d3.select("#graph-container")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            const g = svg.append("g");
+            
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // Process nodes and edges
+            const nodes = graphData.nodes || [];
+            const edges = graphData.edges || [];
+            
+            // Create node ID set for validation
+            const nodeIds = new Set(nodes.map(n => n.id));
+            
+            // Create links data, filtering out invalid edges
+            const links = edges
+                .filter(e => {
+                    if (!nodeIds.has(e.source_id)) {
+                        console.warn(`Edge references non-existent source node: ${e.source_id}`);
+                        return false;
+                    }
+                    if (!nodeIds.has(e.target_id)) {
+                        console.warn(`Edge references non-existent target node: ${e.target_id}`);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(e => ({
+                    source: e.source_id,
+                    target: e.target_id,
+                    type: e.type,
+                    label: e.label,
+                    confidence: e.confidence || 1
+                }));
+            
+            // Create force simulation with better spacing
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(150))  // Increased distance
+                .force("charge", d3.forceManyBody().strength(-800))  // Stronger repulsion
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(50))  // Larger collision radius
+                .force("x", d3.forceX(width / 2).strength(0.05))  // Gentle centering
+                .force("y", d3.forceY(height / 2).strength(0.05));
+            
+            // Create arrow markers for edge types
+            const allEdgeTypes = [...new Set(edges.map(e => e.type))];
+            svg.append("defs").selectAll("marker")
+                .data(allEdgeTypes)
+                .enter().append("marker")
+                .attr("id", d => `arrow-${d}`)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 25)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", d => getEdgeColor(d));
+            
+            // Create link group for lines and labels
+            const linkGroup = g.append("g").attr("class", "links");
+            
+            // Create links with edge-specific colors
+            const link = linkGroup.selectAll("line")
+                .data(links)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("stroke", d => getEdgeColor(d.type))
+                .attr("stroke-width", d => 1 + Math.sqrt(d.confidence * 2))
+                .attr("marker-end", d => `url(#arrow-${d.type})`);
+            
+            // Create edge labels
+            const linkLabel = linkGroup.selectAll("text")
+                .data(links)
+                .enter().append("text")
+                .attr("class", "link-label")
+                .attr("font-size", "9px")
+                .attr("fill", d => getEdgeColor(d.type))
+                .attr("text-anchor", "middle")
+                .attr("opacity", 0.7)
+                .text(d => d.label || d.type);
+            
+            // Create nodes
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+            
+            node.append("circle")
+                .attr("r", d => {
+                    const confidence = d.confidence || 1;
+                    return 10 + confidence * 8;
+                })
+                .attr("fill", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("stroke", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("fill-opacity", 0.8);
+            
+            // Node label
+            node.append("text")
+                .attr("dx", 18)
+                .attr("dy", 4)
+                .text(d => d.label ? (d.label.length > 30 ? d.label.substring(0, 30) + "..." : d.label) : "")
+                .style("fill", "#e6edf3")
+                .style("font-size", "12px")
+                .style("font-weight", "500")
+                .style("text-shadow", "1px 1px 3px rgba(0,0,0,0.5)");
+            
+            // Add observations/assumptions box if they exist
+            node.each(function(d) {
+                const g = d3.select(this);
+                const hasObs = d.observations && d.observations.length > 0;
+                const hasAssump = d.assumptions && d.assumptions.length > 0;
+                
+                if (hasObs || hasAssump) {
+                    // Create background box
+                    const bbox = g.append("rect")
+                        .attr("x", 16)
+                        .attr("y", 10)
+                        .attr("rx", 3)
+                        .attr("ry", 3)
+                        .style("fill", "rgba(22, 27, 34, 0.8)")
+                        .style("stroke", "rgba(48, 54, 61, 0.8)")
+                        .style("stroke-width", "1px");
+                    
+                    let yOffset = 22;
+                    let maxWidth = 0;
+                    const textElements = [];
+                    
+                    // Add observations (up to 3)
+                    if (hasObs) {
+                        const obsToShow = d.observations
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 1) || 1;
+                                const confB = (typeof b === 'object' ? b.confidence : 1) || 1;
+                                return confB - confA;
+                            })
+                            .slice(0, 3);
+                        
+                        obsToShow.forEach(obs => {
+                            const obsText = typeof obs === 'object' ? 
+                                (obs.description || obs.content || '') : String(obs);
+                            if (obsText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("✓ " + (obsText.length > 25 ? obsText.substring(0, 25) + "..." : obsText))
+                                    .style("fill", "#30a14e")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Add assumptions (up to 2)
+                    if (hasAssump) {
+                        const assumToShow = d.assumptions
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 0.5) || 0.5;
+                                const confB = (typeof b === 'object' ? b.confidence : 0.5) || 0.5;
+                                return confB - confA;
+                            })
+                            .slice(0, 2);
+                        
+                        assumToShow.forEach(assum => {
+                            const assumText = typeof assum === 'object' ? 
+                                (assum.description || assum.content || '') : String(assum);
+                            if (assumText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("? " + (assumText.length > 25 ? assumText.substring(0, 25) + "..." : assumText))
+                                    .style("fill", "#d29922")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Calculate max width from text elements
+                    textElements.forEach(text => {
+                        const bbox = text.node().getBBox();
+                        maxWidth = Math.max(maxWidth, bbox.width);
+                    });
+                    
+                    // Update background box size
+                    bbox.attr("width", maxWidth + 8)
+                        .attr("height", yOffset - 14);
+                }
+            });
+            
+            // Tooltip
+            const tooltip = d3.select("#tooltip");
+            
+            node.on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                
+                let content = `<strong>${d.label}</strong><br/>`;
+                content += `Type: ${d.type}<br/>`;
+                if (d.confidence !== undefined) {
+                    content += `Confidence: ${(d.confidence * 100).toFixed(0)}%<br/>`;
+                }
+                if (d.description) {
+                    content += `<br/>${d.description}`;
+                }
+                if (d.observations && d.observations.length > 0) {
+                    content += `<br/><br/><strong style="color: #30a14e;">Observations:</strong><br/>`;
+                    d.observations.slice(0, 5).forEach(obs => {
+                        const obsText = typeof obs === 'object' ? 
+                            (obs.description || obs.content || JSON.stringify(obs)) : String(obs);
+                        content += `<span style="color: #30a14e;">✓</span> ${obsText}<br/>`;
+                    });
+                }
+                if (d.assumptions && d.assumptions.length > 0) {
+                    content += `<br/><strong style="color: #d29922;">Assumptions:</strong><br/>`;
+                    d.assumptions.slice(0, 3).forEach(assum => {
+                        const assumText = typeof assum === 'object' ? 
+                            (assum.description || assum.content || JSON.stringify(assum)) : String(assum);
+                        const conf = typeof assum === 'object' ? assum.confidence : 0.5;
+                        content += `<span style="color: #d29922;">?</span> ${assumText} <span style="opacity: 0.7;">(conf: ${conf})</span><br/>`;
+                    });
+                }
+                if (d.properties && Object.keys(d.properties).length > 0) {
+                    content += `<br/><br/>Properties:<br/>`;
+                    for (const [key, value] of Object.entries(d.properties)) {
+                        content += `${key}: ${value}<br/>`;
+                    }
+                }
+                
+                tooltip.html(content)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                showNodeDetails(d);
+            });
+            
+            // Update positions
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                linkLabel
+                    .attr("x", d => (d.source.x + d.target.x) / 2)
+                    .attr("y", d => (d.source.y + d.target.y) / 2);
+                
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function updateStats() {
+            const stats = currentGraph.stats || {};
+            let html = '';
+            
+            html += `<div class="stat"><span>Nodes</span><span class="stat-value">${stats.num_nodes || 0}</span></div>`;
+            html += `<div class="stat"><span>Edges</span><span class="stat-value">${stats.num_edges || 0}</span></div>`;
+            html += `<div class="stat"><span>Node Types</span><span class="stat-value">${(stats.node_types || []).length}</span></div>`;
+            html += `<div class="stat"><span>Edge Types</span><span class="stat-value">${(stats.edge_types || []).length}</span></div>`;
+            
+            document.getElementById('stats').innerHTML = html;
+        }
+        
+        function updateTypeFilter() {
+            const types = new Set();
+            (currentGraph.nodes || []).forEach(n => types.add(n.type));
+            
+            const select = document.getElementById('type-filter');
+            select.innerHTML = '<option value="all">All Types</option>';
+            
+            Array.from(types).sort().forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        }
+        
+        function updateLegend() {
+            // Get unique node types
+            const nodeTypes = new Set();
+            (currentGraph.nodes || []).forEach(n => nodeTypes.add(n.type));
+            
+            // Get unique edge types
+            const edgeTypes = new Set();
+            (currentGraph.edges || []).forEach(e => edgeTypes.add(e.type));
+            
+            let html = '<h4>Legend</h4>';
+            
+            // Node types section
+            if (nodeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Node Types</div>';
+                Array.from(nodeTypes).sort().forEach(type => {
+                    const color = typeColors[type?.toLowerCase()] || typeColors['custom'];
+                    html += `<div class="legend-item">
+                        <div class="legend-color" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Edge types section
+            if (edgeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Edge Types</div>';
+                Array.from(edgeTypes).sort().forEach(type => {
+                    const color = getEdgeColor(type);
+                    html += `<div class="legend-item">
+                        <div class="legend-line" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Add observations/assumptions legend
+            html += '<div class="legend-section">';
+            html += '<div class="legend-section-title">Annotations</div>';
+            html += '<div class="legend-item"><span style="color: #30a14e; font-weight: bold;">✓</span> <span>Verified observation</span></div>';
+            html += '<div class="legend-item"><span style="color: #d29922; font-weight: bold;">?</span> <span>Unverified assumption</span></div>';
+            html += '</div>';
+            
+            document.getElementById('legend').innerHTML = html;
+        }
+        
+        function showNodeDetails(node) {
+            const nodeColor = typeColors[node.type?.toLowerCase()] || typeColors['custom'];
+            let html = `<h4 style="margin: 0 0 10px 0; color: ${nodeColor};">${node.label}</h4>`;
+            html += `<div style="color: #8b949e;"><strong>Type:</strong> <span style="color: ${nodeColor};">${node.type}</span></div>`;
+            html += `<div style="color: #8b949e;"><strong>ID:</strong> <span style="color: #7d8590; font-family: 'JetBrains Mono', monospace; font-size: 11px;">${node.id}</span></div>`;
+            
+            if (node.confidence !== undefined) {
+                const confColor = node.confidence > 0.7 ? '#30a14e' : node.confidence > 0.4 ? '#d29922' : '#f9826c';
+                html += `<div style="color: #8b949e;"><strong>Confidence:</strong> <span style="color: ${confColor};">${(node.confidence * 100).toFixed(0)}%</span></div>`;
+            }
+            
+            if (node.created_by) {
+                html += `<div style="color: #8b949e;"><strong>Created:</strong> <span style="color: #7d8590;">${node.created_by}</span></div>`;
+            }
+            
+            if (node.description) {
+                html += `<div style="margin-top: 10px; color: #8b949e;"><strong>Description:</strong><br/><span style="color: #e6edf3;">${node.description}</span></div>`;
+            }
+            
+            // Observations (verified facts about the system)
+            if (node.observations && node.observations.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(48, 164, 78, 0.1); border-radius: 6px; border: 1px solid rgba(48, 164, 78, 0.3);">';
+                html += '<strong style="color: #30a14e; font-size: 11px; text-transform: uppercase;">✓ Verified Observations</strong>';
+                node.observations.forEach(obs => {
+                    let obsText, obsType = 'general', obsConf = 1.0;
+                    if (typeof obs === 'object') {
+                        obsText = obs.description || obs.content || JSON.stringify(obs);
+                        obsType = obs.type || 'general';
+                        obsConf = obs.confidence !== undefined ? obs.confidence : 1.0;
+                    } else {
+                        obsText = String(obs);
+                    }
+                    const typeLabel = obsType !== 'general' ? ` [${obsType}]` : '';
+                    const confLabel = obsConf < 1.0 ? ` (conf: ${obsConf.toFixed(1)})` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #30a14e; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${obsText}${typeLabel}${confLabel}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Assumptions (unverified, needs validation)
+            if (node.assumptions && node.assumptions.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(210, 153, 34, 0.1); border-radius: 6px; border: 1px solid rgba(210, 153, 34, 0.3);">';
+                html += '<strong style="color: #d29922; font-size: 11px; text-transform: uppercase;">? Unverified Assumptions</strong>';
+                node.assumptions.forEach(assum => {
+                    let assumText, assumType = 'general', assumConf = 0.5;
+                    if (typeof assum === 'object') {
+                        assumText = assum.description || assum.content || JSON.stringify(assum);
+                        assumType = assum.type || 'general';
+                        assumConf = assum.confidence !== undefined ? assum.confidence : 0.5;
+                    } else {
+                        assumText = String(assum);
+                    }
+                    const typeLabel = assumType !== 'general' ? ` [${assumType}]` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #d29922; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${assumText}${typeLabel} (conf: ${assumConf.toFixed(1)})</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (node.properties && Object.keys(node.properties).length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #58a6ff; font-size: 11px; text-transform: uppercase;">Properties</strong></div>';
+                for (const [key, value] of Object.entries(node.properties)) {
+                    html += `<div style="margin-left: 10px; color: #8b949e; font-size: 12px;">• ${key}: <span style="color: #7d8590;">${JSON.stringify(value)}</span></div>`;
+                }
+            }
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #56d364; font-size: 11px; text-transform: uppercase;">Source References</strong></div>';
+                node.source_refs.forEach(ref => {
+                    html += `<div style="margin-left: 10px; font-size: 10px; color: #7d8590; font-family: 'JetBrains Mono', monospace;">• ${ref}</div>`;
+                });
+            }
+            
+            document.getElementById('node-info').innerHTML = html;
+            
+            // Update card viewer
+            updateCardViewer(node);
+        }
+        
+        function updateCardViewer(node) {
+            const cardViewer = document.getElementById('card-viewer');
+            const noCards = document.getElementById('no-cards');
+            const cardSelector = document.getElementById('card-selector');
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                // Show card viewer
+                cardViewer.style.display = 'block';
+                noCards.style.display = 'none';
+                
+                // Clear and populate selector
+                cardSelector.innerHTML = '<option value="">Select a card to view code</option>';
+                
+                node.source_refs.forEach(cardId => {
+                    if (cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        const option = document.createElement('option');
+                        option.value = cardId;
+                        option.textContent = `${cardId} (${card.relpath || 'unknown file'})`;
+                        cardSelector.appendChild(option);
+                    }
+                });
+                
+                // Handle card selection
+                cardSelector.onchange = function() {
+                    const cardId = this.value;
+                    const cardContent = document.getElementById('card-content');
+                    
+                    if (cardId && cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        let content = '';
+                        
+                        // Show file path
+                        if (card.relpath) {
+                            content += `// File: ${card.relpath}\n`;
+                            if (card.char_start !== undefined && card.char_end !== undefined) {
+                                content += `// Characters: ${card.char_start}-${card.char_end}\n`;
+                            }
+                            content += '\n';
+                        }
+                        
+                        // Show actual code content
+                        if (card.content) {
+                            content += card.content;
+                        } else if (card.peek_head || card.peek_tail) {
+                            content += card.peek_head || '';
+                            if (card.peek_head && card.peek_tail) {
+                                content += '\n...\n';
+                            }
+                            content += card.peek_tail || '';
+                        } else {
+                            content = 'No content available for this card';
+                        }
+                        
+                        cardContent.textContent = content;
+                    } else {
+                        cardContent.innerHTML = '<em style="color: #888;">Select a card above to view its content</em>';
+                    }
+                };
+            } else {
+                // Hide card viewer
+                cardViewer.style.display = 'none';
+                noCards.style.display = 'block';
+            }
+        }
+        
+        function updateObservations() {
+            let html = '';
+            const recentObs = observations.slice(-10).reverse();
+            
+            recentObs.forEach(obs => {
+                html += `<div class="observation">${obs}</div>`;
+            });
+            
+            if (html === '') {
+                html = '<em style="color: #888;">No observations yet</em>';
+            }
+            
+            document.getElementById('observations').innerHTML = html;
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('graph-selector').addEventListener('change', (e) => {
+                loadGraph(e.target.value);
+            });
+            
+            document.getElementById('type-filter').addEventListener('change', (e) => {
+                filterNodesByType(e.target.value);
+            });
+            
+            document.getElementById('layout-selector').addEventListener('change', (e) => {
+                changeLayout(e.target.value);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                resetView();
+            });
+        }
+        
+        function filterNodesByType(type) {
+            d3.selectAll('.node').style('opacity', d => {
+                return type === 'all' || d.type === type ? 1 : 0.1;
+            });
+        }
+        
+        function changeLayout(layout) {
+            // Simplified - would implement different layout algorithms
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
+        
+        function resetView() {
+            const svg = d3.select("svg");
+            const width = svg.attr("width");
+            const height = svg.attr("height");
+            
+            svg.transition()
+                .duration(750)
+                .call(
+                    d3.zoom().transform,
+                    d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+                );
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+{
+  "repo_id": "2023-03-olympus",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_088a4b857015",
+      "title": "Oracle pricing can accept stale or otherwise invalid Chainlink data",
+      "description": "BLVaultManagerLido derives mint and withdrawal valuations from Chainlink OHM/ETH and stETH/ETH feeds. The loaded implementation exposes configurable update thresholds, but the supplied code does not demonstrate validation of answer positivity, round completeness, timestamp freshness, or answeredInRound consistency before prices are used. If any of these checks are absent, a stale or invalid feed response can determine the OHM amount minted or the wstETH amount returned.",
+      "impact": "Vault users or the protocol can receive materially mispriced OHM or wstETH, enabling undercollateralized OHM minting, excess redemptions, or treasury losses.",
+      "vulnerable_code": [
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "contract": "BLVaultManagerLido",
+          "function": "getOhmTknPrice"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "contract": "BLVaultManagerLido",
+          "function": "getTknOhmPrice"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "contract": "BLVaultManagerLido",
+          "function": "changeUpdateThresholds"
+        }
+      ],
+      "mitigation": "For every feed response, require answer > 0, updatedAt != 0, answeredInRound >= roundId, and updatedAt within a bounded nonzero freshness interval. Enforce safe minimum and maximum threshold values and fail closed when validation fails.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_f4283b9b2d19",
+      "title": "Unbounded Aura extra-reward processing can block reward claims and withdrawals",
+      "description": "BLVaultLido.getOutstandingRewards and _sendRewards iterate over auraRewardPool().extraRewardsLength() and make external calls for every configured extra reward pool. The vault does not impose a local maximum on the number of pools or a bounded processing mechanism. If the configured Aura reward pool contains sufficiently many entries, or one entry becomes reverting or excessively expensive, claimRewards and withdrawals with claim_=true can run out of gas or revert persistently.",
+      "impact": "Users can be unable to claim accumulated rewards and may be unable to complete withdrawals that request reward claims; accumulated rewards can remain trapped in the vault until the external configuration is repaired.",
+      "vulnerable_code": [
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "contract": "BLVaultLido",
+          "function": "getOutstandingRewards"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "contract": "BLVaultLido",
+          "function": "claimRewards"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "contract": "BLVaultLido",
+          "function": "withdraw"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "contract": "BLVaultLido",
+          "function": "_sendRewards"
+        }
+      ],
+      "mitigation": "Bound the number of processed extra reward pools, maintain an allowlisted and capped reward-token configuration, and provide paginated or independently callable reward-claim processing so a single bad or expensive pool cannot block withdrawals or all claims.",
+      "severity": "medium"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "repo_id": "2022-11-paraspace",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_8a2ff7190b02",
+      "title": "Administrator Can Bypass NFT Price Validation",
+      "description": "NFTFloorOracle permits an administrator to update NFT floor prices without the validation applied to ordinary role-gated updates. An administrator account that is compromised, misconfigured, or malicious can publish an arbitrary inflated floor price, which the pool may use for collateral valuation and borrowing decisions.",
+      "impact": "The attacker can obtain undercollateralized loans or prevent liquidation, potentially causing protocol bad debt and loss of lender funds.",
+      "vulnerable_code": [],
+      "mitigation": "Require administrator updates to pass the same validation as all other updates, including nonzero and bounded prices, maximum deviation from the previous value, and freshness constraints. Use a timelocked or multisignature governance path for exceptional changes, and emit update events suitable for monitoring.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_745919b22c32",
+      "title": "Supply Accounting May Overmint Shares for Fee-on-Transfer ERC20 Assets",
+      "description": "The supply path can be vulnerable if it mints pTokens or updates reserve liquidity using the user-supplied nominal amount after calling ERC20 transferFrom, without measuring the actual balance increase. A fee-on-transfer or deflationary asset would deliver fewer tokens than the amount credited, allowing the supplier to receive excess pool shares and potentially withdraw assets supplied by other users.",
+      "impact": "The reserve can become undercollateralized and lose assets belonging to other depositors; repeated exploitation can drain the affected reserve.",
+      "vulnerable_code": [],
+      "mitigation": "Either restrict reserve listings to standard ERC20s with no transfer fees, or measure the reserve balance before and after transferFrom and use the actual received amount consistently for reserve accounting, interest-rate updates, and share minting. Reject transfers whose received amount does not match the expected amount if exact-amount semantics are required.",
+      "severity": "high"
+    }
+  ]
+}

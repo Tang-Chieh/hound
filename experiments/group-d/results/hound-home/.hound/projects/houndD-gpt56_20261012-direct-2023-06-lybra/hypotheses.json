@@ -1,0 +1,102 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_1304782ec1d0": {
+      "title": "Unvalidated collateral oracle price can be used to over-mint or misprice liquidations",
+      "description": "VULNERABILITY TYPE: oracle_price_manipulation\nROOT CAUSE: Vault valuation relies on a single arbitrary fetchPrice() result and, for LSD vaults, an external exchange-ratio result without freshness, validity, or deviation protections.\nATTACK VECTOR: Manipulate or cause the configured oracle/exchange-ratio source to return an inflated or depressed value, then call deposit/mint, withdraw, or liquidation while the manipulated value is used in the same transaction.\nAFFECTED NODES: eusd_vault_base, peusd_vault_base, price_oracle, collateral_tokens, actor_users, actor_liquidators\nAFFECTED CODE: LybraEUSDVaultBase._etherPrice(), LybraEUSDVaultBase.getAssetPrice(), LybraEUSDVaultBase._mintEUSD(), LybraEUSDVaultBase.liquidation(), LybraPeUSDVaultBase.getAssetPrice(), LybraPeUSDVaultBase._mintPeUSD(), LybraPeUSDVaultBase.liquidation(), LybraWstETHVault.getAssetPrice(), LybraRETHVault.getAssetPrice(), LybraWBETHVault.getAssetPrice()\nSEVERITY: high\nREASONING: The loaded code confirms that fetchPrice(), stEthPerToken(), getExchangeRatio(), and exchangeRatio() directly determine collateral value and are consumed by mint and liquidation logic. The implementations of the feed and exchange-ratio contracts were not loaded, so exploitability depends on whether those sources are stale, spot-based, or otherwise attacker-influenceable; no defensive validation exists in the vault layer.\nSUGGESTED MITIGATION: Use a validated oracle adapter that rejects stale, incomplete, zero, and outlier values; prefer manipulation-resistant TWAP or consensus pricing; apply maximum deviation checks against a secondary source; and use a bounded recent price for both mint health checks and liquidation settlement.",
+      "vulnerability_type": "oracle_price_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "eusd_vault_base",
+        "peusd_vault_base",
+        "price_oracle",
+        "collateral_tokens",
+        "actor_users",
+        "actor_liquidators"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded code confirms that fetchPrice(), stEthPerToken(), getExchangeRatio(), and exchangeRatio() directly determine collateral value and are consumed by mint and liquidation logic. The implementations of the feed and exchange-ratio contracts were not loaded, so exploitability depends on whether those sources are stale, spot-based, or otherwise attacker-influenceable; no defensive validation exists in the vault layer.",
+      "mitigation": "Use a validated oracle adapter that rejects stale, incomplete, zero, and outlier values; prefer manipulation-resistant TWAP or consensus pricing; apply maximum deviation checks against a secondary source; and use a bounded recent price for both mint health checks and liquidation settlement.",
+      "finding_description": "LybraEUSDVaultBase and its PeUSD counterpart trust the value returned by the configured IPriceFeed and collateral exchange-ratio contracts without checking freshness, round completeness, deviation bounds, or consistency with an independent source. The returned price is immediately used in mint health checks and liquidation debt/collateral calculations. If the configured feed is stale or attacker-influenceable, an attacker can obtain an inflated collateral valuation, mint excessive EUSD/PeUSD, or manipulate a depressed valuation to trigger liquidation and acquire collateral at an incorrect price.",
+      "impact": "An inflated price can let an attacker borrow more stablecoins than the collateral is worth; a depressed price can cause healthy positions to be liquidated and collateral to be transferred at an artificial valuation, producing protocol bad debt or wrongful loss to borrowers.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/pools/LybraWstETHVault.sol",
+          "contracts/lybra/token/PeUSDMainnetStableVision.sol",
+          "contracts/lybra/pools/LybraRETHVault.sol",
+          "contracts/lybra/pools/base/LybraEUSDVaultBase.sol",
+          "contracts/OFT/OFTCoreV2.sol",
+          "contracts/lybra/pools/base/LybraPeUSDVaultBase.sol",
+          "contracts/lybra/pools/LybraWbETHVault.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_213851",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:39:42.599911",
+      "id": "hyp_1304782ec1d0"
+    },
+    "hyp_20e19434ee95": {
+      "title": "Unvalidated LBR Oracle Enables Underpriced EUSD Buyouts",
+      "description": "VULNERABILITY TYPE: oracle_price_manipulation\nROOT CAUSE: The buyout path directly trusts an owner-configured AggregatorV3 feed without freshness, round-completeness, positivity, decimal, or deviation checks; the conversion also hardcodes 1e8 precision.\nATTACK VECTOR: An attacker causes the configured LBR feed to return a stale, depressed, invalid, or incorrectly scaled price, then calls purchaseOtherEarnings(user, true) for a claimable user's rewards. The attacker pays an artificially low EUSD bidding fee while receiving the full esLBR reward.\nAFFECTED NODES: eusd_mining, lbr_price_oracle, eusd_token, configurator\nAFFECTED CODE: contracts/lybra/miner/EUSDMiningIncentives.sol:EUSDMiningIncentives.purchaseOtherEarnings(bool), contracts/lybra/miner/EUSDMiningIncentives.sol:EUSDMiningIncentives.setLBROracle(address)\nSEVERITY: high\nREASONING: The sensitive fee calculation is explicitly derived from latestRoundData() and uses no validation before multiplying the result into the amount transferred from the buyer. The feed is configured through setLBROracle and the code assumes 8 decimals. This is separate from collateral over-minting: it affects the EUSD-denominated buyout fee for esLBR rewards.\nSUGGESTED MITIGATION: Validate answer > 0, roundId and answeredInRound consistency, updatedAt freshness, and feed decimals before use; normalize using the feed's declared decimals rather than hardcoding 1e8. Add a maximum deviation bound against a trusted secondary source or TWAP and pause EUSD buyouts when the feed is stale or outside bounds. Restrict oracle changes behind timelocked governance and apply a delay before a newly configured feed is used.",
+      "vulnerability_type": "oracle_price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "eusd_mining",
+        "lbr_price_oracle",
+        "eusd_token",
+        "configurator"
+      ],
+      "evidence": [],
+      "reasoning": "The sensitive fee calculation is explicitly derived from latestRoundData() and uses no validation before multiplying the result into the amount transferred from the buyer. The feed is configured through setLBROracle and the code assumes 8 decimals. This is separate from collateral over-minting: it affects the EUSD-denominated buyout fee for esLBR rewards.",
+      "mitigation": "Validate answer > 0, roundId and answeredInRound consistency, updatedAt freshness, and feed decimals before use; normalize using the feed's declared decimals rather than hardcoding 1e8. Add a maximum deviation bound against a trusted secondary source or TWAP and pause EUSD buyouts when the feed is stale or outside bounds. Restrict oracle changes behind timelocked governance and apply a delay before a newly configured feed is used.",
+      "finding_description": "purchaseOtherEarnings converts the LBR-denominated bidding fee into EUSD using lbrPriceFeed.latestRoundData() and unconditionally casts the returned answer to uint256. The contract does not validate that the round is complete, the answer is positive, the data is fresh, or that the feed uses the assumed 8 decimals. Because the feed address is independently configurable, a stale, manipulated, invalid, or incorrectly scaled feed can substantially reduce the EUSD fee required to acquire another user's esLBR reward.",
+      "impact": "The attacker can acquire esLBR rewards for materially less than their intended LBR value, reducing protocol buyout revenue and potentially extracting the value of rewards that should have required a substantially larger EUSD payment. Invalid negative answers can also make the buyout path revert and prevent purchases.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/miner/EUSDMiningIncentives.sol",
+          "contract": "EUSDMiningIncentives",
+          "function": "purchaseOtherEarnings(address,bool)"
+        },
+        {
+          "file": "contracts/lybra/miner/EUSDMiningIncentives.sol",
+          "contract": "EUSDMiningIncentives",
+          "function": "setLBROracle(address)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lybra/configuration/LybraConfigurator.sol",
+          "contracts/lybra/miner/EUSDMiningIncentives.sol",
+          "contracts/lybra/token/EUSD.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_213851",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:40:45.474901",
+      "id": "hyp_20e19434ee95",
+      "qa_comment": "Upon reviewing EUSDMiningIncentives.purchaseOtherEarnings and setLBROracle, I confirmed an oracle-validation weakness with an exploitable underpricing path. purchaseOtherEarnings is publicly callable and, when useEUSD is true, obtains lbrPrice directly from lbrPriceFeed.latestRoundData(), casts it to uint256, and computes the EUSD fee as biddingFee * uint256(lbrPrice) / 1e8. The code performs no checks for answer positivity, round completeness, updatedAt freshness, or acceptable deviation, and it assumes the feed always uses eight decimals. Consequently, a zero or depressed positive answer can reduce the required EUSD payment substantially or to zero while the caller still receives the full esLBR reward. A feed using different decimals can also cause systematic mispricing. setLBROracle is restricted by onlyOwner, so an arbitrary external attacker cannot replace the feed directly; exploitation therefore depends on a faulty, compromised, stale, or improperly configured feed or privileged owner action. That authorization constraint limits exploitability but does not mitigate the missing validation in the buyout calculation. The same unchecked feeds and hardcoded precision also appear in stakedLBRLpValue."
+    }
+  },
+  "metadata": {
+    "total": 2,
+    "confirmed": 1,
+    "last_modified": "2026-10-12T21:40:45.476222"
+  }
+}

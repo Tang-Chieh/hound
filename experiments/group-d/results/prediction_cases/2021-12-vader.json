@@ -1,0 +1,38 @@
+{
+  "repo_id": "2021-12-vader",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_455f5a009f03",
+      "title": "Legacy router ignores minimum amounts, enabling reserve-price sandwich attacks on liquidity additions",
+      "description": "VaderRouter.addLiquidity exposes amountAMin and amountBMin parameters but explicitly ignores both values when forwarding the operation. An attacker can front-run a user's transaction with trades that skew the pool reserves, causing the pool to execute the liquidity addition at a manipulated asset ratio without reverting when the received amounts fall below the user's stated limits.",
+      "impact": "The victim can supply substantially more of one asset than intended or receive fewer liquidity units than expected, allowing the attacker to extract value through the price reversal and leaving the victim with an economically unfavorable LP position.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/dex/router/VaderRouter.sol",
+          "contract": "VaderRouter",
+          "function": "addLiquidity(IERC20,IERC20,uint256,uint256,uint256,uint256,address,uint256)"
+        },
+        {
+          "file": "contracts/dex/router/VaderRouter.sol",
+          "contract": "VaderRouter",
+          "function": "addLiquidity(IERC20,IERC20,uint256,uint256,address,uint256)"
+        }
+      ],
+      "mitigation": "Enforce amountAMin and amountBMin against the actual amounts used by the pool, and add deadline validation. Ensure every router path that performs swaps or liquidity operations propagates and checks user slippage bounds before tokens are irrevocably transferred.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_9fce3c2a5cfb",
+      "title": "Direct VADER donations manipulate XVader share price and enable victim deposit extraction",
+      "description": "XVader prices shares from the contract's current VADER balance. Because ERC-20 tokens can be transferred directly without minting shares, an attacker can donate VADER to inflate the apparent assets-per-share ratio. With low initial supply or integer rounding, a subsequent victim deposit can mint few or zero shares while the attacker redeems existing shares against the victim's newly deposited VADER.",
+      "impact": "An attacker can extract deposited VADER from subsequent users, causing direct loss of user funds and potentially draining the vault when its share supply is small or rounding is favorable.",
+      "vulnerable_code": [],
+      "mitigation": "Use internally accounted assets for share pricing, or explicitly account for unsolicited donations. Add virtual shares/assets or equivalent anti-inflation protections, enforce minimum shares on deposits, and reject or safely handle deposits that would mint zero or economically negligible shares.",
+      "severity": "high"
+    }
+  ]
+}

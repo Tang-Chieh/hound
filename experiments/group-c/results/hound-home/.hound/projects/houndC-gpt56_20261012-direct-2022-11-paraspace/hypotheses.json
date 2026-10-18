@@ -1,0 +1,204 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_8a2ff7190b02": {
+      "title": "Administrator Can Bypass NFT Price Validation",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Privileged administrator updates bypass oracle price-validation constraints instead of being subject to the same bounds, freshness, and sanity checks as other updates.\nATTACK VECTOR: Compromise or abuse the administrator role to submit an artificially high NFT floor price, then use the inflated collateral valuation to borrow assets or avoid liquidation before the price is corrected.\nAFFECTED NODES: nft_floor_oracle, price_oracle_interface, pool_core, erc721_oracle_wrapper\nAFFECTED CODE: NFTFloorOracle price update and validation logic, PoolCore collateral valuation through the price oracle\nSEVERITY: high\nREASONING: The architecture explicitly identifies NFTFloorOracle as role-gated and notes that the administrator bypasses validation. Because PoolCore prices collateral through this oracle, an arbitrary administrator-controlled price can directly affect borrowing and liquidation safety.\nSUGGESTED MITIGATION: Require administrator updates to pass the same validation as all other updates, including nonzero and bounded prices, maximum deviation from the previous value, and freshness constraints. Use a timelocked or multisignature governance path for exceptional changes, and emit update events suitable for monitoring.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "nft_floor_oracle",
+        "price_oracle_interface",
+        "pool_core",
+        "erc721_oracle_wrapper"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies NFTFloorOracle as role-gated and notes that the administrator bypasses validation. Because PoolCore prices collateral through this oracle, an arbitrary administrator-controlled price can directly affect borrowing and liquidation safety.",
+      "mitigation": "Require administrator updates to pass the same validation as all other updates, including nonzero and bounded prices, maximum deviation from the previous value, and freshness constraints. Use a timelocked or multisignature governance path for exceptional changes, and emit update events suitable for monitoring.",
+      "finding_description": "NFTFloorOracle permits an administrator to update NFT floor prices without the validation applied to ordinary role-gated updates. An administrator account that is compromised, misconfigured, or malicious can publish an arbitrary inflated floor price, which the pool may use for collateral valuation and borrowing decisions.",
+      "impact": "The attacker can obtain undercollateralized loans or prevent liquidation, potentially causing protocol bad debt and loss of lender funds.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "paraspace-core/contracts/protocol/pool/PoolCore.sol",
+          "paraspace-core/contracts/interfaces/IParaSpaceOracle.sol",
+          "paraspace-core/contracts/misc/NFTFloorOracle.sol",
+          "paraspace-core/contracts/misc/ERC721OracleWrapper.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223523",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:36:15.274380",
+      "id": "hyp_8a2ff7190b02",
+      "qa_comment": "Upon reviewing NFTFloorOracle.setPrice and its supporting validation logic, I confirmed that administrator updates bypass the oracle\u2019s price-sanity and aggregation protections. When the caller has DEFAULT_ADMIN_ROLE, setPrice immediately invokes _finalizePrice(_asset, _twap) and returns, without calling _checkValidity, requiring a nonzero value, enforcing MAX_DEVIATION_RATE, or requiring agreement from the minimum three feeders. The same behavior applies through setMultiplePrices, which repeatedly calls setPrice. _finalizePrice records the arbitrary value as the current twap and refreshes both block and timestamp, so the resulting price also appears fresh to consumers. ERC721OracleWrapper.latestAnswer and getAnswer return this value through NFTFloorOracle.getPrice, while PoolCore passes the configured price oracle into borrowing, withdrawal, liquidation, and auction logic, allowing collateral valuation to be affected. Although the path requires compromise or misuse of the privileged administrator role, the code clearly permits an administrator to inject an inflated or zero NFT price without the stated validation constraints. Therefore, the hypothesis is a real privileged oracle-manipulation vulnerability."
+    },
+    "hyp_745919b22c32": {
+      "title": "Supply Accounting May Overmint Shares for Fee-on-Transfer ERC20 Assets",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: Reliance on the requested transfer amount rather than the actual amount received by the reserve, combined with acceptance of assets whose transfer behavior is not constrained or validated.\nATTACK VECTOR: An attacker supplies a fee-on-transfer or otherwise deflationary supported ERC20, receives shares calculated from the nominal amount, and redeems those shares for more underlying tokens than were actually deposited.\nAFFECTED NODES: supply_logic, pool_core, pool_storage_data, p_token_interface\nAFFECTED CODE: SupplyLogic ERC20 supply flow: transferFrom, reserve liquidity accounting, and pToken minting\nSEVERITY: high\nREASONING: This is exploitable whenever a supported reserve permits fee-on-transfer or deflationary tokens and SupplyLogic credits the requested amount without balance-difference accounting. The available architecture identifies SupplyLogic as responsible for supply and ReserveLogic as responsible for liquidity accounting, but exact source locations are not available in the loaded context.\nSUGGESTED MITIGATION: Either restrict reserve listings to standard ERC20s with no transfer fees, or measure the reserve balance before and after transferFrom and use the actual received amount consistently for reserve accounting, interest-rate updates, and share minting. Reject transfers whose received amount does not match the expected amount if exact-amount semantics are required.",
+      "vulnerability_type": "accounting_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "supply_logic",
+        "pool_core",
+        "pool_storage_data",
+        "p_token_interface"
+      ],
+      "evidence": [],
+      "reasoning": "This is exploitable whenever a supported reserve permits fee-on-transfer or deflationary tokens and SupplyLogic credits the requested amount without balance-difference accounting. The available architecture identifies SupplyLogic as responsible for supply and ReserveLogic as responsible for liquidity accounting, but exact source locations are not available in the loaded context.",
+      "mitigation": "Either restrict reserve listings to standard ERC20s with no transfer fees, or measure the reserve balance before and after transferFrom and use the actual received amount consistently for reserve accounting, interest-rate updates, and share minting. Reject transfers whose received amount does not match the expected amount if exact-amount semantics are required.",
+      "finding_description": "The supply path can be vulnerable if it mints pTokens or updates reserve liquidity using the user-supplied nominal amount after calling ERC20 transferFrom, without measuring the actual balance increase. A fee-on-transfer or deflationary asset would deliver fewer tokens than the amount credited, allowing the supplier to receive excess pool shares and potentially withdraw assets supplied by other users.",
+      "impact": "The reserve can become undercollateralized and lose assets belonging to other depositors; repeated exploitation can drain the affected reserve.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "paraspace-core/contracts/protocol/pool/PoolCore.sol",
+          "paraspace-core/contracts/protocol/libraries/logic/SupplyLogic.sol",
+          "paraspace-core/contracts/interfaces/IPToken.sol",
+          "paraspace-core/contracts/protocol/pool/PoolParameters.sol",
+          "paraspace-core/contracts/protocol/pool/PoolStorage.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223523",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:36:58.207482",
+      "id": "hyp_745919b22c32",
+      "qa_comment": "Upon reviewing PoolCore.supply and SupplyLogic.executeSupply (approximately lines 73-119), I confirmed the reported accounting vulnerability. The function validates and updates reserve interest rates using params.amount, calls IERC20(params.asset).safeTransferFrom for that nominal amount, and then mints the same params.amount of pTokens through IPToken.mint. No reserve balance is measured before and after the transfer, and GPv2SafeERC20 only verifies transfer-call success; it does not verify the amount actually received. Consequently, a listed fee-on-transfer or deflationary token can cause the xToken reserve to receive less underlying than the amount represented by minted shares. The subsequent withdraw path, SupplyLogic.executeWithdraw, burns pTokens and instructs the xToken to transfer the nominal underlying amount, potentially consuming pre-existing reserve liquidity or causing withdrawals to fail once liquidity is insufficient. The shown validation and reserve configuration code does not impose a transfer-behavior check or reject such assets. The issue is therefore exploitable when governance lists a non-standard token, although the exact loss magnitude also depends on the xToken implementation and available reserve liquidity."
+    },
+    "hyp_2f23ee7c3ffa": {
+      "title": "Uniswap Position Valuation Can Be Manipulated Through Pool State",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Position valuation is derived from externally manipulable Uniswap pool state without an evidenced time-weighted or independent price bound.\nATTACK VECTOR: Manipulate the relevant Uniswap pool price in one transaction, use the inflated position valuation to borrow or avoid liquidation, then reverse the manipulation.\nAFFECTED NODES: uniswap_oracle_wrapper, uniswap_position_info_interface, uniswap_position_manager, pool_core, n_token_uniswap\nAFFECTED CODE: UniswapV3OracleWrapper position valuation, PoolCore collateral valuation for Uniswap NFT positions, NTokenUniswapV3 collateral integration\nSEVERITY: high\nREASONING: The architecture explicitly shows that the wrapper reads Uniswap position state and derives liquidity amounts, while PoolCore relies on an oracle for collateral pricing. No TWAP, observation-window, or independent-price validation is visible in the loaded context. This is distinct from the existing NFT floor-oracle administrator bypass hypothesis.\nSUGGESTED MITIGATION: Value Uniswap positions using a sufficiently long TWAP or an independent oracle, enforce deviation bounds and liquidity/depth checks, and reject valuations when the pool price or observation data is stale or anomalous.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "uniswap_oracle_wrapper",
+        "uniswap_position_info_interface",
+        "uniswap_position_manager",
+        "pool_core",
+        "n_token_uniswap"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly shows that the wrapper reads Uniswap position state and derives liquidity amounts, while PoolCore relies on an oracle for collateral pricing. No TWAP, observation-window, or independent-price validation is visible in the loaded context. This is distinct from the existing NFT floor-oracle administrator bypass hypothesis.",
+      "mitigation": "Value Uniswap positions using a sufficiently long TWAP or an independent oracle, enforce deviation bounds and liquidity/depth checks, and reject valuations when the pool price or observation data is stale or anomalous.",
+      "finding_description": "The UniswapV3OracleWrapper reads Uniswap position state and derives token amounts from the position liquidity. If valuation relies on the current Uniswap pool price rather than a manipulation-resistant TWAP or independently validated price, an attacker can temporarily move the pool price with a flash loan, inflate the reported collateral value, borrow against the position, and restore the price afterward.",
+      "impact": "Manipulate the relevant Uniswap pool price in one transaction, use the inflated position valuation to borrow or avoid liquidation, then reverse the manipulation.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "paraspace-core/contracts/protocol/pool/PoolCore.sol",
+          "paraspace-core/contracts/misc/UniswapV3OracleWrapper.sol",
+          "paraspace-core/contracts/interfaces/IUniswapV3PositionInfoProvider.sol",
+          "paraspace-core/contracts/interfaces/IUniswapV3OracleWrapper.sol",
+          "paraspace-core/contracts/protocol/tokenization/NTokenUniswapV3.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223523",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:39:20.089547",
+      "id": "hyp_2f23ee7c3ffa",
+      "qa_comment": "Upon reviewing the alleged oracle manipulation vulnerability in UniswapV3OracleWrapper, I determined that the described pool-price attack is not supported by the shown implementation. Although getOnchainPositionData reads the live Uniswap pool slot0 values through pool.slot0(), getTokenPrice does not use positionData.currentPrice or currentTick to derive the principal position valuation. Instead, _getOracleData obtains token0Price and token1Price from ADDRESSES_PROVIDER.getPriceOracle() and reconstructs sqrtPriceX96 from those independent asset prices; getTokenPrice then calculates liquidity amounts using that reconstructed price. Consequently, manipulating Uniswap slot0 in one transaction cannot directly inflate the principal valuation used by getTokenPrice. The currentTick is used only by _getPendingFeeAmounts for fee-growth accounting, not for the main liquidity valuation, and no clear path is shown to turn a spot-price manipulation into borrowable collateral. PoolCore also delegates valuation through the configured price oracle, but the omitted integration would need separate review. Based on the supplied code, the stated vulnerability is therefore a false positive, although fee-accounting behavior and production oracle configuration warrant additional testing."
+    },
+    "hyp_c1ec13cf3639": {
+      "title": "Uniswap Position Unwind Lacks Evidenced Reentrancy Protection",
+      "description": "VULNERABILITY TYPE: reentrancy\nROOT CAUSE: External position-manager calls occur during collateral state transitions without evidenced checks-effects-interactions ordering or a reentrancy guard on the NTokenUniswapV3 entrypoint.\nATTACK VECTOR: Use a malicious or callback-capable underlying token or recipient contract to reenter the pool or NToken during liquidity decrease or fee collection and attempt a second withdrawal, liquidation, or accounting-sensitive operation.\nAFFECTED NODES: n_token_uniswap, uniswap_position_manager, pool_core, n_token_interface\nAFFECTED CODE: NTokenUniswapV3 liquidity decrease and fee collection, PoolCore operations invoking NTokenUniswapV3\nSEVERITY: high\nREASONING: The component directly calls an external position manager for state-changing operations. The graph explicitly notes nonReentrant protection for NTokenApeStaking but provides no such observation for NTokenUniswapV3. Exploitability depends on the exact call ordering and PoolCore reentrancy protections, which are not present in the loaded code context.\nSUGGESTED MITIGATION: Add a reentrancy guard to every externally reachable NTokenUniswapV3 withdrawal, liquidation, liquidity-decrease, and fee-collection entrypoint; update internal ownership and accounting before external calls; and use strict recipient and token-transfer assumptions.",
+      "vulnerability_type": "reentrancy",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "n_token_uniswap",
+        "uniswap_position_manager",
+        "pool_core",
+        "n_token_interface"
+      ],
+      "evidence": [],
+      "reasoning": "The component directly calls an external position manager for state-changing operations. The graph explicitly notes nonReentrant protection for NTokenApeStaking but provides no such observation for NTokenUniswapV3. Exploitability depends on the exact call ordering and PoolCore reentrancy protections, which are not present in the loaded code context.",
+      "mitigation": "Add a reentrancy guard to every externally reachable NTokenUniswapV3 withdrawal, liquidation, liquidity-decrease, and fee-collection entrypoint; update internal ownership and accounting before external calls; and use strict recipient and token-transfer assumptions.",
+      "finding_description": "NTokenUniswapV3 performs external calls to the Uniswap position manager while decreasing liquidity and collecting position fees. These calls can transfer arbitrary underlying ERC20 tokens and may invoke recipient or token callbacks. The loaded architecture identifies a nonReentrant entrypoint for NTokenApeStaking but does not identify equivalent protection for NTokenUniswapV3, creating a potential reentrancy path during withdrawal or liquidation if the surrounding PoolCore operation is also reentrant.",
+      "impact": "A successful callback could cause duplicate withdrawal or liquidation processing, inconsistent collateral ownership/accounting, or extraction of position proceeds before the original operation finalizes.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "paraspace-core/contracts/protocol/pool/PoolCore.sol",
+          "paraspace-core/contracts/protocol/tokenization/NTokenUniswapV3.sol",
+          "paraspace-core/contracts/protocol/libraries/logic/SupplyLogic.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223523",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:39:20.113248",
+      "id": "hyp_c1ec13cf3639"
+    },
+    "hyp_2c087455fd2d": {
+      "title": "Uniswap Liquidity Withdrawal May Be Subject to Zero-Slippage Execution",
+      "description": "VULNERABILITY TYPE: market_manipulation\nROOT CAUSE: Collateral unwind is executed against mutable Uniswap pool state without an evidenced minimum-output, deadline, or deviation check.\nATTACK VECTOR: Front-run a user withdrawal or liquidation with a large swap that moves the position price, allow the NToken operation to execute at the unfavorable state, then reverse the swap.\nAFFECTED NODES: n_token_uniswap, uniswap_position_manager, pool_core, nft_asset\nAFFECTED CODE: NTokenUniswapV3 liquidity decrease, NTokenUniswapV3 fee collection, PoolCore collateral withdrawal and liquidation flows\nSEVERITY: medium\nREASONING: The architecture confirms that NTokenUniswapV3 decreases liquidity and collects fees through the Uniswap position manager, but exact amount-minimum parameters are not available. This finding should be confirmed against the implementation of the position-manager calls and the transaction sequencing in PoolCore.\nSUGGESTED MITIGATION: Pass caller- or protocol-defined minimum amounts and deadlines to position-manager operations, validate expected proceeds before finalizing the collateral transition, and use an oracle-based deviation check to reject heavily manipulated pool states.",
+      "vulnerability_type": "market_manipulation",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "n_token_uniswap",
+        "uniswap_position_manager",
+        "pool_core",
+        "nft_asset"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture confirms that NTokenUniswapV3 decreases liquidity and collects fees through the Uniswap position manager, but exact amount-minimum parameters are not available. This finding should be confirmed against the implementation of the position-manager calls and the transaction sequencing in PoolCore.",
+      "mitigation": "Pass caller- or protocol-defined minimum amounts and deadlines to position-manager operations, validate expected proceeds before finalizing the collateral transition, and use an oracle-based deviation check to reject heavily manipulated pool states.",
+      "finding_description": "The NTokenUniswapV3 component decreases Uniswap liquidity and collects fees through the external position manager. No minimum-amount or price-protection behavior is visible in the available context. If these calls use zero minimum amounts, an attacker can sandwich a withdrawal or liquidation by moving the pool price so the burned liquidity returns an unfavorable asset mix, reducing proceeds received for the collateral.",
+      "impact": "The collateral owner, liquidator, or protocol can receive materially less value from the position; repeated attacks can cause liquidation losses and bad debt where proceeds are relied upon for repayment.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "paraspace-core/contracts/protocol/pool/PoolCore.sol",
+          "paraspace-core/contracts/misc/ERC721OracleWrapper.sol",
+          "paraspace-core/contracts/protocol/tokenization/NTokenUniswapV3.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223523",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:39:20.128916",
+      "id": "hyp_2c087455fd2d"
+    }
+  },
+  "metadata": {
+    "total": 5,
+    "confirmed": 2,
+    "last_modified": "2026-10-12T22:39:20.129375"
+  }
+}

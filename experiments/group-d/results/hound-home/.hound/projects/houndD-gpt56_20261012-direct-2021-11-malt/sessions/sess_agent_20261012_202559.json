@@ -1,0 +1,618 @@
+{
+  "session_id": "sess_agent_20261012_202559",
+  "start_time": "2026-10-12T20:25:59.774799",
+  "status": "completed",
+  "models": {
+    "scout": "OpenAI/openai-codex/gpt-5.6-luna",
+    "strategist": "OpenAI/openai-codex/gpt-5.6-luna"
+  },
+  "investigations": [
+    {
+      "timestamp": "2026-10-12T20:26:39.314560",
+      "goal": "Vulnerability analysis of PoolTransferVerification",
+      "priority": 10,
+      "category": "aspect",
+      "frame_id": "frame_3c1b058a7b0c",
+      "planned_batch": 1,
+      "planned_index": 1,
+      "started_at": "2026-10-12T20:26:05.093403",
+      "ended_at": "2026-10-12T20:26:39.314436",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 0,
+        "confirmed": 0,
+        "rejected": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-12T20:27:38.248681",
+      "goal": "Vulnerability analysis of AuctionBurnReserveSkew",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_02c04f5381ab",
+      "planned_batch": 2,
+      "planned_index": 1,
+      "started_at": "2026-10-12T20:26:44.570792",
+      "ended_at": "2026-10-12T20:27:38.248494",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 0,
+        "confirmed": 0,
+        "rejected": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-12T20:28:44.175493",
+      "goal": "Vulnerability analysis of RewardReinvestor",
+      "priority": 8,
+      "category": "aspect",
+      "frame_id": "frame_23f72c711d59",
+      "planned_batch": 3,
+      "planned_index": 1,
+      "started_at": "2026-10-12T20:27:45.498798",
+      "ended_at": "2026-10-12T20:28:44.175275",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 1,
+        "confirmed": 1,
+        "rejected": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-12T20:29:20.021499",
+      "goal": "Vulnerability analysis of StabilizerNode",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_e023234927ce",
+      "planned_batch": 4,
+      "planned_index": 1,
+      "started_at": "2026-10-12T20:28:50.524792",
+      "ended_at": "2026-10-12T20:29:20.021301",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 1,
+        "confirmed": 1,
+        "rejected": 0,
+        "uncertain": 0
+      }
+    }
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-10-12T20:26:05.081897",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of PoolTransferVerification",
+          "focus_areas": [
+            "Pool outflow price-gate calculations and target-price comparisons",
+            "Reliance on spot, average, or externally supplied price data",
+            "Whitelist bypass paths that can avoid price validation",
+            "Admin-configured thresholds and verifier authorization affecting manipulation resistance"
+          ],
+          "priority": 10,
+          "reasoning": "WHY NOW: This unvisited component directly enforces pool transfer price gates and is explicitly documented as comparing an average against a target, making it a primary price-manipulation control. Its whitelist and admin-configured threshold paths may allow manipulated pool state or privileged bypasses to authorize mispriced transfers. EXIT CRITERIA: Trace every price input to its source and update path, verify whether an attacker can influence the sampled reserves or averaging window within one transaction or across epochs, inspect all whitelist and failure branches, and determine whether any reachable path permits value-moving transfers at manipulated prices; document a concrete exploit or conclude no exploitable price-manipulation path exists.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T20:26:44.546809",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of AuctionBurnReserveSkew",
+          "focus_areas": [
+            "Consulted price and reserve-ratio inputs used in burn-budget calculations",
+            "Ring-buffer peg history updates and moving-average or cumulative price derivation",
+            "Role-gated peg writes and whether stale or manipulable values affect auction redemption or burn limits",
+            "External reserve and oracle assumptions that permit transient market-price manipulation"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: This unvisited component directly feeds auction economics from consulted prices and peg history, making it a high-value target for the audit's exclusive price-manipulation scope. Its interaction with reserve-derived data and role-gated updates could allow an attacker to influence burn budgets or redemption-related pricing if samples are manipulable, stale, or insufficiently time-weighted. EXIT CRITERIA: Trace every price and peg input from its source through storage and all consumers; verify update permissions, sampling cadence, averaging, stale-value handling, and resistance to single-block or low-liquidity reserve manipulation; assess whether any attainable manipulated value changes burn or auction outcomes; document evidence or conclude no exploitable price-manipulation path remains in this component.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T20:27:45.473994",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of RewardReinvestor",
+          "focus_areas": [
+            "Trace how reward tokens are converted, swapped, or reinvested and whether execution relies on manipulable spot prices or reserves",
+            "Check slippage, minimum-output, oracle, and price-bound protections on external liquidity operations",
+            "Assess whether permissionless reinvestment timing, caller-controlled amounts, or stale price data enable temporary pool-price manipulation to extract value"
+          ],
+          "priority": 8,
+          "reasoning": "WHY NOW: RewardReinvestor is an unvisited component that may route reward assets through liquidity pools, making it a direct candidate for price manipulation despite the already completed analysis of PoolTransferVerification and AuctionBurnReserveSkew. EXIT CRITERIA: Review the complete reinvestment flow and every price-dependent external call, identify the price source and manipulation resistance, and conclude whether an attacker can profit from reserve or spot-price distortion; record one supported hypothesis if found, otherwise close the component with no hypothesis.",
+          "category": "aspect",
+          "expected_impact": "medium"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T20:28:50.501967",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of StabilizerNode",
+          "focus_areas": [
+            "Price inputs and oracle dependencies used for stabilization decisions",
+            "Minting and arb-reward allocation amounts derived from spot or reserve prices",
+            "External protocol interactions that can execute trades at manipulable prices",
+            "Whether stale, transient, or attacker-controlled prices can trigger profitable stabilization flows"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: StabilizerNode combines price-sensitive stabilization logic, token minting, reward allocation, and external protocol calls, making it a high-impact component for price manipulation and distinct from the completed RewardReinvestor, PoolTransferVerification, and AuctionBurnReserveSkew investigations. EXIT CRITERIA: Trace every price input into stabilization, minting, reward, and external-call paths; establish the source, freshness, manipulation resistance, and update authority of each input; determine whether a temporary reserve or spot-price distortion can cause material mispricing or excess minting; and document either a concrete exploitable manipulation path with affected state and impact or evidence that all paths use sufficiently protected and bounded pricing.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    }
+  ],
+  "token_usage": {
+    "total_usage": {
+      "input_tokens": 238473,
+      "output_tokens": 10123,
+      "total_tokens": 248596,
+      "call_count": 27
+    },
+    "by_model": {
+      "OpenAI:openai-codex/gpt-5.6-luna": {
+        "input_tokens": 238473,
+        "output_tokens": 10123,
+        "total_tokens": 248596,
+        "call_count": 27
+      }
+    },
+    "history": [
+      {
+        "timestamp": "2026-10-12T20:26:05.081590",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2064,
+        "output_tokens": 294,
+        "total_tokens": 2358,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:26:09.836288",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4693,
+        "output_tokens": 138,
+        "total_tokens": 4831,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:26:14.849374",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8016,
+        "output_tokens": 214,
+        "total_tokens": 8230,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:26:22.847494",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 12428,
+        "output_tokens": 274,
+        "total_tokens": 12702,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:26:29.520204",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 18377,
+        "output_tokens": 303,
+        "total_tokens": 18680,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:26:39.266694",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 18475,
+        "output_tokens": 383,
+        "total_tokens": 18858,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:26:44.546032",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2197,
+        "output_tokens": 328,
+        "total_tokens": 2525,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:26:48.437934",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4898,
+        "output_tokens": 219,
+        "total_tokens": 5117,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:26:55.502372",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8797,
+        "output_tokens": 463,
+        "total_tokens": 9260,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:27:00.544504",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8899,
+        "output_tokens": 267,
+        "total_tokens": 9166,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:27:22.036479",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7859,
+        "output_tokens": 1064,
+        "total_tokens": 8923,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:27:31.777537",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 9236,
+        "output_tokens": 267,
+        "total_tokens": 9503,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:27:38.208017",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 15958,
+        "output_tokens": 324,
+        "total_tokens": 16282,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:27:45.473427",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2121,
+        "output_tokens": 342,
+        "total_tokens": 2463,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:27:49.054811",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5050,
+        "output_tokens": 182,
+        "total_tokens": 5232,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:27:54.038234",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7900,
+        "output_tokens": 308,
+        "total_tokens": 8208,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:27:59.090385",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 13570,
+        "output_tokens": 286,
+        "total_tokens": 13856,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:28:33.500763",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 12528,
+        "output_tokens": 1689,
+        "total_tokens": 14217,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:28:38.969460",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 14746,
+        "output_tokens": 319,
+        "total_tokens": 15065,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:28:44.150268",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 14838,
+        "output_tokens": 300,
+        "total_tokens": 15138,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:28:50.501289",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2082,
+        "output_tokens": 505,
+        "total_tokens": 2587,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T20:28:56.434707",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5154,
+        "output_tokens": 196,
+        "total_tokens": 5350,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:29:01.662434",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8194,
+        "output_tokens": 312,
+        "total_tokens": 8506,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:29:07.407098",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8283,
+        "output_tokens": 478,
+        "total_tokens": 8761,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:29:12.252323",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 9976,
+        "output_tokens": 258,
+        "total_tokens": 10234,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:29:20.001312",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 10053,
+        "output_tokens": 305,
+        "total_tokens": 10358,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T20:29:24.910878",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2081,
+        "output_tokens": 105,
+        "total_tokens": 2186,
+        "profile": "strategist"
+      }
+    ]
+  },
+  "coverage": {
+    "nodes": {
+      "visited": 47,
+      "total": 54,
+      "percent": 87.0
+    },
+    "cards": {
+      "visited": 86,
+      "total": 232,
+      "percent": 37.1
+    },
+    "visited_node_ids": [
+      "contract_erc20_vested_mine",
+      "contract_malt_data_lab",
+      "contract_liquidity_extension",
+      "contract_malt",
+      "interface_iauction_burn_skew",
+      "contract_bonding",
+      "contract_reward_reinvestor",
+      "contract_transfer_verification_base",
+      "interface_imalt_data_lab",
+      "contract_pool_transfer_verification",
+      "interface_iliquidity_extension",
+      "contract_auction_burn_reserve_skew",
+      "contract_implied_collateral_service",
+      "contract_auction",
+      "interface_idistributor",
+      "interface_idex_handler",
+      "library_uniswap_v2",
+      "contract_auction_participant",
+      "contract_stabilizer_node",
+      "interface_iforfeit",
+      "token_stake_lp",
+      "contract_reward_distributor",
+      "contract_dao",
+      "interface_iauction_start_controller",
+      "contract_forfeit_handler",
+      "contract_reward_overflow_pool",
+      "contract_timelock",
+      "interface_ireward_throttle",
+      "token_malt",
+      "interface_iauction",
+      "interface_imining_service",
+      "interface_imalt",
+      "contract_transfer_service",
+      "interface_ireward_mine",
+      "interface_iswing_trader",
+      "contract_reward_throttle",
+      "contract_reward_mine_base",
+      "contract_auction_pool",
+      "interface_idao",
+      "contract_swing_trader",
+      "contract_uniswap_handler",
+      "token_reward",
+      "interface_i_moving_average",
+      "interface_ibonding",
+      "data_source_uniswap_reserves",
+      "contract_moving_average",
+      "interface_iimplied_collateral_service",
+      "contract_mining_service"
+    ],
+    "visited_card_ids": [
+      "card_4b0c21e22733",
+      "card_7a85e84cc714",
+      "card_45023ac7fe02",
+      "card_5a02662de9bc",
+      "card_6566352eab26",
+      "card_79fe8819864d",
+      "card_41f5d48d0343",
+      "card_22f4639f880d",
+      "card_204a90cbd2d9",
+      "card_7eebbe910a30",
+      "card_eaa197b8a711",
+      "card_45fb7c826248",
+      "card_86ecf5043653",
+      "card_bb19026aeeb1",
+      "card_d2003b1a3b06",
+      "card_a3146b6c2ab4",
+      "card_df8770ab6ce9",
+      "card_7f968026ec7b",
+      "card_862b703b59c3",
+      "card_740e4700d27a",
+      "card_ed49c1670496",
+      "card_388e68752490",
+      "card_f1dad7e75cc4",
+      "card_7e915ea0279a",
+      "card_a74d3c17d454",
+      "card_74a450f9a94b",
+      "card_4f239a943bb5",
+      "card_a8336d0bdd8b",
+      "card_3204aa972389",
+      "card_f5683fd453ad",
+      "card_8e5acce50ded",
+      "card_b660acbd5595",
+      "card_bc14e7ec886f",
+      "card_b68e0b341729",
+      "card_122aeffc10b4",
+      "card_0685bbea4b80",
+      "card_c88809aa6c84",
+      "card_e7b4747dd8e4",
+      "card_df67a55802fd",
+      "card_8b026151c588",
+      "card_6609681979dc",
+      "card_30e6518e07a1",
+      "card_10c030173bb7",
+      "card_0f7b240a2ed7",
+      "card_cd8a23cd4c72",
+      "card_20996d226649",
+      "card_f0a0e3fe2ad3",
+      "card_26f44f04bc3f",
+      "card_ca253952bcb8",
+      "card_e440534161ab",
+      "card_2746cc696577",
+      "card_b3988d76d41d",
+      "card_f268db0726f5",
+      "card_3d8f71762289",
+      "card_7e7e846e26c9",
+      "card_6eddd34cd1f4",
+      "card_cbb9e21001b6",
+      "card_822a43b040c4",
+      "card_a532012d818c",
+      "card_34617781adb8",
+      "card_abd2bc718cd5",
+      "card_11580b97418e",
+      "card_fe60f775d8b0",
+      "card_4376a608e58c",
+      "card_7c5d26dc82f4",
+      "card_d2d872bf6de6",
+      "card_d60208054136",
+      "card_e24773a5b186",
+      "card_560cb12c3359",
+      "card_5e80b4288084",
+      "card_6a37100f4e1d",
+      "card_57dd76707ff4",
+      "card_7f7efb6811ef",
+      "card_c0f2527c3a93",
+      "card_5add8450dae2",
+      "card_011bcb2cd18b",
+      "card_bc07987e693a",
+      "card_912bd36a6199",
+      "card_db6af16c576e",
+      "card_1a4f2990ed3a",
+      "card_44928fa082c1",
+      "card_1f3269424e7c",
+      "card_a6a9d650165d",
+      "card_42b262933068",
+      "card_5cac3583d40e",
+      "card_d46072ce49f2"
+    ],
+    "node_visit_counts": {
+      "contract_pool_transfer_verification": 1,
+      "contract_transfer_verification_base": 1,
+      "contract_transfer_service": 1,
+      "contract_malt": 1,
+      "contract_malt_data_lab": 1,
+      "contract_moving_average": 1,
+      "data_source_uniswap_reserves": 1,
+      "library_uniswap_v2": 1,
+      "contract_liquidity_extension": 1,
+      "contract_uniswap_handler": 1,
+      "contract_auction": 1,
+      "contract_stabilizer_node": 1,
+      "contract_dao": 1,
+      "contract_timelock": 1,
+      "contract_implied_collateral_service": 1,
+      "token_stake_lp": 1,
+      "interface_imalt_data_lab": 1,
+      "interface_i_moving_average": 1,
+      "contract_auction_burn_reserve_skew": 1,
+      "interface_iauction_burn_skew": 1,
+      "interface_iauction": 1,
+      "contract_auction_participant": 1,
+      "contract_auction_pool": 1,
+      "contract_bonding": 1,
+      "contract_mining_service": 1,
+      "contract_reward_distributor": 1,
+      "contract_reward_throttle": 1,
+      "contract_reward_overflow_pool": 1,
+      "contract_swing_trader": 1,
+      "interface_idex_handler": 2,
+      "interface_iauction_start_controller": 1,
+      "interface_idao": 1,
+      "contract_reward_reinvestor": 1,
+      "interface_ibonding": 1,
+      "interface_imining_service": 1,
+      "contract_erc20_vested_mine": 1,
+      "contract_reward_mine_base": 1,
+      "token_reward": 1,
+      "interface_ireward_mine": 1,
+      "interface_idistributor": 1,
+      "contract_forfeit_handler": 1,
+      "interface_iforfeit": 1,
+      "interface_iliquidity_extension": 1,
+      "interface_iimplied_collateral_service": 1,
+      "interface_iswing_trader": 1,
+      "interface_ireward_throttle": 1,
+      "token_malt": 1,
+      "interface_imalt": 1
+    }
+  },
+  "end_time": "2026-10-12T20:29:24.928979"
+}

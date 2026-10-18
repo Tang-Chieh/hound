@@ -1,0 +1,554 @@
+{
+  "session_id": "sess_agent_20261012_194859",
+  "start_time": "2026-10-12T19:48:59.615074",
+  "status": "completed",
+  "models": {
+    "scout": "OpenAI/openai-codex/gpt-5.6-luna",
+    "strategist": "OpenAI/openai-codex/gpt-5.6-luna"
+  },
+  "investigations": [
+    {
+      "timestamp": "2026-10-12T19:50:45.693241",
+      "goal": "Vulnerability analysis of Router",
+      "priority": 10,
+      "category": "aspect",
+      "frame_id": "frame_40794944e86d",
+      "planned_batch": 1,
+      "planned_index": 1,
+      "started_at": "2026-10-12T19:49:05.984404",
+      "ended_at": "2026-10-12T19:50:45.693073",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 3,
+        "confirmed": 2,
+        "rejected": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "timestamp": "2026-10-12T19:52:26.917993",
+      "goal": "Vulnerability analysis of BondVault",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_cc6f79ebe8c0",
+      "planned_batch": 2,
+      "planned_index": 1,
+      "started_at": "2026-10-12T19:50:51.002378",
+      "ended_at": "2026-10-12T19:52:26.917867",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 6,
+        "confirmed": 4,
+        "rejected": 0,
+        "uncertain": 2
+      }
+    },
+    {
+      "timestamp": "2026-10-12T19:53:58.500567",
+      "goal": "Vulnerability analysis of SynthVault",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_c2d322c643c6",
+      "planned_batch": 3,
+      "planned_index": 1,
+      "started_at": "2026-10-12T19:52:31.657410",
+      "ended_at": "2026-10-12T19:53:58.500360",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 10,
+        "confirmed": 6,
+        "rejected": 0,
+        "uncertain": 4
+      }
+    }
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-10-12T19:49:05.973508",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of Router",
+          "focus_areas": [
+            "DAO-or-deployer authorization on configuration and grant operations",
+            "BNB/WBNB wrapping and unwrapping with external-call safety",
+            "Liquidity provision, swaps, withdrawals, and cross-pool routing accounting",
+            "Reserve-funded pool dividend distribution and reentrancy or stale-state risks",
+            "Token and pool validation across user-facing entrypoints"
+          ],
+          "priority": 10,
+          "reasoning": "WHY NOW: Router is a central user-facing component that coordinates pools, reserves, token transfers, native BNB handling, and privileged configuration, making authorization, accounting, and external-call flaws highly impactful and suitable for early broad coverage. EXIT CRITERIA: Trace every externally callable Router entrypoint and its downstream calls; verify access control, input validation, balance/reserve accounting, native-asset handling, callback or reentrancy exposure, and failure/return-value handling; document any concrete vulnerability or conclude that no exploitable issue is evident from static analysis.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T19:50:50.986009",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of BondVault",
+          "focus_areas": [
+            "DAO and deployer authorization on deposits, releases, claims, and administrative state changes",
+            "LP token accounting, transfer handling, and reward-weight calculations",
+            "Withdrawal and release timing, replay or double-claim risks, and insolvency conditions",
+            "Interactions with external LP tokens and reward distribution failure handling"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: BondVault is an unvisited major stateful component that custody-holds LP tokens and distributes value under DAO-controlled permissions. Its LP-weighted reward accounting and DAO-gated release paths create high-impact opportunities for authorization bypass, balance/accounting inconsistencies, double claims, or locked funds, while also interacting with external token behavior. EXIT CRITERIA: Trace every externally reachable BondVault state transition and authorization check; reconcile deposited LP balances, member weights, accrued rewards, claimed amounts, and released transfers across all paths; verify timing and replay protections; inspect external-token return-value and transfer assumptions; and document any exploitable issue or conclude that custody, accounting, permissions, and failure handling are consistent.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T19:52:31.639585",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of SynthVault",
+          "focus_areas": [
+            "Deposit, harvest, and withdrawal accounting",
+            "Spot-value weighting and reward distribution",
+            "DAO/deployer authorization boundaries",
+            "External token transfer handling and reentrancy-sensitive state updates",
+            "Synth and pool resolution dependencies"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: SynthVault is an unvisited stateful vault component with complex reward and share accounting, spot-value calculations, privileged access, and external token interactions; it is therefore a higher-risk major component and broadens coverage beyond the already completed Router and BondVault reviews. EXIT CRITERIA: Trace every user and privileged entrypoint through state updates and token transfers; verify deposit, harvest, withdrawal, weighting, reward, and authorization invariants; assess manipulation, rounding, reentrancy, stale-price, and failed-transfer scenarios; conclude with confirmed findings or document that no exploitable issue remains.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T19:54:01.998906",
+      "items": [
+        {
+          "goal": "System component review: iBEP677 (i_bep677)",
+          "focus_areas": [
+            "i_bep677@SystemArchitecture"
+          ],
+          "priority": 7,
+          "reasoning": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+          "category": "aspect",
+          "expected_impact": "medium"
+        }
+      ]
+    }
+  ],
+  "token_usage": {
+    "total_usage": {
+      "input_tokens": 322783,
+      "output_tokens": 17546,
+      "total_tokens": 340329,
+      "call_count": 25
+    },
+    "by_model": {
+      "OpenAI:openai-codex/gpt-5.6-luna": {
+        "input_tokens": 322783,
+        "output_tokens": 17546,
+        "total_tokens": 340329,
+        "call_count": 25
+      }
+    },
+    "history": [
+      {
+        "timestamp": "2026-10-12T19:49:05.973211",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 1961,
+        "output_tokens": 256,
+        "total_tokens": 2217,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T19:49:10.012308",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4058,
+        "output_tokens": 153,
+        "total_tokens": 4211,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:49:14.518918",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8125,
+        "output_tokens": 147,
+        "total_tokens": 8272,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:49:19.130314",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 23927,
+        "output_tokens": 219,
+        "total_tokens": 24146,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:49:24.655416",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 40091,
+        "output_tokens": 293,
+        "total_tokens": 40384,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:49:34.181780",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 45583,
+        "output_tokens": 265,
+        "total_tokens": 45848,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:50:40.559032",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 44580,
+        "output_tokens": 3457,
+        "total_tokens": 48037,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T19:50:45.653783",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 932,
+        "output_tokens": 297,
+        "total_tokens": 1229,
+        "profile": "lightweight"
+      },
+      {
+        "timestamp": "2026-10-12T19:50:50.985726",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2207,
+        "output_tokens": 293,
+        "total_tokens": 2500,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T19:51:05.114272",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4280,
+        "output_tokens": 1315,
+        "total_tokens": 5595,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:51:10.131195",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4375,
+        "output_tokens": 212,
+        "total_tokens": 4587,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:51:15.889947",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 10576,
+        "output_tokens": 227,
+        "total_tokens": 10803,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:51:21.594000",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 15631,
+        "output_tokens": 256,
+        "total_tokens": 15887,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:51:27.024705",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 15732,
+        "output_tokens": 290,
+        "total_tokens": 16022,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:52:26.864228",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 14796,
+        "output_tokens": 3118,
+        "total_tokens": 17914,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T19:52:31.638924",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2368,
+        "output_tokens": 259,
+        "total_tokens": 2627,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T19:52:39.827344",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4467,
+        "output_tokens": 321,
+        "total_tokens": 4788,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:52:44.246569",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 9115,
+        "output_tokens": 254,
+        "total_tokens": 9369,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:52:48.532811",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 12622,
+        "output_tokens": 231,
+        "total_tokens": 12853,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:52:51.610565",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 12727,
+        "output_tokens": 120,
+        "total_tokens": 12847,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:53:20.596726",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 11876,
+        "output_tokens": 2824,
+        "total_tokens": 14700,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T19:53:28.056383",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 15133,
+        "output_tokens": 251,
+        "total_tokens": 15384,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T19:53:51.427784",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 14372,
+        "output_tokens": 2218,
+        "total_tokens": 16590,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T19:53:58.479285",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 875,
+        "output_tokens": 213,
+        "total_tokens": 1088,
+        "profile": "lightweight"
+      },
+      {
+        "timestamp": "2026-10-12T19:54:01.998322",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2374,
+        "output_tokens": 57,
+        "total_tokens": 2431,
+        "profile": "strategist"
+      }
+    ]
+  },
+  "coverage": {
+    "nodes": {
+      "visited": 33,
+      "total": 38,
+      "percent": 86.8
+    },
+    "cards": {
+      "visited": 88,
+      "total": 130,
+      "percent": 67.7
+    },
+    "visited_node_ids": [
+      "user_dao_entry",
+      "bond_vault",
+      "synth",
+      "i_base",
+      "i_synth",
+      "i_utils",
+      "synth_registry",
+      "user_synth_entry",
+      "user_pool_factory_entry",
+      "sparta",
+      "wbnb",
+      "i_synth_factory",
+      "dao_vault",
+      "i_pool",
+      "i_bep20",
+      "pool_factory",
+      "router",
+      "reserve",
+      "dao",
+      "synth_vault",
+      "pool",
+      "i_synth_vault",
+      "base_asset",
+      "i_bond_vault",
+      "pool_registry",
+      "i_router",
+      "i_reserve",
+      "i_dao",
+      "utils",
+      "user_router_entry",
+      "i_pool_factory",
+      "i_dao_vault",
+      "synth_factory"
+    ],
+    "visited_card_ids": [
+      "card_a7393460255a",
+      "card_5a1d11655ce4",
+      "card_12a3d145cf33",
+      "card_caa01862ee36",
+      "card_ba498b20f521",
+      "card_9afbd8ce57fc",
+      "card_20b1144ecd05",
+      "card_b95a89d8ad6f",
+      "card_a1cc7928400a",
+      "card_a57d589eae1b",
+      "card_a54cc8330b67",
+      "card_f709ccaa357c",
+      "card_1c3cf3f4b54b",
+      "card_975d1edd3f8e",
+      "card_3ec404062900",
+      "card_c5370883af16",
+      "card_023091634a35",
+      "card_03803f00fd9f",
+      "card_497289d70210",
+      "card_95eb856c5570",
+      "card_6c5e9587fc06",
+      "card_f155f99b1ce4",
+      "card_6e19401692de",
+      "card_6f2f4eacfe33",
+      "card_cb5065636f97",
+      "card_343ac79de597",
+      "card_e2ff26996f8e",
+      "card_f521fdbca9f1",
+      "card_670cddf86450",
+      "card_ee7840654343",
+      "card_6098ecf67304",
+      "card_b73b1ef804ad",
+      "card_db4d396b04f5",
+      "card_8590e9b89619",
+      "card_619d512d1af4",
+      "card_7f5bd3798764",
+      "card_93102a5f7e32",
+      "card_2007a532a367",
+      "card_6b391eb30b6e",
+      "card_5f5cd2524afb",
+      "card_557f214c94f7",
+      "card_0726f6c5df87",
+      "card_5c1d12d40c8d",
+      "card_e60e0e610330",
+      "card_e564c030b5d9",
+      "card_394b6049d851",
+      "card_4ec49ae12e9a",
+      "card_e10336714765",
+      "card_f38b1e95af1f",
+      "card_fc31768856cf",
+      "card_c34f4de69ee6",
+      "card_067bf04b9edf",
+      "card_c5fe37c4bb44",
+      "card_196e00fffbcd",
+      "card_7394e5d8c16f",
+      "card_da58a63c2b46",
+      "card_932463c84d38",
+      "card_715859f76365",
+      "card_40b150223058",
+      "card_5b1ec474e741",
+      "card_c964959d9aad",
+      "card_422cbd782782",
+      "card_514c302f1c0d",
+      "card_85c55268240f",
+      "card_d7f473bbc9f7",
+      "card_a0c5c8edc5c6",
+      "card_f853b3d6a004",
+      "card_9e7d7dc32b14",
+      "card_74b0654905c7",
+      "card_9f3efa34230c",
+      "card_13d0efc2de37",
+      "card_74c9c11d8457",
+      "card_2c4ff12c5314",
+      "card_d22d04706375",
+      "card_8d956d277891",
+      "card_5fa6a5c03afe",
+      "card_f17490bbee3e",
+      "card_d61c68a24f4f",
+      "card_b39a5572157a",
+      "card_b22ec8d575cf",
+      "card_442b5e6c0ddf",
+      "card_12269b50c72d",
+      "card_433165a7b49f",
+      "card_14fd5b91a947",
+      "card_e4b612cd7b82",
+      "card_24e47910051c",
+      "card_9d87cf801e21",
+      "card_039b23d638e9"
+    ],
+    "node_visit_counts": {
+      "router": 1,
+      "i_router": 1,
+      "pool": 1,
+      "pool_factory": 1,
+      "synth": 1,
+      "sparta": 1,
+      "base_asset": 1,
+      "reserve": 1,
+      "dao": 1,
+      "utils": 1,
+      "synth_factory": 1,
+      "wbnb": 1,
+      "user_router_entry": 1,
+      "user_synth_entry": 1,
+      "user_pool_factory_entry": 1,
+      "i_base": 1,
+      "i_dao": 1,
+      "bond_vault": 1,
+      "i_bond_vault": 1,
+      "dao_vault": 1,
+      "i_dao_vault": 1,
+      "user_dao_entry": 1,
+      "i_pool_factory": 1,
+      "i_pool": 1,
+      "i_utils": 1,
+      "i_bep20": 1,
+      "synth_vault": 1,
+      "i_synth_vault": 1,
+      "synth_registry": 1,
+      "i_reserve": 1,
+      "i_synth_factory": 1,
+      "i_synth": 1,
+      "pool_registry": 1
+    }
+  },
+  "end_time": "2026-10-12T19:54:02.013822"
+}

@@ -1,0 +1,260 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_625c83f3afc1": {
+      "title": "Manipulable pool spot price overweights SynthVault deposits and rewards",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: A mutable AMM spot ratio is used as an oracle for persistent vault accounting without a TWAP, bounded price deviation check, or valuation snapshot based on an external reference.\nATTACK VECTOR: Manipulate the curated pool ratio with swaps, deposit pre-acquired synths while calcSpotValueInBase is inflated, restore the pool price, then harvest reserve-funded rewards after the deposit lockout.\nAFFECTED NODES: pool, utils, synth_vault, user_synth_entry\nAFFECTED CODE: contracts/Utils.sol:calcSpotValueInBase, contracts/Utils.sol:calcSpotValueInBaseWithPool, contracts/SynthVault.sol:_deposit, contracts/SynthVault.sol:harvestSingle, contracts/SynthVault.sol:calcReward\nSEVERITY: high\nREASONING: The code directly persists a weight derived from the current pool reserve ratio in _deposit, and later uses that weight to calculate reserve-funded rewards. Pool prices are freely changed by permissionless swaps and there is no oracle anchoring or manipulation resistance.\nSUGGESTED MITIGATION: Use a robust external or TWAP oracle with stale-price and deviation checks for vault valuation; alternatively defer weight calculation until a manipulation-resistant accounting window and cap per-user weight changes and reward accrual.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "pool",
+        "utils",
+        "synth_vault",
+        "user_synth_entry"
+      ],
+      "evidence": [],
+      "reasoning": "The code directly persists a weight derived from the current pool reserve ratio in _deposit, and later uses that weight to calculate reserve-funded rewards. Pool prices are freely changed by permissionless swaps and there is no oracle anchoring or manipulation resistance.",
+      "mitigation": "Use a robust external or TWAP oracle with stale-price and deviation checks for vault valuation; alternatively defer weight calculation until a manipulation-resistant accounting window and cap per-user weight changes and reward accrual.",
+      "finding_description": "SynthVault records deposit and reward weights using Utils.calcSpotValueInBase, which reads the Pool's instantaneous baseAmount/tokenAmount ratio. An attacker can trade against a curated pool to temporarily inflate the underlying token's spot value, deposit synths during the distorted price window, and retain the inflated weight after the price is restored. The inflated weight increases the attacker's share of reserve-funded SynthVault emissions and can dilute legitimate depositors.",
+      "impact": "The attacker can obtain a disproportionate share of SPARTA emissions, transferring reserve value from legitimate SynthVault depositors and potentially draining emissions allocated to the affected vault over repeated attacks.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Utils.sol",
+          "contract": "Utils",
+          "function": "calcSpotValueInBase(address,uint256)"
+        },
+        {
+          "file": "contracts/Utils.sol",
+          "contract": "Utils",
+          "function": "calcSpotValueInBaseWithPool(address,uint256)"
+        },
+        {
+          "file": "contracts/SynthVault.sol",
+          "contract": "SynthVault",
+          "function": "_deposit"
+        },
+        {
+          "file": "contracts/SynthVault.sol",
+          "contract": "SynthVault",
+          "function": "harvestSingle"
+        },
+        {
+          "file": "contracts/SynthVault.sol",
+          "contract": "SynthVault",
+          "function": "calcReward"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/synthVault.sol",
+          "contracts/Utils.sol",
+          "contracts/Pool.sol",
+          "contracts/SynthVault.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200221",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:03:30.125982",
+      "id": "hyp_625c83f3afc1",
+      "qa_comment": "Upon reviewing SynthVault._deposit and Utils.calcSpotValueInBase/calcSpotValueInBaseWithPool, I confirmed that vault weight is calculated from the live pool reserve ratio and permanently stored. The pricing function directly returns amount * pool.baseAmount() / pool.tokenAmount(), while Pool.swap and swapTo are permissionless and update these reserves, allowing an attacker to temporarily increase the apparent base value of a synth. The attacker can then deposit pre-acquired synths during the manipulated state, causing mapMemberSynth_weight, mapMemberTotal_weight, and totalWeight to record an inflated value. After restoring the pool ratio, calcReward and calcCurrentReward continue using the persisted inflated weight to determine the attacker\u2019s share of reserve-funded emissions. harvestSingle additionally values newly minted synth rewards using the same mutable spot price. The one-hour lockout only delays withdrawal and harvesting; it does not validate the recorded valuation or bind it to an external reference, TWAP, deviation limit, or snapshot. Therefore, the manipulation can persist beyond price restoration and increase reward extraction relative to honest depositors."
+    },
+    "hyp_b1ce20b5118f": {
+      "title": "Spot-price manipulation can amplify reserve-funded curated-pool dividends",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Reserve-funded dividend allocation trusts a spot-derived fee valuation that can be changed by permissionless trades in the same pool and lacks a cap tied to an independent fee or volume measure.\nATTACK VECTOR: Trade to distort baseAmount/tokenAmount, perform a swap whose fee is converted at the distorted ratio, and trigger getsDividend so the reserve grants an inflated amount to the curated pool; recover part of the grant as an LP or through subsequent pool interactions.\nAFFECTED NODES: pool, utils, router, reserve\nAFFECTED CODE: contracts/Pool.sol:_swapBaseToToken, contracts/Pool.sol:_swapTokenToBase, contracts/Pool.sol:mintSynth, contracts/Utils.sol:calcSpotValueInBase, contracts/Utils.sol:calcSpotValueInBaseWithPool, contracts/Router.sol:getsDividend, contracts/Router.sol:addDividend\nSEVERITY: high\nREASONING: The fee passed to addDividend is explicitly converted through the mutable pool spot price, while the resulting grant is sourced from Reserve and synchronized into the pool. The attack is economically feasible for low-liquidity curated pools, although profitability depends on LP ownership and trading costs.\nSUGGESTED MITIGATION: Compute dividend eligibility from fee units and executed volume using a manipulation-resistant reference price, cap dividends per trade and per pool, and enforce pool-price deviation and minimum-liquidity limits before granting reserve funds.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "pool",
+        "utils",
+        "router",
+        "reserve"
+      ],
+      "evidence": [],
+      "reasoning": "The fee passed to addDividend is explicitly converted through the mutable pool spot price, while the resulting grant is sourced from Reserve and synchronized into the pool. The attack is economically feasible for low-liquidity curated pools, although profitability depends on LP ownership and trading costs.",
+      "mitigation": "Compute dividend eligibility from fee units and executed volume using a manipulation-resistant reference price, cap dividends per trade and per pool, and enforce pool-price deviation and minimum-liquidity limits before granting reserve funds.",
+      "finding_description": "Pool swap fees are converted into BASE using calcSpotValueInBase, which uses the pool's instantaneous reserve ratio. Router.addDividend then uses that converted fee to determine a reserve grant and synchronizes the pool. A trader can first skew the pool price so the token-denominated fee converts to an artificially large BASE fee, execute a qualifying trade, and cause an outsized reserve-funded dividend to the pool.",
+      "impact": "Reserve SPARTA can be transferred to a manipulated pool in excess of the economic trading fee, allowing attackers with pool exposure to extract reserve funds and diluting other pools and protocol participants.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Pool.sol",
+          "contract": "Pool",
+          "function": "_swapBaseToToken(uint256)"
+        },
+        {
+          "file": "contracts/Pool.sol",
+          "contract": "Pool",
+          "function": "_swapTokenToBase(uint256)"
+        },
+        {
+          "file": "contracts/Utils.sol",
+          "contract": "Utils",
+          "function": "calcSpotValueInBase(address,uint256)"
+        },
+        {
+          "file": "contracts/Utils.sol",
+          "contract": "Utils",
+          "function": "calcSpotValueInBaseWithPool(address,uint256)"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "getsDividend"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "addDividend"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/Utils.sol",
+          "contracts/outside-scope/Reserve.sol",
+          "contracts/Pool.sol",
+          "contracts/synthVault.sol",
+          "contracts/Router.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200221",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:03:33.870471",
+      "id": "hyp_b1ce20b5118f",
+      "qa_comment": "Upon reviewing Pool._swapBaseToToken, Pool.mintSynth, Utils.calcSpotValueInBaseWithPool, and Router.getsDividend/addDividend, I confirmed that reserve-funded dividends can be influenced by a permissionless trade. In _swapBaseToToken, the fee is first calculated in token units using the pre-trade reserves, but the pool reserves are then updated through _setPoolAmounts before calcSpotValueInBase(TOKEN, fee) converts that fee into BASE units. Consequently, the conversion uses the post-trade spot ratio, which the same trader can materially distort, particularly in a low-liquidity pool. mintSynth has a similar ordering issue: it increments baseAmount before converting the token-denominated fee at the spot price. Router.addDividend then uses the resulting fee to calculate a reserve grant and calls Reserve.grantFunds followed by Pool.sync, permanently attributing the grant to existing LPs. The curated-pool check, rolling average, and dailyAllocation limit only constrain eligibility or the maximum allocation; they do not use an independent price, volume measure, or deviation bound and therefore do not prevent manipulation. Profitability depends on reserve size, liquidity, and LP ownership, but the exploitable valuation flaw is present."
+    },
+    "hyp_d6c44ada714c": {
+      "title": "Router swaps and synth issuance lack user price protection against sandwich manipulation",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Execution uses an instantaneous AMM price with no caller-specified slippage bound or transaction freshness check.\nATTACK VECTOR: Observe a pending swap or token-to-synth transaction, trade against the relevant pool before it executes, allow the victim transaction to execute at the worsened reserve ratio, then reverse the trade after the victim transaction.\nAFFECTED NODES: router, pool, user_router_entry\nAFFECTED CODE: contracts/Router.sol:buyTo, contracts/Router.sol:sellTo, contracts/Router.sol:swapTo, contracts/Router.sol:swapAssetToSynth, contracts/Pool.sol:swapTo, contracts/Pool.sol:mintSynth\nSEVERITY: medium\nREASONING: All listed routes derive output solely from reserves at execution and return the result without checking a user-supplied bound. Cross-pool swaps perform two mutable-price legs, increasing the surface for sandwich manipulation.\nSUGGESTED MITIGATION: Add minimum-output and maximum-input parameters, deadlines, and optional price limits to every swap and synth route; propagate those checks through both legs of cross-pool swaps and reject transactions outside the caller's tolerance.",
+      "vulnerability_type": "security_issue",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "router",
+        "pool",
+        "user_router_entry"
+      ],
+      "evidence": [],
+      "reasoning": "All listed routes derive output solely from reserves at execution and return the result without checking a user-supplied bound. Cross-pool swaps perform two mutable-price legs, increasing the surface for sandwich manipulation.",
+      "mitigation": "Add minimum-output and maximum-input parameters, deadlines, and optional price limits to every swap and synth route; propagate those checks through both legs of cross-pool swaps and reject transactions outside the caller's tolerance.",
+      "finding_description": "Router buyTo, sellTo, swapTo, and swapAssetToSynth accept user input amounts but expose no minimum output, maximum input, deadline, or price-limit parameter. The Pool calculates outputs from the current mutable reserves at execution time. An attacker can front-run a victim's transaction to move the pool price, force execution at the manipulated rate, and back-run to restore the price while capturing value.",
+      "impact": "Victims can receive materially fewer tokens or synths than expected, or receive materially less BASE when selling, with the difference captured by the sandwich attacker; the loss is especially severe in shallow pools and cross-pool routes.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "buyTo(uint256,address,address)"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "sellTo(uint256,address,address)"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "swapTo(uint256,address,address,address)"
+        },
+        {
+          "file": "contracts/Router.sol",
+          "contract": "Router",
+          "function": "swapAssetToSynth(uint256,address,address)"
+        },
+        {
+          "file": "contracts/Pool.sol",
+          "contract": "Pool",
+          "function": "swapTo(address,address)"
+        },
+        {
+          "file": "contracts/Pool.sol",
+          "contract": "Pool",
+          "function": "mintSynth(address,address)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/synthVault.sol",
+          "contracts/Router.sol",
+          "contracts/Pool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200221",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:03:38.995681",
+      "id": "hyp_d6c44ada714c",
+      "qa_comment": "Upon reviewing Router.sol functions buyTo, sellTo, swapTo, swapAssetToSynth, and swapSynthToAsset, together with Pool.sol functions swapTo, mintSynth, and burnSynth, I confirmed that the alleged missing price protection exists and is exploitable. These routes calculate outputs from the pool\u2019s current internal reserves through calcSwapOutput and immediately execute transfers, but expose no minimum-output, maximum-input, deadline, or caller-specified price-limit parameter. Pool.swapTo and mintSynth therefore accept whatever execution price results from reserves at inclusion time. An attacker can front-run a pending trade with an opposing pool transaction, worsen the reserve ratio, allow the victim transaction to execute at the manipulated price, and then trade back afterward. The cross-pool paths in Router.swapTo and swapSynthToAsset are particularly exposed because they perform sequential mutable-price legs without propagating any user tolerance. Although transaction atomicity and normal balance checks prevent outright theft or invalid transfers, they do not prevent unfavorable execution, and no slippage or freshness guard exists in the reviewed code."
+    },
+    "hyp_6a3c70dcad5d": {
+      "title": "Permissionless pool initialization permits attacker-selected oracle price",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Initial pool reserves are treated as a valid price source even though the pool and its starting ratio are permissionlessly created and no TWAP, external oracle, minimum-depth, or price-deviation validation is enforced.\nATTACK VECTOR: An attacker deploys or selects an 18-decimal token, creates its pool with the minimum BASE liquidity and an extremely skewed token amount, then causes or obtains curation of the pool or otherwise induces a price-sensitive protocol path to use it. The attacker can subsequently exploit the inflated or depressed spot valuation for synthetic issuance or other pool-based valuation operations.\nAFFECTED NODES: user_pool_factory_entry, pool_factory, pool, user_synth_factory_entry, synth\nAFFECTED CODE: contracts/poolFactory.sol:createPoolADD, contracts/SynthFactory.sol:createSynth, contracts/Pool.sol:mintSynth\nSEVERITY: high\nREASONING: The creation function is explicitly permissionless, requires only a fixed BASE minimum, accepts an arbitrary token amount, and records the resulting pool. The loaded code shows no initialization-price validation. Exploitability depends on the DAO or curation process allowing the attacker-created pool to become an accepted price source, so the finding is distinct from ordinary short-term swap slippage manipulation but has conditional reachability.\nSUGGESTED MITIGATION: Require DAO-controlled or oracle-validated pool initialization, enforce minimum balanced liquidity and maximum deviation from an independent reference price, delay curation and synthetic enablement until sufficient trading history exists, and use TWAP or independent oracle prices for synthetic issuance and valuation.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "user_pool_factory_entry",
+        "pool_factory",
+        "pool",
+        "user_synth_factory_entry",
+        "synth"
+      ],
+      "evidence": [],
+      "reasoning": "The creation function is explicitly permissionless, requires only a fixed BASE minimum, accepts an arbitrary token amount, and records the resulting pool. The loaded code shows no initialization-price validation. Exploitability depends on the DAO or curation process allowing the attacker-created pool to become an accepted price source, so the finding is distinct from ordinary short-term swap slippage manipulation but has conditional reachability.",
+      "mitigation": "Require DAO-controlled or oracle-validated pool initialization, enforce minimum balanced liquidity and maximum deviation from an independent reference price, delay curation and synthetic enablement until sufficient trading history exists, and use TWAP or independent oracle prices for synthetic issuance and valuation.",
+      "finding_description": "PoolFactory.createPoolADD allows any user to create a new pool with at least 10,000 BASE but places no constraint on the initial BASE-to-token ratio, liquidity depth, or reference-market price. The first depositor therefore establishes the pool's spot price, which later price-sensitive consumers use after the pool is curated, including synthetic minting and valuation flows.",
+      "impact": "A curated pool can expose an attacker-controlled exchange rate to synthetic minting or other valuation consumers, allowing issuance or acquisition of protocol assets at a materially incorrect price and causing BASE, token, or reserve value losses.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/poolFactory.sol",
+          "contract": "PoolFactory",
+          "function": "createPoolADD"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/SynthFactory.sol",
+          "contracts/synthFactory.sol",
+          "contracts/Synth.sol",
+          "contracts/Pool.sol",
+          "contracts/poolFactory.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_200221",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:05:21.387333",
+      "id": "hyp_6a3c70dcad5d"
+    }
+  },
+  "metadata": {
+    "total": 4,
+    "confirmed": 3,
+    "last_modified": "2026-10-12T20:05:21.388784"
+  }
+}

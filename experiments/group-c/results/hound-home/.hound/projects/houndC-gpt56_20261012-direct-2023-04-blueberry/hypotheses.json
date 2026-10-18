@@ -1,0 +1,1386 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_345ad37cd5f9": {
+      "title": "Caller-controlled tokenTransferProxy can receive an unauthorized token allowance",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: The library treats an externally supplied spender address as trusted and performs an ERC20 approval without enforcing a canonical, immutable, or allowlisted transfer proxy.\nATTACK VECTOR: Invoke an integrating swap entry point with tokenTransferProxy set to an attacker-controlled contract or EOA. The attacker-controlled spender can use the resulting allowance to transfer data.fromAmount of the caller's source token balance.\nAFFECTED NODES: library_paraswap, spell_shortlong, external_paraswap\nAFFECTED CODE: blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol:PSwapLib.megaSwap, blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol:PSwapLib._approve\nSEVERITY: high\nREASONING: The spender is a direct function parameter and is used as the approval target. The library contains no validation or allowlist. The issue is exploitable whenever a caller can influence this parameter or forwards it from untrusted swap data.\nSUGGESTED MITIGATION: Use a trusted immutable or explicitly allowlisted Paraswap transfer proxy, or validate tokenTransferProxy against the configured proxy before approving. Do not expose arbitrary spender selection to users.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "library_paraswap",
+        "spell_shortlong",
+        "external_paraswap"
+      ],
+      "evidence": [],
+      "reasoning": "The spender is a direct function parameter and is used as the approval target. The library contains no validation or allowlist. The issue is exploitable whenever a caller can influence this parameter or forwards it from untrusted swap data.",
+      "mitigation": "Use a trusted immutable or explicitly allowlisted Paraswap transfer proxy, or validate tokenTransferProxy against the configured proxy before approving. Do not expose arbitrary spender selection to users.",
+      "finding_description": "PSwapLib approves data.fromAmount directly to the tokenTransferProxy supplied by the caller, without checking that it is the trusted Paraswap transfer proxy. If an integrating spell exposes this parameter or fails to constrain it, an attacker can supply an address they control and cause the spell to approve and transfer the source tokens to that address.",
+      "impact": "Loss of the approved source-token amount from the integrating contract or spell, potentially including user funds held during strategy execution.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "contract": "PSwapLib",
+          "function": "megaSwap"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "blueberry-core/contracts/spell/ShortLongSpell.sol",
+          "blueberry-core/contracts/libraries/Paraswap/Utils.sol",
+          "blueberry-core/contracts/interfaces/paraswap/IParaswap.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:03:00.425962",
+      "id": "hyp_345ad37cd5f9",
+      "qa_comment": "Upon reviewing PSwapLib.megaSwap and ShortLongSpell._deposit and _withdraw, I determined this hypothesis is a false positive as stated. PSwapLib._approve does approve the supplied spender, but the spender passed by the integrating contract is the ShortLongSpell storage variable tokenTransferProxy, not a value supplied by the external caller. Both openPosition and closePosition pass only augustusSwapper and tokenTransferProxy from contract storage into PSwapLib.megaSwap. tokenTransferProxy is assigned during initialize(), requires a nonzero address, and the provided code contains no public setter allowing users to replace it. Consequently, attacker-controlled swapData can influence fields such as fromToken and fromAmount, subject to the surrounding checks, but cannot control the approval recipient. An incorrectly configured deployment or privileged upgrade could select a malicious proxy, which is a governance or initialization trust issue rather than an externally exploitable access-control flaw. Direct interaction with the library would not provide access to the spell's token balances. Additional implementation context could be relevant for upgrade authorization, but the claimed caller-controlled allowance vulnerability is not demonstrated by this source."
+    },
+    "hyp_2f7eddb80bed": {
+      "title": "Swap beneficiary is not constrained to the intended recipient",
+      "description": "VULNERABILITY TYPE: funds_redirect\nROOT CAUSE: The library performs no recipient validation and assumes the beneficiary embedded in externally supplied swap calldata is trusted.\nATTACK VECTOR: Submit swap data with beneficiary set to the attacker and a valid fromToken/fromAmount/path. Paraswap sends the resulting destination tokens to the attacker rather than the intended protocol or position recipient.\nAFFECTED NODES: library_paraswap, spell_shortlong, external_paraswap\nAFFECTED CODE: blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol:PSwapLib.megaSwap, blueberry-core/contracts/interfaces/paraswap/IParaswap.sol:IParaswap.megaSwap\nSEVERITY: high\nREASONING: The beneficiary is part of the forwarded calldata and is not overridden or checked by PSwapLib. Exploitability depends on whether the caller, such as ShortLongSpell, allows an untrusted party to provide or modify the swap struct.\nSUGGESTED MITIGATION: Construct or overwrite beneficiary inside the trusted integrating contract and require it to equal the intended recipient. Reject arbitrary beneficiary values supplied by users.",
+      "vulnerability_type": "funds_redirect",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "library_paraswap",
+        "spell_shortlong",
+        "external_paraswap"
+      ],
+      "evidence": [],
+      "reasoning": "The beneficiary is part of the forwarded calldata and is not overridden or checked by PSwapLib. Exploitability depends on whether the caller, such as ShortLongSpell, allows an untrusted party to provide or modify the swap struct.",
+      "mitigation": "Construct or overwrite beneficiary inside the trusted integrating contract and require it to equal the intended recipient. Reject arbitrary beneficiary values supplied by users.",
+      "finding_description": "MegaSwap forwards data.beneficiary unchanged to Paraswap and does not verify that it is the user, vault, bank, or other recipient intended by the integrating protocol. If an integrating function accepts user-controlled MegaSwapSellData, an attacker can set beneficiary to an address they control while supplying otherwise valid Paraswap route data.",
+      "impact": "Swap proceeds can be redirected, causing loss of destination assets or incorrect accounting for the affected position or strategy.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "contract": "PSwapLib",
+          "function": "megaSwap"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "blueberry-core/contracts/spell/ShortLongSpell.sol",
+          "blueberry-core/contracts/libraries/Paraswap/Utils.sol",
+          "blueberry-core/contracts/interfaces/paraswap/IParaswap.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:03:00.447743",
+      "id": "hyp_2f7eddb80bed"
+    },
+    "hyp_a9bce5911080": {
+      "title": "ERC20 approval return values are ignored",
+      "description": "VULNERABILITY TYPE: input_validation\nROOT CAUSE: Raw IERC20.approve calls are used without SafeERC20-style return-value handling or postcondition verification.\nATTACK VECTOR: Use a supported or configured token whose approve implementation returns false or otherwise does not establish the requested allowance without reverting. PSwapLib proceeds to call Paraswap despite the missing approval.\nAFFECTED NODES: library_paraswap, external_paraswap\nAFFECTED CODE: blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol:PSwapLib._approve\nSEVERITY: medium\nREASONING: Both approval return values are discarded. Solidity interface calls do not automatically reject a false ERC20 return value, so the library cannot distinguish successful approval from a token-reported failure.\nSUGGESTED MITIGATION: Use OpenZeppelin SafeERC20.safeApprove or safeIncreaseAllowance-compatible logic, and explicitly handle tokens requiring zero-before-nonzero approval. Restrict supported assets if token behavior cannot be normalized.",
+      "vulnerability_type": "input_validation",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "library_paraswap",
+        "external_paraswap"
+      ],
+      "evidence": [],
+      "reasoning": "Both approval return values are discarded. Solidity interface calls do not automatically reject a false ERC20 return value, so the library cannot distinguish successful approval from a token-reported failure.",
+      "mitigation": "Use OpenZeppelin SafeERC20.safeApprove or safeIncreaseAllowance-compatible logic, and explicitly handle tokens requiring zero-before-nonzero approval. Restrict supported assets if token behavior cannot be normalized.",
+      "finding_description": "_approve calls approve(spender, 0) and approve(spender, amount) directly and ignores both return values. Tokens that return false without reverting can leave the allowance unset while execution continues to Paraswap, causing a failed or inconsistent swap; nonstandard approval behavior is not safely handled.",
+      "impact": "Swaps can fail or become unavailable for affected assets, potentially blocking withdrawals, liquidations, or strategy operations; integrations that do not atomically revert all surrounding state may also experience inconsistent execution.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "contract": "PSwapLib",
+          "function": "_approve"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "blueberry-core/contracts/libraries/Paraswap/Utils.sol",
+          "blueberry-core/contracts/interfaces/paraswap/IParaswap.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:03:00.462813",
+      "id": "hyp_a9bce5911080",
+      "qa_comment": "Upon reviewing PSwapLib._approve in blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol, specifically the two approve calls at lines 14-15, I confirmed that ERC20 return values are ignored. The function first invokes inToken.approve(spender, 0) and then inToken.approve(spender, amount), but neither result is checked and no SafeERC20 wrapper is used. Consequently, a token that returns false without reverting, or otherwise fails to establish the requested allowance, will not cause _approve to fail. megaSwap then unconditionally invokes IParaswap(augustusSwapper).megaSwap(data) at line 25. In the common case, Paraswap's subsequent transferFrom will revert because allowance is missing, creating a denial-of-service condition for that token; token-specific behavior could also produce inconsistent or unsafe outcomes. The shown code contains no token allowlist, return-value validation, allowance postcondition check, or other guard that mitigates this behavior. The issue is therefore real, although practical impact depends on whether such non-compliant tokens can be supplied or configured."
+    },
+    "hyp_882646e07dc8": {
+      "title": "Unvalidated Base Oracle Address Can Permanently Disable Pricing",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: Missing constructor validation of the external oracle dependency.\nATTACK VECTOR: A deployment or configuration actor supplies an invalid base oracle address during deployment; all dependent oracle calls then fail. This is primarily a deployment-time denial of service rather than an externally exploitable takeover.\nAFFECTED NODES: contract_using_base_oracle, oracle_ichi_vault\nAFFECTED CODE: blueberry-core/contracts/oracle/UsingBaseOracle.sol:UsingBaseOracle.constructor, blueberry-core/contracts/oracle/IchiVaultOracle.sol:getPrice\nSEVERITY: low\nREASONING: The constructor directly assigns the supplied address to an immutable interface reference. There is no zero-address or code-existence check, and the concrete consumer uses the dependency for pricing. Invalid deployment input therefore creates a permanent availability failure.\nSUGGESTED MITIGATION: Reject address(0) and require address(_base).code.length > 0 in the constructor. Validate that the supplied oracle returns a valid nonzero price for required base assets before registering the deployment.",
+      "vulnerability_type": "availability",
+      "severity": "low",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_using_base_oracle",
+        "oracle_ichi_vault"
+      ],
+      "evidence": [],
+      "reasoning": "The constructor directly assigns the supplied address to an immutable interface reference. There is no zero-address or code-existence check, and the concrete consumer uses the dependency for pricing. Invalid deployment input therefore creates a permanent availability failure.",
+      "mitigation": "Reject address(0) and require address(_base).code.length > 0 in the constructor. Validate that the supplied oracle returns a valid nonzero price for required base assets before registering the deployment.",
+      "finding_description": "UsingBaseOracle stores the constructor-supplied IBaseOracle without checking that it is nonzero or a deployed contract. IchiVaultOracle subsequently relies on this immutable dependency for base-token prices, so deployment with address(0), an EOA, or a nonresponsive implementation causes price queries to revert or fail permanently.",
+      "impact": "The Ichi vault oracle can become unusable, causing supported-token checks, valuations, liquidations, and other operations depending on prices to revert or halt.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/oracle/UsingBaseOracle.sol",
+          "contract": "UsingBaseOracle",
+          "function": "constructor(IBaseOracle _base)"
+        },
+        {
+          "file": "blueberry-core/contracts/oracle/IchiVaultOracle.sol",
+          "contract": "IchiVaultOracle",
+          "function": "getPrice(address token)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UsingBaseOracle.sol",
+          "blueberry-core/contracts/oracle/IchiVaultOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:03:51.938755",
+      "id": "hyp_882646e07dc8",
+      "qa_comment": "Upon reviewing the UsingBaseOracle constructor and IchiVaultOracle.getPrice, I confirmed that the reported availability weakness exists. UsingBaseOracle.constructor directly stores the supplied IBaseOracle address in the immutable base variable without checking for address(0), deployed code, or functional oracle behavior. IchiVaultOracle.getPrice subsequently invokes base.getPrice(token0) and base.getPrice(token1) after obtaining vault data, so a zero address, EOA, or incompatible contract will generally cause the external call or ABI decoding to revert for vaults with nonzero supply. Because base is immutable, the deployed oracle cannot be repaired or redirected afterward. No validation is added by IchiVaultOracle.constructor, which merely forwards the argument to the base constructor, and no fallback pricing path exists in getPrice. The issue is primarily a deployment or trusted-configuration error rather than an arbitrary external attacker compromising an existing deployment; however, an actor able to deploy or register the oracle can permanently create a nonfunctional pricing instance. Constructor checks for nonzero address, deployed code, and preferably a valid price response would mitigate it."
+    },
+    "hyp_673725375e3c": {
+      "title": "Unprotected WAuraPools initialization enables configuration takeover",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: The upgradeable initializer accepts arbitrary external addresses without deployment-time initialization protection or address validation, and omits OwnableUpgradeable initialization.\nATTACK VECTOR: An attacker front-runs the intended initializer call on an uninitialized WAuraPools proxy, supplying malicious aura_ and auraPools_ addresses. Users later depositing LP tokens through mint can have those tokens transferred into attacker-controlled integrations.\nAFFECTED NODES: wrapper_waura_pools, external_aura\nAFFECTED CODE: blueberry-core/contracts/wrapper/WAuraPools.sol:initialize, blueberry-core/contracts/wrapper/WAuraPools.sol:mint, blueberry-core/contracts/wrapper/WAuraPools.sol:burn\nSEVERITY: high\nREASONING: The initializer is public and directly assigns AURA and auraPools from caller-controlled parameters. Upgradeable deployments are exploitable if initialization is not performed atomically; omission of __Ownable_init also leaves ownership unset and prevents owner-controlled recovery or configuration functions from operating.\nSUGGESTED MITIGATION: Initialize the proxy atomically in the deployment transaction, call __Ownable_init with the intended owner, require nonzero and code-bearing addresses for aura_ and auraPools_, and prevent configuration changes to untrusted external integrations without validated governance authorization.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "wrapper_waura_pools",
+        "external_aura"
+      ],
+      "evidence": [],
+      "reasoning": "The initializer is public and directly assigns AURA and auraPools from caller-controlled parameters. Upgradeable deployments are exploitable if initialization is not performed atomically; omission of __Ownable_init also leaves ownership unset and prevents owner-controlled recovery or configuration functions from operating.",
+      "mitigation": "Initialize the proxy atomically in the deployment transaction, call __Ownable_init with the intended owner, require nonzero and code-bearing addresses for aura_ and auraPools_, and prevent configuration changes to untrusted external integrations without validated governance authorization.",
+      "finding_description": "WAuraPools.initialize is externally callable through the initializer mechanism but does not validate the supplied Aura token or pool address and does not establish ownership with __Ownable_init. If a proxy or implementation is deployed without atomic initialization, an attacker can call initialize first and permanently configure attacker-controlled Aura contracts. Subsequent mint and burn operations will route LP tokens through those contracts.",
+      "impact": "LP deposits can be redirected or stolen, and the wrapper can be permanently configured to unusable or malicious external contracts.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/wrapper/WAuraPools.sol",
+          "contract": "WAuraPools",
+          "function": "initialize"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/wrapper/WAuraPools.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:05:22.604729",
+      "id": "hyp_673725375e3c"
+    },
+    "hyp_3db220d87b96": {
+      "title": "Curve gauge remapping can strand or misroute existing wrapped positions",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Position identity depends on a mutable gauge-controller mapping rather than an immutable gauge address or validated versioned mapping.\nATTACK VECTOR: After users mint wrapped positions, a gauge-controller update changes the gauge associated with the stored gid. Burning an old position then calls withdraw on the replacement gauge and transfers its lp_token, rather than withdrawing from the original gauge.\nAFFECTED NODES: wrapper_wcurve_gauge, interface_liquidity_gauge, external_curve\nAFFECTED CODE: blueberry-core/contracts/wrapper/WCurveGauge.sol:burn, blueberry-core/contracts/wrapper/WCurveGauge.sol:mint\nSEVERITY: medium\nREASONING: The burn implementation explicitly decodes gid and queries gaugeController.gauges(gid) at redemption time, while mint deposits into the gauge resolved at mint time. No immutable gauge address or mapping-version check is included in the token id.\nSUGGESTED MITIGATION: Store the resolved gauge address or a mapping version in the position identity and redeem against that immutable value. Alternatively reject burns when the current controller mapping differs from the mapping recorded at mint and provide an explicit migration path.",
+      "vulnerability_type": "logic_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "wrapper_wcurve_gauge",
+        "interface_liquidity_gauge",
+        "external_curve"
+      ],
+      "evidence": [],
+      "reasoning": "The burn implementation explicitly decodes gid and queries gaugeController.gauges(gid) at redemption time, while mint deposits into the gauge resolved at mint time. No immutable gauge address or mapping-version check is included in the token id.",
+      "mitigation": "Store the resolved gauge address or a mapping version in the position identity and redeem against that immutable value. Alternatively reject burns when the current controller mapping differs from the mapping recorded at mint and provide an explicit migration path.",
+      "finding_description": "WCurveGauge encodes only the gauge id and reward-per-share snapshot in each ERC1155 id. During burn it resolves the current gauge from gaugeController.gauges(gid) instead of preserving the gauge address used at mint time. If the controller mapping changes, existing positions are redeemed against a different gauge than the one holding the wrapper's deposited LP tokens.",
+      "impact": "Users can be unable to redeem LP collateral and accrued rewards, potentially causing liquidation failures and permanent loss of access to positions until an external mapping restoration; a malicious replacement can also influence the token and withdrawal behavior used by redemption.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "contract": "WCurveGauge",
+          "function": "burn(uint256,uint256)"
+        },
+        {
+          "file": "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "contract": "WCurveGauge",
+          "function": "mint(uint256,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/curve/ICurvePool.sol",
+          "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "blueberry-core/contracts/interfaces/curve/ILiquidityGauge.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveRegistry.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:05:22.621942",
+      "id": "hyp_3db220d87b96",
+      "qa_comment": "Upon reviewing WCurveGauge.sol, I confirmed the alleged position-remapping logic error. The mint function resolves gaugeController.gauges(gid) at mint time, transfers the gauge's lp_token into the wrapper, deposits the amount into that gauge, and encodes only gid and accCrvPerShares[gid] into the ERC1155 token ID. Conversely, burn decodes the same ID and independently queries gaugeController.gauges(gid) again before calling _mintCrv, withdraw, and lp_token transfer. There is no stored gauge address, mapping version, or equality check against the gauge used during minting. If the controller mapping for gid changes, an existing token can therefore attempt withdrawal from the replacement gauge. If the wrapper lacks sufficient balance there, redemption reverts and the position is stranded; if it has deposits in the replacement gauge, the burn may withdraw and transfer the replacement gauge's LP token, misrouting the position. Reentrancy protection and balance burning do not address this stale external mapping dependency."
+    },
+    "hyp_82aca22a0f4a": {
+      "title": "Correlated spot-oracle manipulation can bypass aggregator deviation checks",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Deviation validation measures agreement between configured sources rather than independence, time-weighting, or resistance to same-transaction market manipulation.\nATTACK VECTOR: Manipulate the liquidity or reserves of multiple underlying pools, then invoke a protocol operation that relies on AggregatorOracle while the manipulated prices remain within the configured deviation threshold.\nAFFECTED NODES: oracle_aggregator, oracle_base_ext, oracle_uniswap_v2, oracle_curve, oracle_balancer_pair, external_uniswap, external_curve, external_balancer\nAFFECTED CODE: oracle_aggregator: configured route aggregation and deviation validation, oracle_base_ext: relative price deviation check, oracle_uniswap_v2: pool-reserve price calculation, oracle_curve: Curve pool price calculation, oracle_balancer_pair: Balancer pool price calculation\nSEVERITY: high\nREASONING: The architecture explicitly combines owner-configured routes with deviation validation and includes several spot/liquidity-pool price sources. Agreement among correlated spot sources does not establish that the price is accurate or manipulation-resistant.\nSUGGESTED MITIGATION: Use independent and manipulation-resistant reference prices, such as sufficiently long TWAPs or validated Chainlink/Band feeds; require source diversity, enforce liquidity and freshness requirements, and reject prices that move beyond bounded rate-of-change limits.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_aggregator",
+        "oracle_base_ext",
+        "oracle_uniswap_v2",
+        "oracle_curve",
+        "oracle_balancer_pair",
+        "external_uniswap",
+        "external_curve",
+        "external_balancer"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly combines owner-configured routes with deviation validation and includes several spot/liquidity-pool price sources. Agreement among correlated spot sources does not establish that the price is accurate or manipulation-resistant.",
+      "mitigation": "Use independent and manipulation-resistant reference prices, such as sufficiently long TWAPs or validated Chainlink/Band feeds; require source diversity, enforce liquidity and freshness requirements, and reject prices that move beyond bounded rate-of-change limits.",
+      "finding_description": "AggregatorOracle validates deviation between configured oracle outputs, but the available routes include manipulable pool-based sources such as Uniswap, Curve, and Balancer. An attacker can use a flash loan or coordinated liquidity trades to move multiple correlated spot prices in the same transaction, keeping them within the permitted deviation while producing an incorrect aggregate price.",
+      "impact": "Collateral or debt can be valued incorrectly, enabling under-collateralized borrowing, unfair liquidation, or protocol loss.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/BalancerPairOracle.sol",
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/interfaces/curve/ILiquidityGauge.sol",
+          "blueberry-core/contracts/interfaces/balancer/IBalancerPool.sol",
+          "blueberry-core/contracts/interfaces/balancer/IBalancerVault.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/oracle/CurveOracle.sol",
+          "blueberry-core/contracts/oracle/AggregatorOracle.sol",
+          "blueberry-core/contracts/oracle/BaseOracleExt.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurvePool.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveRegistry.sol",
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:05:55.606734",
+      "id": "hyp_82aca22a0f4a"
+    },
+    "hyp_182e92f5aeb7": {
+      "title": "A reverting or unavailable configured route can make all aggregated prices unavailable",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The aggregation design couples overall price availability to the liveness and successful execution of every configured oracle route.\nATTACK VECTOR: Cause or trigger failure of one configured external feed, pool, registry, or adapter\u2014for example through stale/missing feed data, a broken route, or an external protocol failure\u2014then invoke borrowing, repayment, liquidation, or valuation paths that depend on the aggregator.\nAFFECTED NODES: oracle_aggregator, oracle_base_ext, oracle_chainlink_adapter, oracle_band_adapter, oracle_univ3_adapter, oracle_curve, oracle_balancer_pair, oracle_uniswap_v2\nAFFECTED CODE: oracle_aggregator: routed price retrieval and validation\nSEVERITY: medium\nREASONING: The graph shows multiple external dependencies and route-based aggregation, while no evidence is provided of per-source failure isolation or a fallback policy. This creates a liveness risk whenever a required source reverts or becomes unavailable.\nSUGGESTED MITIGATION: Define explicit failure handling: isolate reverting sources, require a minimum number of healthy independent sources, use a validated fallback or last-known-good value with bounded age, and provide monitored emergency route disablement rather than allowing one source to brick all pricing.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_aggregator",
+        "oracle_base_ext",
+        "oracle_chainlink_adapter",
+        "oracle_band_adapter",
+        "oracle_univ3_adapter",
+        "oracle_curve",
+        "oracle_balancer_pair",
+        "oracle_uniswap_v2"
+      ],
+      "evidence": [],
+      "reasoning": "The graph shows multiple external dependencies and route-based aggregation, while no evidence is provided of per-source failure isolation or a fallback policy. This creates a liveness risk whenever a required source reverts or becomes unavailable.",
+      "mitigation": "Define explicit failure handling: isolate reverting sources, require a minimum number of healthy independent sources, use a validated fallback or last-known-good value with bounded age, and provide monitored emergency route disablement rather than allowing one source to brick all pricing.",
+      "finding_description": "AggregatorOracle routes price requests through configured oracle sources and performs validation across those sources. If aggregation requires every configured route to return successfully, a single reverting, misconfigured, or temporarily unavailable adapter can cause the entire getPrice call to revert rather than using a safe fallback.",
+      "impact": "Borrowing, repayment, liquidation, and other risk-management operations can be blocked, potentially causing liquidations to be delayed or protocol positions to become unmanageable during an oracle outage.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/oracle/BalancerPairOracle.sol",
+          "blueberry-core/contracts/oracle/CurveOracle.sol",
+          "blueberry-core/contracts/oracle/AggregatorOracle.sol",
+          "blueberry-core/contracts/oracle/BaseOracleExt.sol",
+          "blueberry-core/contracts/oracle/BandAdapterOracle.sol",
+          "blueberry-core/contracts/oracle/ChainlinkAdapterOracle.sol",
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:05:55.623206",
+      "id": "hyp_182e92f5aeb7",
+      "qa_comment": "Upon reviewing the alleged availability vulnerability in AggregatorOracle.getPrice, I determined that the core claim is not supported by the implementation. The aggregator iterates over each configured primary source and invokes primarySources[token][idx].getPrice(token) inside a Solidity try/catch block. Any source that reverts, returns invalid data, or otherwise fails is ignored, while nonzero successful prices are retained. Consequently, failure of a single Chainlink, Band, Uniswap, Curve, Balancer, or other adapter route does not by itself make the aggregate unavailable. The function only reverts with NO_VALID_SOURCE when every configured source fails or returns zero, and may also revert when the remaining valid prices exceed the configured deviation threshold. Those are possible availability conditions, but they are not the hypothesized single-route failure mode. Nested calls such as base.getPrice in LP adapters can fail, but the outer aggregator catches that failure when the adapter is used as a source. The source code therefore demonstrates per-source failure isolation, although shared dependencies and insufficiently independent routes could still create separate operational risks."
+    },
+    "hyp_ba50fa645121": {
+      "title": "Privileged route configuration can inject arbitrary asset prices",
+      "description": "VULNERABILITY TYPE: oracle_integrity\nROOT CAUSE: Oracle route selection is controlled administratively and CoreOracle does not enforce route authenticity, token compatibility, or an approved-oracle allowlist before using the returned price.\nATTACK VECTOR: Compromise or abuse the CoreOracle owner/configuration authority to set a malicious route for a supported token; trigger borrowing, repayment, collateral valuation, or liquidation using the manipulated result.\nAFFECTED NODES: oracle_core, interface_icoreoracle, interface_ibaseoracle, oracle_aggregator\nAFFECTED CODE: CoreOracle owner-controlled route configuration, CoreOracle price dispatch for configured token routes\nSEVERITY: high\nREASONING: The architecture explicitly identifies CoreOracle routes as owner-set and administratively trusted. The available context does not show validation tying a configured route to a specific token or approved implementation. This is distinct from external spot-price manipulation and from route availability failures because the issue is arbitrary price authority granted by route configuration.\nSUGGESTED MITIGATION: Restrict route updates to a tightly governed authority and maintain an immutable or timelocked allowlist of approved oracle implementations and token-route pairs. Validate that each route is a contract, supports the configured token, returns a nonzero value within documented bounds, and preserves required decimals and freshness guarantees; emit events and provide delayed review for route changes.",
+      "vulnerability_type": "oracle_integrity",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "oracle_core",
+        "interface_icoreoracle",
+        "interface_ibaseoracle",
+        "oracle_aggregator"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies CoreOracle routes as owner-set and administratively trusted. The available context does not show validation tying a configured route to a specific token or approved implementation. This is distinct from external spot-price manipulation and from route availability failures because the issue is arbitrary price authority granted by route configuration.",
+      "mitigation": "Restrict route updates to a tightly governed authority and maintain an immutable or timelocked allowlist of approved oracle implementations and token-route pairs. Validate that each route is a contract, supports the configured token, returns a nonzero value within documented bounds, and preserves required decimals and freshness guarantees; emit events and provide delayed review for route changes.",
+      "finding_description": "CoreOracle dispatches pricing to owner-configured route contracts without an on-chain validation that the route is an approved oracle, supports the requested token, or derives a trustworthy price. A compromised owner, governance misconfiguration, or malicious upgrade can therefore install an oracle that returns an attacker-selected price for collateral or debt assets.",
+      "impact": "An attacker able to control the route authority can make collateral appear overvalued or debt appear undervalued, enabling undercollateralized borrowing or wrongful liquidation and potentially causing protocol-wide bad debt or loss of user collateral.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/ICoreOracle.sol",
+          "blueberry-core/contracts/oracle/AggregatorOracle.sol",
+          "blueberry-core/contracts/interfaces/IBaseOracle.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:07:03.863027",
+      "id": "hyp_ba50fa645121",
+      "qa_comment": "Upon reviewing the CoreOracle setRoutes and _getPrice functions, I confirmed that privileged route configuration can directly control the price returned for any token. setRoutes is restricted only by onlyOwner and checks that token and route are nonzero; it does not verify that the route is an approved oracle, is associated with the configured token, or implements an authentic pricing mechanism. Subsequently, _getPrice obtains routes[token] and performs a raw IBaseOracle(route).getPrice(token) call, accepting any nonzero uint256 result. The only effective guards are route existence, CoreOracle pause state, and a nonzero price check, none of which constrain an intentionally malicious implementation from returning an arbitrary value. isTokenSupported repeats the same permissive call and therefore does not provide independent validation. AggregatorOracle limits source count and deviation only among owner-selected sources, so it does not mitigate a malicious route selected at the CoreOracle layer. Exploitation requires compromise or misuse of the owner authority, making this a privileged trust-boundary issue, but the code clearly permits arbitrary price injection through that authority."
+    },
+    "hyp_5418cc72318f": {
+      "title": "HardVault share-price inflation attack via unsolicited token donations",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Share issuance relies on the raw vault token balance without separating accounted assets from unsolicited transfers, and there is no demonstrated minimum-share or zero-share protection.\nATTACK VECTOR: The attacker deposits a small amount, transfers additional underlying tokens directly to HardVault, waits for or front-runs a victim deposit, and withdraws the attacker's shares after the victim's deposit is priced against the manipulated balance.\nAFFECTED NODES: vault_hard, interface_ihardvault, token_underlying\nAFFECTED CODE: HardVault.deposit, HardVault.withdraw, ERC1155 share accounting\nSEVERITY: high\nREASONING: The architecture explicitly records balance-delta minting and ERC1155 share-based deposits/withdrawals. Such accounting is vulnerable when the current token balance is used as the denominator because anyone can increase it without receiving shares. The exact source locations were not available in the loaded graph.\nSUGGESTED MITIGATION: Track accounted assets independently from raw token balance, or use an inflation-resistant ERC4626-style virtual asset/share offset. Reject deposits that would mint zero shares and enforce a minimum share output supplied by the caller.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "vault_hard",
+        "interface_ihardvault",
+        "token_underlying"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records balance-delta minting and ERC1155 share-based deposits/withdrawals. Such accounting is vulnerable when the current token balance is used as the denominator because anyone can increase it without receiving shares. The exact source locations were not available in the loaded graph.",
+      "mitigation": "Track accounted assets independently from raw token balance, or use an inflation-resistant ERC4626-style virtual asset/share offset. Reject deposits that would mint zero shares and enforce a minimum share output supplied by the caller.",
+      "finding_description": "HardVault mints ERC1155 shares from the balance delta while the exchange rate is derived from the vault's existing token balance. An attacker can make a minimal initial deposit, donate tokens directly to the vault, and then front-run a victim deposit. The inflated balance causes the victim to receive very few or zero shares due to integer rounding, while the attacker can redeem their shares for the victim-funded assets and the donation.",
+      "impact": "A victim can lose some or all deposited tokens while receiving insufficient or zero ERC1155 shares; the attacker can extract the victim's deposit and potentially render subsequent deposits economically unusable.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/vault/HardVault.sol",
+          "blueberry-core/contracts/interfaces/ISoftVault.sol",
+          "blueberry-core/contracts/interfaces/IHardVault.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:08:01.975911",
+      "id": "hyp_5418cc72318f",
+      "qa_comment": "Upon reviewing the alleged share-price inflation vulnerability in HardVault.deposit and HardVault.withdraw, I determined this is a false positive. The deposit function records uBalanceBefore, transfers the requested amount, records uBalanceAfter, and mints shares equal only to the balance delta (HardVault.sol, deposit). It does not calculate shares using the vault\u2019s total token balance or divide by an asset-per-share exchange rate, so an unsolicited token donation cannot reduce the shares minted to a subsequent depositor. Likewise, withdraw burns the specified ERC1155 share amount and passes that same shareAmount to doCutVaultWithdrawFee before transferring the resulting amount; it does not derive withdrawal value from the manipulated raw balance. Although unsolicited tokens may remain in the vault and are not represented by shares, that is an accounting or recovery consideration rather than the described donation-based inflation attack. NonReentrant protection and the zero-amount checks are present, but are not material to this conclusion because the alleged vulnerable pricing logic is absent."
+    },
+    "hyp_2406087ed4de": {
+      "title": "Reward accounting can be bypassed through wrapped-share transfers",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Per-share reward debt is not necessarily synchronized with share ownership changes and transfer hooks.\nATTACK VECTOR: Acquire shares, allow Convex rewards to accrue, transfer shares between controlled addresses, and invoke reward-claim paths in an order that causes the same accrued entitlement to be claimed by both the original and new holder, or causes historical rewards to be claimed by the recipient.\nAFFECTED NODES: wrapper_wconvex_pools, interface_wconvex_pools, token_wrapped_shares, external_convex\nAFFECTED CODE: wrapper_wconvex_pools: per-share reward accounting, wrapper_wconvex_pools: share transfer and reward claim paths\nSEVERITY: high\nREASONING: The component is explicitly characterized as using per-share reward accounting and Convex rewards, while the surrounding architecture uses wrapped position tokens. Such accounting is unsafe unless mint, burn, and every transfer path update reward debt or otherwise settle accrued rewards. The loaded graph does not expose transfer-hook or debt-update details, so the issue requires source confirmation.\nSUGGESTED MITIGATION: Settle accrued rewards and update reward debt on every mint, burn, and share transfer, including operator transfers. Alternatively make positions non-transferable or use per-token accounting that cannot be duplicated through transfers; add invariant tests that total claims never exceed rewards received.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "wrapper_wconvex_pools",
+        "interface_wconvex_pools",
+        "token_wrapped_shares",
+        "external_convex"
+      ],
+      "evidence": [],
+      "reasoning": "The component is explicitly characterized as using per-share reward accounting and Convex rewards, while the surrounding architecture uses wrapped position tokens. Such accounting is unsafe unless mint, burn, and every transfer path update reward debt or otherwise settle accrued rewards. The loaded graph does not expose transfer-hook or debt-update details, so the issue requires source confirmation.",
+      "mitigation": "Settle accrued rewards and update reward debt on every mint, burn, and share transfer, including operator transfers. Alternatively make positions non-transferable or use per-token accounting that cannot be duplicated through transfers; add invariant tests that total claims never exceed rewards received.",
+      "finding_description": "WConvexPools is described as maintaining per-share reward accounting while representing Convex positions through wrapped shares. If reward debt or accrued-reward state is tracked by holder address but ERC1155/ERC20 share transfers do not settle the sender and recipient positions, a holder can transfer shares without transferring the corresponding reward debt. The recipient may then claim rewards accrued before acquisition, while the sender can retain or reclaim rewards after disposal.",
+      "impact": "An attacker may receive Convex reward tokens belonging to other depositors or cause rewards to be paid more than once, producing a direct loss of reward assets held by the wrapper.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/wrapper/WConvexPools.sol",
+          "blueberry-core/contracts/interfaces/IWCurveGauge.sol",
+          "blueberry-core/contracts/interfaces/IWERC20.sol",
+          "blueberry-core/contracts/interfaces/IWConvexPools.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:08:41.194477",
+      "id": "hyp_2406087ed4de",
+      "qa_comment": "Upon reviewing the alleged reward-accounting bypass in WConvexPools.sol, I determined this is a false positive. The token identifier returned by mint() embeds the Convex pool ID and the current CRV reward-per-token value through encodeId(), while extra-reward baselines are stored per token ID in accExtPerShare. pendingRewards() calculates entitlement from that immutable token-ID baseline and the requested amount, rather than from mutable per-address debt. ERC1155Upgradeable transfer functions move balances between accounts and cannot duplicate them: the sender\u2019s balance is reduced and the recipient\u2019s balance is increased atomically, while burn() can only destroy tokens from msg.sender\u2019s balance. Consequently, transferring an old token ID may transfer its accrued reward entitlement to the recipient, but it does not allow both parties to claim the same units. No custom transfer hook is required for this design because the accounting state is attached to the transferable token ID itself. Although aggregate Convex rewarder behavior and reward distribution merit separate review, the supplied code does not establish the claimed transfer-based duplication or historical-reward theft."
+    },
+    "hyp_a9e4e2d6bb31": {
+      "title": "External Convex reward calls may permit reentrant state corruption",
+      "description": "VULNERABILITY TYPE: reentrancy\nROOT CAUSE: External Convex/reward-token calls are performed without a demonstrated reentrancy guard and without evidence that accounting state is finalized before the call.\nATTACK VECTOR: Invoke a wrapper operation against a pool or reward token capable of calling back into WConvexPools, then reenter mint, burn, or claim logic while reward-per-share or user debt values are inconsistent.\nAFFECTED NODES: wrapper_wconvex_pools, interface_wconvex_pools, external_convex, token_rewards\nAFFECTED CODE: wrapper_wconvex_pools: Convex deposit/withdraw and reward-claim flows\nSEVERITY: high\nREASONING: The graph confirms external Convex integration and reward-token transfers but does not expose function ordering or guards. This is a conditional finding that should be confirmed by reviewing all external calls and callback-capable token interactions; it is distinct from the documented nonReentrant protections on other wrappers.\nSUGGESTED MITIGATION: Apply a reentrancy guard to every state-changing entrypoint that interacts with Convex or reward tokens, and follow checks-effects-interactions: update supply, balances, reward debt, and claim state before external calls. Use trusted-token assumptions only as defense in depth.",
+      "vulnerability_type": "reentrancy",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "wrapper_wconvex_pools",
+        "interface_wconvex_pools",
+        "external_convex",
+        "token_rewards"
+      ],
+      "evidence": [],
+      "reasoning": "The graph confirms external Convex integration and reward-token transfers but does not expose function ordering or guards. This is a conditional finding that should be confirmed by reviewing all external calls and callback-capable token interactions; it is distinct from the documented nonReentrant protections on other wrappers.",
+      "mitigation": "Apply a reentrancy guard to every state-changing entrypoint that interacts with Convex or reward tokens, and follow checks-effects-interactions: update supply, balances, reward debt, and claim state before external calls. Use trusted-token assumptions only as defense in depth.",
+      "finding_description": "WConvexPools integrates with external Convex pools and claims rewards, but unlike the loaded WCurveGauge and WAuraPools nodes, it is not annotated as having nonReentrant entrypoints. If mint, burn, harvest, or reward-claim functions call Convex or reward-token contracts before finalizing share supply, reward debt, and balances, a malicious or callback-capable dependency can reenter and execute the accounting path against partially updated state.",
+      "impact": "A successful callback could mint excess wrapped shares, burn another user's position, or claim/distribute rewards using stale accounting, draining LP or reward assets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/wrapper/WConvexPools.sol",
+          "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "blueberry-core/contracts/interfaces/IWConvexPools.sol",
+          "blueberry-core/contracts/wrapper/WAuraPools.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:08:41.211140",
+      "id": "hyp_a9e4e2d6bb31"
+    },
+    "hyp_1dc6543ef66a": {
+      "title": "Permissionless gauge harvest can divert rewards from wrapper holders",
+      "description": "VULNERABILITY TYPE: funds_redirect\nROOT CAUSE: Rewards are accounted and distributed at the wrapper level while harvesting is potentially caller-directed rather than tied to the caller's proportional wrapped position.\nATTACK VECTOR: An attacker monitors the gauge and calls the public harvest entrypoint immediately after rewards accrue, causing all claimable CRV or other gauge rewards to be transferred to the attacker instead of being credited pro rata to wrapped-position holders.\nAFFECTED NODES: wrapper_wcurve_gauge, interface_wcurve_gauge, interface_liquidity_gauge, external_curve\nAFFECTED CODE: WCurveGauge gauge deposit/withdraw and reward-harvesting flow\nSEVERITY: high\nREASONING: The architecture explicitly states that WCurveGauge harvests CRV rewards and integrates directly with a Curve gauge, but source-level authorization and reward-recipient logic are not included in the loaded context. Confirm whether harvest transfers rewards to msg.sender and whether rewards are tracked per token ID or share balance; if so, this is exploitable by any caller.\nSUGGESTED MITIGATION: Account harvested rewards per wrapped position or distribute them through a proportional index, and restrict harvesting or reward withdrawal to the position owner/authorized protocol path. Ensure reward transfers cannot be directed to an arbitrary caller without corresponding ownership entitlement.",
+      "vulnerability_type": "funds_redirect",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "wrapper_wcurve_gauge",
+        "interface_wcurve_gauge",
+        "interface_liquidity_gauge",
+        "external_curve"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly states that WCurveGauge harvests CRV rewards and integrates directly with a Curve gauge, but source-level authorization and reward-recipient logic are not included in the loaded context. Confirm whether harvest transfers rewards to msg.sender and whether rewards are tracked per token ID or share balance; if so, this is exploitable by any caller.",
+      "mitigation": "Account harvested rewards per wrapped position or distribute them through a proportional index, and restrict harvesting or reward withdrawal to the position owner/authorized protocol path. Ensure reward transfers cannot be directed to an arbitrary caller without corresponding ownership entitlement.",
+      "finding_description": "WCurveGauge integrates with Curve gauges and exposes reward harvesting, but the available component evidence does not establish per-position reward accounting or that harvesting is restricted to the owner of the wrapped position. If harvest claims rewards accrued to the entire wrapper and transfers them to msg.sender, any address can front-run or repeatedly call harvest and receive rewards generated by other holders.",
+      "impact": "An attacker can steal accumulated Curve rewards belonging to all wrapper depositors, causing direct loss of reward-token yield and potentially preventing legitimate positions from receiving their expected rewards.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/curve/ILiquidityGauge.sol",
+          "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurvePool.sol",
+          "blueberry-core/contracts/interfaces/IWCurveGauge.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveRegistry.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:10:26.472566",
+      "id": "hyp_1dc6543ef66a"
+    },
+    "hyp_5d3afff3a862": {
+      "title": "SoftVault does not safely handle Compound mint/redeem error codes",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Compound-style cToken operations use numeric error codes rather than necessarily reverting, and the SoftVault integration does not demonstrably enforce successful completion before updating or returning accounting values.\nATTACK VECTOR: Cause the configured Compound market to reject mint or redeem operations through pause state, market limits, liquidity shortage, or another protocol error, then invoke SoftVault deposit or withdrawal flows that rely on the unchecked operation result.\nAFFECTED NODES: vault_soft, external_compound_market, interface_icer20\nAFFECTED CODE: SoftVault Compound market mint integration, SoftVault Compound market redeem integration\nSEVERITY: high\nREASONING: The architecture explicitly identifies SoftVault as a Compound market integration and the external interface as exposing mint/redeem operations. Compound-style markets commonly return error codes, so every operation must be checked before treating the transfer or position update as successful. Exact source locations were not available in the loaded context.\nSUGGESTED MITIGATION: Check and require a zero/success return code from every Compound mint, redeem, and related market operation before updating accounting or treating the call as successful; use balance-delta checks where appropriate and revert atomically on any mismatch.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "vault_soft",
+        "external_compound_market",
+        "interface_icer20"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies SoftVault as a Compound market integration and the external interface as exposing mint/redeem operations. Compound-style markets commonly return error codes, so every operation must be checked before treating the transfer or position update as successful. Exact source locations were not available in the loaded context.",
+      "mitigation": "Check and require a zero/success return code from every Compound mint, redeem, and related market operation before updating accounting or treating the call as successful; use balance-delta checks where appropriate and revert atomically on any mismatch.",
+      "finding_description": "The SoftVault integrates directly with a Compound-style market whose mint and redeem operations report failures through return codes. If those return values are not explicitly checked, a failed mint can occur after the underlying has been transferred into the vault while the caller or bank continues using the requested amount as successfully deposited collateral. A failed redeem can likewise leave accounting inconsistent with the cToken balance.",
+      "impact": "Deposits may be recorded as collateral without corresponding cTokens, potentially stranding transferred underlying or creating unbacked positions; failed withdrawals can cause denial of service and inconsistent vault accounting.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/vault/SoftVault.sol",
+          "blueberry-core/contracts/interfaces/compound/ICErc20.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:12:45.476844",
+      "id": "hyp_5d3afff3a862",
+      "qa_comment": "Upon reviewing the alleged Compound mint/redeem error-code handling vulnerability in SoftVault.deposit and SoftVault.withdraw, I determined this is a false positive. The implementation explicitly checks the numeric return value of both operations: deposit reverts with Errors.LEND_FAILED(amount) when bToken.mint(...) returns a nonzero error code, while withdraw reverts with Errors.REDEEM_FAILED(shareAmount) when bToken.redeem(...) returns a nonzero code. Deposit additionally measures the vault's bToken balance before and after minting, and withdraw measures the underlying balance before and after redemption; arithmetic underflow causes the transaction to revert if the expected balance movement did not occur. The withdrawal share burn also occurs within the same transaction, so it is atomically reverted if redemption or subsequent processing fails. Consequently, paused markets, liquidity failures, and other Compound-style error returns cannot be silently treated as successful. Although the code does not independently assert an exact expected balance delta, the alleged unchecked-error vulnerability is mitigated by the explicit return-code checks and balance accounting."
+    },
+    "hyp_3ef2f1692825": {
+      "title": "ChainlinkAdapterOracle accepts stale or incomplete feed rounds",
+      "description": "VULNERABILITY TYPE: oracle_integrity\nROOT CAUSE: Missing freshness and round-validity checks on Chainlink round data.\nATTACK VECTOR: An attacker waits for a feed to become stale, then opens, increases, or liquidates positions using the outdated price; if the stale value is favorable, the attacker can extract undercollateralized borrowing or acquire collateral cheaply.\nAFFECTED NODES: oracle_chainlink_adapter, interface_feed_registry, price_feed_chainlink, oracle_core\nAFFECTED CODE: ChainlinkAdapterOracle price retrieval using interface_feed_registry.latestRoundData\nSEVERITY: high\nREASONING: The architecture explicitly notes that BandAdapterOracle checks feed age, while ChainlinkAdapterOracle is only described as using the feed registry and remappings; the registry exposes round timestamps, indicating the adapter has the data needed for freshness validation but does not enforce it.\nSUGGESTED MITIGATION: Require updatedAt to be nonzero and within a configured maximum age, validate answeredInRound is not older than the requested round, and reject invalid or incomplete rounds before converting the answer.",
+      "vulnerability_type": "oracle_integrity",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_chainlink_adapter",
+        "interface_feed_registry",
+        "price_feed_chainlink",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly notes that BandAdapterOracle checks feed age, while ChainlinkAdapterOracle is only described as using the feed registry and remappings; the registry exposes round timestamps, indicating the adapter has the data needed for freshness validation but does not enforce it.",
+      "mitigation": "Require updatedAt to be nonzero and within a configured maximum age, validate answeredInRound is not older than the requested round, and reject invalid or incomplete rounds before converting the answer.",
+      "finding_description": "The adapter reads Chainlink latestRoundData but does not enforce a maximum age or validate round completeness such as updatedAt being nonzero and answeredInRound matching the current round. During a feed outage or delayed update, an old price remains usable by CoreOracle and downstream borrowing or liquidation logic.",
+      "impact": "Stale prices can overvalue collateral or undervalue debt, enabling bad debt, undercollateralized loans, or unfair liquidations across all routes using the adapter.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/chainlink/IFeedRegistry.sol",
+          "blueberry-core/contracts/oracle/ChainlinkAdapterOracle.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:13:36.874442",
+      "id": "hyp_3ef2f1692825",
+      "qa_comment": "Upon reviewing the alleged oracle-integrity vulnerability in ChainlinkAdapterOracle.getPrice, I determined that the central stale-price claim is a false positive. The function obtains updatedAt from registry.latestRoundData and enforces freshness through `if (updatedAt < block.timestamp - maxDelayTime) revert Errors.PRICE_OUTDATED(token_)`; it also requires a configured nonzero time gap and rejects nonpositive answers before conversion. Consequently, an ordinarily stale feed, including one with updatedAt equal to zero, will be rejected rather than used for borrowing, collateral valuation, or liquidation. The implementation does not explicitly validate answeredInRound against roundId, so it lacks a defense-in-depth round-consistency check. However, the supplied code does not establish a practical attacker-controlled path to cause the trusted Chainlink registry to return a positive, freshly timestamped but invalid round, and omitting that check alone does not demonstrate exploitable stale data. Additional validation could improve robustness, but the stated high-severity missing-freshness vulnerability is not supported by the actual implementation."
+    },
+    "hyp_2411b0924985": {
+      "title": "Negative Chainlink answers can become enormous unsigned prices",
+      "description": "VULNERABILITY TYPE: oracle_integrity\nROOT CAUSE: Unchecked signed feed answer is cast to uint256 before validating that it is positive.\nATTACK VECTOR: A malformed, misconfigured, or compromised feed returns a negative answer. The adapter converts it to a near-maximum uint256 price, and a borrower can use the inflated valuation to obtain excessive debt or avoid liquidation.\nAFFECTED NODES: oracle_chainlink_adapter, interface_feed_registry, price_feed_chainlink, oracle_core\nAFFECTED CODE: ChainlinkAdapterOracle price conversion from int256 feed answer to uint256\nSEVERITY: high\nREASONING: The feed interface returns a signed int256 answer and the architecture only records that CoreOracle rejects zero prices; zero rejection does not prevent a negative value from being converted into a large unsigned integer. Explicit positivity validation is therefore required at the adapter boundary.\nSUGGESTED MITIGATION: Reject answers less than or equal to zero before any integer conversion, and perform decimal scaling only after the positivity and range checks.",
+      "vulnerability_type": "oracle_integrity",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_chainlink_adapter",
+        "interface_feed_registry",
+        "price_feed_chainlink",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "The feed interface returns a signed int256 answer and the architecture only records that CoreOracle rejects zero prices; zero rejection does not prevent a negative value from being converted into a large unsigned integer. Explicit positivity validation is therefore required at the adapter boundary.",
+      "mitigation": "Reject answers less than or equal to zero before any integer conversion, and perform decimal scaling only after the positivity and range checks.",
+      "finding_description": "Chainlink answers are signed int256 values, but the adapter's price conversion path does not document or enforce answer > 0 before converting the result to uint256. A negative answer would wrap into a very large unsigned value, which can pass the core oracle's zero-price rejection and grossly overvalue the asset.",
+      "impact": "Assets can be assigned an astronomically inflated price, allowing materially undercollateralized borrowing and potentially causing protocol-wide bad debt for markets using that feed.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/chainlink/IFeedRegistry.sol",
+          "blueberry-core/contracts/oracle/ChainlinkAdapterOracle.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:13:40.430608",
+      "id": "hyp_2411b0924985",
+      "qa_comment": "Upon reviewing the alleged oracle integrity vulnerability in ChainlinkAdapterOracle.getPrice, I determined this is a false positive. The adapter retrieves the signed Chainlink value through registry.latestRoundData(token, USD), then explicitly evaluates `if (answer <= 0) revert Errors.PRICE_NEGATIVE(token_);` before invoking `answer.toUint256()`. Consequently, any negative answer, including the minimum int256 value, causes the call to revert and cannot be converted into a large unsigned price. The SafeCast library provides an additional conversion safeguard, although the explicit positivity check is the decisive protection. CoreOracle._getPrice also rejects a resulting zero price, but that check is not relied upon for negative-answer handling because validation occurs at the adapter boundary. The remaining arithmetic performs decimal scaling only after the signed value has been validated. Based on the supplied implementation, there is no exploitable path by which a negative Chainlink answer becomes an inflated uint256 price. A separate review could assess stale-round or arithmetic edge cases, but they do not substantiate this specific hypothesis."
+    },
+    "hyp_557fc3bd6a2c": {
+      "title": "Unbounded Chainlink feed decimals can distort or disable price conversion",
+      "description": "VULNERABILITY TYPE: oracle_integrity\nROOT CAUSE: Feed-provided decimal metadata is used for price scaling without an explicit range and result validation.\nATTACK VECTOR: A registry entry points to a feed returning an extreme or unsupported decimals value. Price conversion reverts or yields an invalid normalized value, disrupting or corrupting downstream oracle-dependent operations.\nAFFECTED NODES: oracle_chainlink_adapter, interface_feed_registry, price_feed_chainlink, oracle_core\nAFFECTED CODE: ChainlinkAdapterOracle price conversion using feed decimals from interface_feed_registry\nSEVERITY: medium\nREASONING: The architecture identifies feed decimals as an input to ChainlinkAdapterOracle price conversion, while the available evidence does not show a supported-range check or safe handling for unusual decimal values. This is distinct from stale-round and negative-answer validation failures.\nSUGGESTED MITIGATION: Validate feed decimals against an explicit supported range before exponentiation and normalize using checked arithmetic with separate branches for decimals above and below 18. Reject unsupported feeds or scaling results that overflow, underflow, or round to zero.",
+      "vulnerability_type": "oracle_integrity",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "oracle_chainlink_adapter",
+        "interface_feed_registry",
+        "price_feed_chainlink",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies feed decimals as an input to ChainlinkAdapterOracle price conversion, while the available evidence does not show a supported-range check or safe handling for unusual decimal values. This is distinct from stale-round and negative-answer validation failures.",
+      "mitigation": "Validate feed decimals against an explicit supported range before exponentiation and normalize using checked arithmetic with separate branches for decimals above and below 18. Reject unsupported feeds or scaling results that overflow, underflow, or round to zero.",
+      "finding_description": "The adapter relies on feed-provided decimals when normalizing the signed answer to an 18-decimal price, but no bounded-decimal validation is documented. An improperly configured or nonstandard registry feed can return an excessively large decimals value, causing exponentiation or scaling to revert; high-decimal feeds can also produce materially rounded or zero prices.",
+      "impact": "A malformed feed can make the Chainlink route revert and block borrowing, liquidation, or valuation operations; unsafe normalization can also produce incorrect collateral prices and cause undercollateralized positions or unfair liquidations.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/chainlink/IFeedRegistry.sol",
+          "blueberry-core/contracts/oracle/ChainlinkAdapterOracle.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:14:07.450087",
+      "id": "hyp_557fc3bd6a2c",
+      "qa_comment": "After analyzing ChainlinkAdapterOracle.getPrice, I confirmed that feed-provided decimals are used without an explicit supported-range or result-validity check. The function retrieves uint8 decimals through registry.decimals(token, USD), obtains the answer, and then evaluates (answer.toUint256() * Constants.PRICE_PRECISION) / 10 ** decimals. Because decimals can range up to 255, values of approximately 78 or greater cause 10 ** decimals to overflow under Solidity 0.8 checked arithmetic, reverting every price request for the affected token. More generally, unusual metadata can produce unsupported scaling behavior, while multiplication may independently overflow for sufficiently large answers. The positive-answer and freshness checks do not protect the exponentiation or multiplication, and CoreOracle merely propagates the revert through _getPrice (although isTokenSupported catches it). Exploitation requires a registry/feed configuration capable of returning malicious or erroneous decimals, generally through the owner-controlled registry or a compromised/misconfigured upstream component, so this is primarily an oracle availability and integrity risk rather than a permissionless attack."
+    },
+    "hyp_6602baa69112": {
+      "title": "CurveSpell reward swaps allow zero minimum output and are sandwichable",
+      "description": "VULNERABILITY TYPE: slippage_manipulation\nROOT CAUSE: The reward-sale path does not enforce a caller- or oracle-derived minimum acceptable output for the router swap.\nATTACK VECTOR: An attacker monitors a CurveSpell harvest or close transaction, trades against the reward/token pool immediately before it executes, lets the swap clear at the manipulated price because minimum output is zero, and reverses the trade afterward.\nAFFECTED NODES: spell_curve, interface_uniswap_v2_router, external_uniswap, token_rewards\nAFFECTED CODE: CurveSpell reward harvesting and reward-token swap flow, CurveSpell -> Uniswap V2 router call\nSEVERITY: high\nREASONING: The architecture explicitly identifies CurveSpell as having a zero-minimum reward swap and shows a direct dependency on the Uniswap V2 router. A zero minimum output provides no execution-price protection against permissionless mempool manipulation.\nSUGGESTED MITIGATION: Require a nonzero minimum output computed from a trusted quote with a bounded slippage tolerance, or use a protected execution mechanism such as a deadline plus validated oracle/TWAP pricing; reject swaps whose output is below the bound and ensure the bound cannot be attacker-controlled without validation.",
+      "vulnerability_type": "slippage_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "spell_curve",
+        "interface_uniswap_v2_router",
+        "external_uniswap",
+        "token_rewards"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies CurveSpell as having a zero-minimum reward swap and shows a direct dependency on the Uniswap V2 router. A zero minimum output provides no execution-price protection against permissionless mempool manipulation.",
+      "mitigation": "Require a nonzero minimum output computed from a trusted quote with a bounded slippage tolerance, or use a protected execution mechanism such as a deadline plus validated oracle/TWAP pricing; reject swaps whose output is below the bound and ensure the bound cannot be attacker-controlled without validation.",
+      "finding_description": "CurveSpell is marked as performing reward swaps with a zero minimum output. When harvested CRV or other gauge rewards are sold through the Uniswap V2 router without an effective amountOutMin bound, an attacker can front-run and back-run the swap, moving the pool price and forcing the spell to accept a severely unfavorable execution price.",
+      "impact": "Harvested rewards can be exchanged for substantially less debt-repayment or collateral value than intended, causing direct losses to the leveraged position and potentially impairing solvency when the reward value is relied on to repay debt.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/wrapper/WAuraPools.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/spell/CurveSpell.sol",
+          "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "blueberry-core/contracts/wrapper/WConvexPools.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:14:42.908769",
+      "id": "hyp_6602baa69112",
+      "qa_comment": "Upon reviewing the closePositionFarm function in CurveSpell, I confirmed that the reward-token swap lacks execution-price protection. After burning the wrapped gauge position, the function calculates rewards with _doCutRewardsFee(CRV), approves the caller-supplied swapRouter, and invokes swapExactTokensForTokens(rewards, 0, swapPath, address(this), type(uint256).max). The amountOutMin argument is explicitly zero, and the deadline is effectively unlimited. Consequently, a pending close transaction can be observed and preceded by trades that worsen the CRV-to-debt-token exchange rate; the router will still execute provided it returns any amount, with no oracle, TWAP, quoted minimum, or caller-signed slippage bound checked by CurveSpell. The swapRouter and swapPath are also supplied by the caller and are not validated in this function, increasing configuration and routing risk. Although downstream repayment may cause a manipulated transaction to revert if insufficient output is received, successful transactions can still execute at materially unfavorable prices, transferring value from the position to the sandwich attacker. The cited oracle contracts do not participate in this swap validation."
+    },
+    "hyp_24b8867d8ad2": {
+      "title": "AuraSpell reward swaps may be executable with zero or caller-controlled slippage protection",
+      "description": "VULNERABILITY TYPE: slippage_manipulation\nROOT CAUSE: Missing or insufficient validation of Uniswap swap minimum-output and deadline parameters in AuraSpell.\nATTACK VECTOR: An attacker observes a pending AuraSpell transaction, manipulates the relevant pool, sandwiches the swap, and restores the price after execution.\nAFFECTED NODES: spell_aura, external_uniswap\nAFFECTED CODE: AuraSpell Uniswap swap integration\nSEVERITY: high\nREASONING: The architecture explicitly records AuraSpell's direct dependency on external Uniswap, while no oracle or slippage-control component is shown for AuraSpell. This is a separate integration surface from the already reported CurveSpell issue, but requires confirmation in the source that minimum output or deadline checks are absent or caller-controlled.\nSUGGESTED MITIGATION: Require a nonzero, position-appropriate minimum output and a short user-specified deadline; validate swap paths and reject unsafe parameters before invoking Uniswap.",
+      "vulnerability_type": "slippage_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "spell_aura",
+        "external_uniswap"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records AuraSpell's direct dependency on external Uniswap, while no oracle or slippage-control component is shown for AuraSpell. This is a separate integration surface from the already reported CurveSpell issue, but requires confirmation in the source that minimum output or deadline checks are absent or caller-controlled.",
+      "mitigation": "Require a nonzero, position-appropriate minimum output and a short user-specified deadline; validate swap paths and reject unsafe parameters before invoking Uniswap.",
+      "finding_description": "AuraSpell integrates directly with Uniswap for token conversions, but the available component context does not establish a nonzero minimum output or a bounded deadline for those swaps. If its swap parameters permit zero minimum output or an attacker-controlled path, a searcher can sandwich the transaction and force the spell to accept severely unfavorable execution.",
+      "impact": "Reward or collateral tokens can be exchanged at a heavily manipulated rate, causing direct value loss for the position or reducing users' received proceeds.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/spell/AuraSpell.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:15:19.683639",
+      "id": "hyp_24b8867d8ad2",
+      "qa_comment": "Upon reviewing the closePositionFarm function in AuraSpell, I confirmed the alleged slippage-manipulation vulnerability. For every harvested reward token, the contract calls swapRouter.swapExactTokensForTokens with the full reward balance, an amountOutMin of 0, the caller-supplied swapPath[i], address(this) as recipient, and type(uint256).max as the deadline. Consequently, any amount of output, including an economically worthless amount, satisfies the swap, and the transaction remains executable indefinitely rather than being constrained to a short user-selected validity window. No oracle comparison, minimum-output validation, path validation, router allowlist, or deadline check is performed before the external swap. Although subsequent repayment and LTV validation may cause the overall transaction to revert if insufficient assets are received, these checks do not provide price protection and cannot prevent a sandwich when the resulting output remains sufficient for execution. A pending closePositionFarm transaction using a legitimate router can therefore be front-run and back-run to manipulate pool pricing, causing the spell to accept materially worse reward conversions."
+    },
+    "hyp_8729bf581d20": {
+      "title": "Convex LP collateral valuation relies on manipulable Curve virtual price",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: ConvexSpell trusts CurveOracle pricing that is derived from an external Curve virtual-price value without evidence of independent manipulation resistance or bounded-change validation.\nATTACK VECTOR: Manipulate the relevant Curve pool state or LP accounting, then call the ConvexSpell open-position path while the CurveOracle reports an inflated LP value and borrow more than the collateral can safely support.\nAFFECTED NODES: spell_convex, interface_curve_oracle, oracle_curve, external_curve\nAFFECTED CODE: spell_convex: collateral valuation and position opening, oracle_curve: Curve LP price retrieval, external_curve: virtual-price getter\nSEVERITY: high\nREASONING: The architecture explicitly identifies ConvexSpell's Curve oracle dependency and the Curve external protocol exposes virtual-price data. The exploitability depends on the exact CurveOracle implementation and the supported pool types, which are not included in the loaded source.\nSUGGESTED MITIGATION: Use a robust, bounded LP valuation with freshness and deviation checks; validate that the configured Curve pool and LP token correspond to the Convex market; apply conservative collateral factors and reject abnormal virtual-price changes before allowing borrowing.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "spell_convex",
+        "interface_curve_oracle",
+        "oracle_curve",
+        "external_curve"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies ConvexSpell's Curve oracle dependency and the Curve external protocol exposes virtual-price data. The exploitability depends on the exact CurveOracle implementation and the supported pool types, which are not included in the loaded source.",
+      "mitigation": "Use a robust, bounded LP valuation with freshness and deviation checks; validate that the configured Curve pool and LP token correspond to the Convex market; apply conservative collateral factors and reject abnormal virtual-price changes before allowing borrowing.",
+      "finding_description": "ConvexSpell depends on CurveOracle for LP collateral valuation, while the Curve oracle uses the external Curve pool's virtual-price getter. For pools where virtual price is derived from pool balances and total LP supply without an independent time-weighted or bounded valuation, an attacker may distort the reported LP value through pool-state manipulation or donations before opening a leveraged position.",
+      "impact": "The attacker may obtain excessive borrowing against overvalued Convex/Curve LP collateral, creating undercollateralized debt and losses for the BlueBerryBank when the manipulated valuation normalizes.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/curve/ILiquidityGauge.sol",
+          "blueberry-core/contracts/spell/ConvexSpell.sol",
+          "blueberry-core/contracts/oracle/CurveOracle.sol",
+          "blueberry-core/contracts/interfaces/ICurveOracle.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurvePool.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveRegistry.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:16:19.008835",
+      "id": "hyp_8729bf581d20"
+    },
+    "hyp_d8b1a24e2b54": {
+      "title": "WAuraPools burn can capture rewards accrued for other users",
+      "description": "VULNERABILITY TYPE: funds_redirect\nROOT CAUSE: The wrapper treats pooled Aura rewards as belonging to the caller performing burn rather than tracking and distributing rewards according to each position's share and accrual interval.\nATTACK VECTOR: Deposit or wait until the wrapper has accumulated rewards, then burn a small position (or use an approved operator account) to trigger Aura reward claiming and receive the wrapper's aggregate claimed rewards.\nAFFECTED NODES: wrapper_waura_pools, external_aura, token_rewards, interface_waura_pools\nAFFECTED CODE: WAuraPools burn/withdraw flow, Aura rewarder claim path invoked during burn\nSEVERITY: high\nREASONING: The architecture explicitly records that WAuraPools claims the rewarder on burn and wraps LP tokens through a shared external Aura integration. Without evidence of per-user reward checkpoints or proportional reward settlement in the loaded context, an individual burn-triggered claim is a likely cross-user reward allocation flaw; this is distinct from the existing initialization finding.\nSUGGESTED MITIGATION: Do not attribute aggregate rewarder claims directly to the burner. Maintain per-position reward debt/checkpoints and distribute only the amount attributable to the redeemed shares, or isolate each user's Aura stake; ensure ERC1155 operator-initiated burns pay rewards to the position owner rather than the operator.",
+      "vulnerability_type": "funds_redirect",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "wrapper_waura_pools",
+        "external_aura",
+        "token_rewards",
+        "interface_waura_pools"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records that WAuraPools claims the rewarder on burn and wraps LP tokens through a shared external Aura integration. Without evidence of per-user reward checkpoints or proportional reward settlement in the loaded context, an individual burn-triggered claim is a likely cross-user reward allocation flaw; this is distinct from the existing initialization finding.",
+      "mitigation": "Do not attribute aggregate rewarder claims directly to the burner. Maintain per-position reward debt/checkpoints and distribute only the amount attributable to the redeemed shares, or isolate each user's Aura stake; ensure ERC1155 operator-initiated burns pay rewards to the position owner rather than the operator.",
+      "finding_description": "WAuraPools aggregates users' LP deposits in the same Aura pool, but the burn path claims the Aura rewarder while processing an individual user's withdrawal. If claimed rewards are transferred to the burn caller without per-user reward accounting, the caller receives rewards generated by other users' still-active positions. An approved ERC1155 operator may also trigger this outcome for a holder.",
+      "impact": "A user can drain rewards attributable to other WAuraPools depositors, causing direct loss of CRV/AURA or other Aura reward tokens and unequal redemption outcomes.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/wrapper/WConvexPools.sol",
+          "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "blueberry-core/contracts/wrapper/WAuraPools.sol",
+          "blueberry-core/contracts/interfaces/IWAuraPools.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:16:49.971073",
+      "id": "hyp_d8b1a24e2b54",
+      "qa_comment": "Upon reviewing WAuraPools.mint, burn, and pendingRewards, I determined that the alleged funds-redirection vulnerability is not demonstrated by the provided implementation. Although burn calls IAuraRewarder(balRewarder).withdraw(amount, true), the rewarder claim is made for the wrapper's aggregate stake, not automatically paid to the burner. The subsequently invoked pendingRewards(id, amount) calculates rewards using the token ID's encoded reward-per-token checkpoint and the per-token extra-reward checkpoints stored in accExtPerShare during mint. It transfers only the amount attributable to the burned position; any additional rewards claimed for other positions remain in the wrapper for later burns. The same accounting pattern exists in WConvexPools. Furthermore, burn invokes _burn(msg.sender, id, amount), so an approved ERC1155 operator cannot burn another holder's position through this function because the owner argument is always msg.sender. The code may have rounding or design-accounting considerations, but it does not clearly allow a small burner to capture aggregate rewards belonging to other users."
+    },
+    "hyp_682aad70215c": {
+      "title": "WIchiFarm burn can redirect rewards accrued for unrelated positions",
+      "description": "VULNERABILITY TYPE: funds_redirect\nROOT CAUSE: Rewards are accounted at the wrapper or farm aggregate level rather than being attributed to the specific ERC1155 position being burned.\nATTACK VECTOR: An attacker mints or acquires a minimal WIchiFarm ERC1155 position, waits for rewards to accumulate from other positions, then burns the minimal balance to trigger withdrawal/harvest and receives the aggregate reward balance.\nAFFECTED NODES: wrapper_wichi_farm, interface_wichi_farm, external_ichi, token_rewards\nAFFECTED CODE: WIchiFarm mint/burn position wrapping and external ICHI farm withdrawal flow\nSEVERITY: high\nREASONING: The architecture identifies WIchiFarm as an ERC1155 position wrapper around an external farm deposit/withdraw flow. Such wrappers must isolate harvested rewards per position; no position-level reward accounting is represented in the loaded component context. This is a distinct WIchiFarm finding and should be confirmed against the burn implementation and reward-token transfers.\nSUGGESTED MITIGATION: Track each position's principal and reward entitlement independently, or distribute only the reward delta attributable to the burned position. Do not transfer the wrapper's entire reward-token balance to the caller of burn; add tests covering multiple users with unequal deposit times and partial burns.",
+      "vulnerability_type": "funds_redirect",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "wrapper_wichi_farm",
+        "interface_wichi_farm",
+        "external_ichi",
+        "token_rewards"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies WIchiFarm as an ERC1155 position wrapper around an external farm deposit/withdraw flow. Such wrappers must isolate harvested rewards per position; no position-level reward accounting is represented in the loaded component context. This is a distinct WIchiFarm finding and should be confirmed against the burn implementation and reward-token transfers.",
+      "mitigation": "Track each position's principal and reward entitlement independently, or distribute only the reward delta attributable to the burned position. Do not transfer the wrapper's entire reward-token balance to the caller of burn; add tests covering multiple users with unequal deposit times and partial burns.",
+      "finding_description": "The WIchiFarm wrapper represents farm positions as ERC1155 balances, while burn executes the external ICHI farm withdrawal flow. If that withdrawal harvests rewards at the wrapper level and the implementation transfers the wrapper's accumulated reward balance to the burner without position-specific accounting, a user can burn a small position and receive rewards accrued by other users' positions.",
+      "impact": "The attacker can drain rewards belonging to other WIchiFarm users, causing direct loss of reward tokens and incorrect accounting for remaining positions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/wrapper/WAuraPools.sol",
+          "blueberry-core/contracts/interfaces/IWIchiFarm.sol",
+          "blueberry-core/contracts/interfaces/ichi/IICHIVault.sol",
+          "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "blueberry-core/contracts/wrapper/WIchiFarm.sol",
+          "blueberry-core/contracts/interfaces/ichi/IIchiFarm.sol",
+          "blueberry-core/contracts/wrapper/WConvexPools.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:17:36.105273",
+      "id": "hyp_682aad70215c",
+      "qa_comment": "Upon reviewing the alleged funds-redirect vulnerability in WIchiFarm.burn and pendingRewards, I determined this is a false positive. Although ichiFarm.pendingIchi(pid, address(this)) and harvest(pid, address(this)) operate on the wrapper\u2019s aggregate external-farm position, the amount transferred to the burner is not the aggregate harvested balance. Each ERC1155 token ID embeds the accIchiPerShare value recorded at mint, and pendingRewards calculates only the difference between the current pool accumulator and that stored snapshot, multiplied by the burned amount. WIchiFarm.burn then transfers exactly this position-specific result, while any excess ICHI harvested for other positions remains in the wrapper for their later claims. The _burn(msg.sender, id, amount) check also requires the caller to own the specified position and amount. Consequently, minting a minimal position does not grant access to rewards accrued before its snapshot or to rewards belonging to unrelated IDs. The aggregate harvest is therefore an implementation detail, not evidence of reward redirection, absent a separate flaw in the external ICHI farm\u2019s accumulator accounting."
+    },
+    "hyp_2d360559a6aa": {
+      "title": "ShortLongSpell Paraswap execution permits insufficient-output swaps",
+      "description": "VULNERABILITY TYPE: slippage_manipulation\nROOT CAUSE: Paraswap route execution is trusted without an independently enforced minimum-output and freshness constraint at the ShortLongSpell boundary.\nATTACK VECTOR: Submit or front-run a ShortLongSpell operation with permissive Paraswap calldata or an insufficient minimum-output value; manipulate the quoted execution price before the swap is mined so collateral is sold for substantially less than expected.\nAFFECTED NODES: spell_shortlong, library_paraswap, interface_paraswap, external_paraswap\nAFFECTED CODE: ShortLongSpell Paraswap routing and swap execution, PSwapLib Paraswap call construction and execution\nSEVERITY: high\nREASONING: The architecture identifies ShortLongSpell as Paraswap-routed and separately records caller-controlled Paraswap parameters. Existing findings cover beneficiary and token-transfer-proxy authorization, but do not cover insufficient-output or stale-route protection. The concrete exploitability depends on whether the loaded implementation validates minAmountOut and deadline values before invoking Paraswap.\nSUGGESTED MITIGATION: Require a caller-supplied minimum output that is checked against the actual Paraswap result, reject zero or otherwise unbounded minimums where appropriate, validate the source token, destination token, and input amount against the operation, and require a bounded deadline or equivalent freshness condition. Independently verify returned balances before finalizing position accounting.",
+      "vulnerability_type": "slippage_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "spell_shortlong",
+        "library_paraswap",
+        "interface_paraswap",
+        "external_paraswap"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies ShortLongSpell as Paraswap-routed and separately records caller-controlled Paraswap parameters. Existing findings cover beneficiary and token-transfer-proxy authorization, but do not cover insufficient-output or stale-route protection. The concrete exploitability depends on whether the loaded implementation validates minAmountOut and deadline values before invoking Paraswap.",
+      "mitigation": "Require a caller-supplied minimum output that is checked against the actual Paraswap result, reject zero or otherwise unbounded minimums where appropriate, validate the source token, destination token, and input amount against the operation, and require a bounded deadline or equivalent freshness condition. Independently verify returned balances before finalizing position accounting.",
+      "finding_description": "ShortLongSpell delegates asset conversion to Paraswap, but the available component evidence does not show enforcement of a protocol-level minimum output, deadline, or route-price bound. A caller or a transaction manipulator can therefore cause the spell to execute a materially underpriced swap, including a zero-minimum route, while the resulting position or repayment accounting proceeds with the reduced output.",
+      "impact": "Collateral or borrowed assets can be exchanged at a severe discount, reducing position value and potentially causing user losses, undercollateralized positions, or protocol bad debt.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "blueberry-core/contracts/spell/ShortLongSpell.sol",
+          "blueberry-core/contracts/libraries/Paraswap/Utils.sol",
+          "blueberry-core/contracts/interfaces/paraswap/IParaswap.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:18:04.379556",
+      "id": "hyp_2d360559a6aa",
+      "qa_comment": "Upon reviewing ShortLongSpell.openPosition, _deposit, closePosition, and _withdraw, I confirmed that the boundary does not independently enforce a meaningful minimum output or freshness constraint. openPosition validates only that swapData.fromToken matches the borrow token and that the strategy token is correct; it does not constrain swapData.fromAmount, toAmount, expectedAmount, or deadline. _deposit relies on Paraswap's caller-controlled toAmount and separately checks the received balance against the equally caller-controlled expectedAmount, allowing both values to be zero or otherwise permissive. In the close path, _withdraw invokes PSwapLib.megaSwap without checking the returned amount or comparing received tokens against expectedAmount, while sellSlippage is only bounded against configuration and is not connected to swapData. PSwapLib merely approves data.fromAmount and forwards the entire structure to Augustus, providing no validation. Consequently, a transaction submitted with a permissive minimum can execute after adverse price movement and accept substantially less output; the source shows no independent protection against this route."
+    },
+    "hyp_c110e51a3107": {
+      "title": "Externally Mutable Curve Address Provider Can Replace the Trusted Registry",
+      "description": "VULNERABILITY TYPE: oracle_integrity\nROOT CAUSE: The oracle trust boundary includes an externally controlled address-provider/registry resolution path, with no evidence of registry identity pinning or validation of the returned implementation.\nATTACK VECTOR: An attacker who compromises or controls the relevant Curve address-provider governance changes the registry returned to CurveOracle, or supplies a malicious registry in an improperly configured deployment. Subsequent LP-token price requests return attacker-selected pool mappings or virtual prices.\nAFFECTED NODES: oracle_curve, interface_curve_address_provider, interface_curve_registry, external_curve, oracle_core\nAFFECTED CODE: CurveOracle: address-provider and registry based LP-token price resolution, CurveAddressProvider: registry lookup consumed by CurveOracle\nSEVERITY: high\nREASONING: The architecture explicitly identifies both the Curve registry and address provider as CurveOracle dependencies, while no evidence is provided that the resolved registry is pinned, code-checked, or otherwise constrained. This is distinct from ordinary spot-price manipulation because it permits replacement of the oracle data source itself.\nSUGGESTED MITIGATION: Pin a vetted registry address at deployment where possible, or restrict and timelock any provider changes. Validate the resolved registry against an allowlist and verify expected code/interface behavior before accepting prices; add monitoring and emergency pause controls for registry changes.",
+      "vulnerability_type": "oracle_integrity",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "oracle_curve",
+        "interface_curve_address_provider",
+        "interface_curve_registry",
+        "external_curve",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies both the Curve registry and address provider as CurveOracle dependencies, while no evidence is provided that the resolved registry is pinned, code-checked, or otherwise constrained. This is distinct from ordinary spot-price manipulation because it permits replacement of the oracle data source itself.",
+      "mitigation": "Pin a vetted registry address at deployment where possible, or restrict and timelock any provider changes. Validate the resolved registry against an allowlist and verify expected code/interface behavior before accepting prices; add monitoring and emergency pause controls for registry changes.",
+      "finding_description": "CurveOracle depends on a Curve address provider and registry rather than a self-contained, immutable registry implementation. If the configured address provider can be upgraded or otherwise returns a different registry, CurveOracle will trust the replacement registry's pool mappings and virtual-price responses without independently authenticating or validating them.",
+      "impact": "Collateral LP tokens can be materially overvalued, allowing excessive borrowing, or undervalued, causing wrongful liquidations; a malicious registry can also make all Curve-backed price requests return arbitrary values or revert.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/curve/ICurveAddressProvider.sol",
+          "blueberry-core/contracts/interfaces/curve/ILiquidityGauge.sol",
+          "blueberry-core/contracts/oracle/CurveOracle.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurvePool.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveRegistry.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:19:13.416453",
+      "id": "hyp_c110e51a3107",
+      "qa_comment": "Upon reviewing the CurveOracle constructor and _getPoolInfo function, I confirmed that the oracle trusts dynamically resolved Curve registry addresses without validating their identity or implementation. Although addressProvider is immutable, its get_registry(), get_address(5), and get_address(7) results are queried on every price request, so an address-provider administrator or a misconfigured deployment can redirect resolution to an arbitrary contract. CurveOracle then immediately invokes get_pool_from_lp_token, get_n_coins, get_coins, and get_virtual_price_from_lp_token on that returned address. The only substantive guard is whether the reported pool is nonzero; there is no allowlist, code-hash check, expected-provider validation, or verification that the pool and LP token correspond. A malicious registry can therefore select attacker-controlled underlying tokens and virtual prices, and getPrice subsequently trusts those values when calculating LP prices. CoreOracle only checks that the configured route returns a nonzero value and does not mitigate this dependency. Exploitation requires control or compromise of the provider\u2019s administration, or an incorrectly configured provider, but the code provides no protection once that condition exists."
+    },
+    "hyp_ff270b50ed91": {
+      "title": "Curve LP Price Resolution Lacks Defensive Validation of Registry Pool and Price Responses",
+      "description": "VULNERABILITY TYPE: input_validation\nROOT CAUSE: External Curve lookup results are trusted without demonstrated validation of pool identity, supported pool structure, nonzero addresses, and sane virtual-price bounds.\nATTACK VECTOR: A malformed, upgraded, or incompatible Curve registry returns zero addresses, an unrelated pool, or an invalid virtual price for a queried token. A caller then triggers the affected price path during borrowing, liquidation, or health checks.\nAFFECTED NODES: oracle_curve, interface_curve_registry, interface_curve_address_provider, oracle_core, spell_convex\nAFFECTED CODE: CurveOracle: external registry pool lookup and virtual-price consumption, CoreOracle: routed Curve price retrieval\nSEVERITY: medium\nREASONING: The available architecture confirms that CurveOracle obtains pricing data through external registry and address-provider interfaces, but does not show validation guarantees for those responses. The issue is conditional on the implementation accepting lookup results without checks and is therefore lower confidence without source lines.\nSUGGESTED MITIGATION: Require nonzero pool and underlying-token addresses, verify that the registry maps the queried LP token to the resolved pool, reject unsupported pool layouts, enforce sane nonzero virtual-price bounds, and fail closed with an explicit supported-token allowlist.",
+      "vulnerability_type": "input_validation",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_curve",
+        "interface_curve_registry",
+        "interface_curve_address_provider",
+        "oracle_core",
+        "spell_convex"
+      ],
+      "evidence": [],
+      "reasoning": "The available architecture confirms that CurveOracle obtains pricing data through external registry and address-provider interfaces, but does not show validation guarantees for those responses. The issue is conditional on the implementation accepting lookup results without checks and is therefore lower confidence without source lines.",
+      "mitigation": "Require nonzero pool and underlying-token addresses, verify that the registry maps the queried LP token to the resolved pool, reject unsupported pool layouts, enforce sane nonzero virtual-price bounds, and fail closed with an explicit supported-token allowlist.",
+      "finding_description": "CurveOracle relies on external registry/address-provider calls to resolve an LP token's pool and obtain its virtual price. Without explicit checks that the returned pool, underlying coins, and virtual price are nonzero and correspond to the requested LP token, malformed or unsupported registry responses can be treated as valid oracle data or propagate an exception through CoreOracle.",
+      "impact": "The protocol may assign an invalid price to Curve LP collateral, accept unsafe collateral valuations, or make Curve-backed positions and liquidation operations revert, potentially freezing affected markets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/curve/ICurveAddressProvider.sol",
+          "blueberry-core/contracts/spell/ConvexSpell.sol",
+          "blueberry-core/contracts/oracle/CurveOracle.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol",
+          "blueberry-core/contracts/interfaces/curve/ICurveRegistry.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:19:13.447057",
+      "id": "hyp_ff270b50ed91"
+    },
+    "hyp_ffe43cdd6c64": {
+      "title": "Future oracle timestamps can revert BaseAdapter freshness checks and disable dependent pricing",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The freshness check does not defensively handle timestamps greater than the current block timestamp before performing timestamp subtraction.\nATTACK VECTOR: A configured Band, Chainlink-compatible, or other adapter source returns a future update timestamp due to malicious behavior, bad configuration, or feed malfunction; callers of the adapter then encounter consistent reverts.\nAFFECTED NODES: oracle_base_adapter, oracle_band_adapter, oracle_chainlink_adapter, oracle_univ3_adapter\nAFFECTED CODE: BaseAdapter time-gap validation and dependent adapter price reads\nSEVERITY: medium\nREASONING: The architecture identifies BaseAdapter as the shared component enforcing bounded time gaps, while its dependent adapters consume externally supplied timestamps. Without an explicit future-timestamp guard, Solidity timestamp subtraction can revert on future values.\nSUGGESTED MITIGATION: Check updatedAt <= block.timestamp before subtraction and reject future timestamps with a dedicated validation error. Keep the freshness check fail-closed while ensuring malformed timestamps cannot trigger an unintended arithmetic panic.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_base_adapter",
+        "oracle_band_adapter",
+        "oracle_chainlink_adapter",
+        "oracle_univ3_adapter"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies BaseAdapter as the shared component enforcing bounded time gaps, while its dependent adapters consume externally supplied timestamps. Without an explicit future-timestamp guard, Solidity timestamp subtraction can revert on future values.",
+      "mitigation": "Check updatedAt <= block.timestamp before subtraction and reject future timestamps with a dedicated validation error. Keep the freshness check fail-closed while ensuring malformed timestamps cannot trigger an unintended arithmetic panic.",
+      "finding_description": "BaseAdapter performs bounded time-gap validation using an oracle-provided timestamp. If a configured feed returns a timestamp later than block.timestamp, subtracting the future timestamp from block.timestamp under Solidity 0.8 arithmetic reverts before the freshness condition can complete. Any adapter call relying on BaseAdapter can therefore revert until the source timestamp is corrected.",
+      "impact": "Oracle-dependent borrowing, liquidation, collateral valuation, and position-management operations can be blocked, potentially causing protocol-wide denial of service for assets using the affected adapter.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/oracle/ChainlinkAdapterOracle.sol",
+          "blueberry-core/contracts/oracle/BaseAdapter.sol",
+          "blueberry-core/contracts/oracle/BandAdapterOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:20:59.627677",
+      "id": "hyp_ffe43cdd6c64",
+      "qa_comment": "Upon reviewing the alleged future-timestamp availability vulnerability in BaseAdapter and the adapter getPrice functions, I determined this is a false positive. BaseAdapter itself performs no timestamp arithmetic; it only validates configured time gaps. In ChainlinkAdapterOracle.getPrice, the freshness condition is `updatedAt < block.timestamp - maxDelayTime`, so a future `updatedAt` does not participate in subtraction and therefore cannot trigger an arithmetic underflow or revert. Instead, the future timestamp would satisfy the freshness check and potentially be accepted, representing a possible data-integrity concern rather than the claimed availability issue. BandAdapterOracle.getPrice uses the same pattern for `lastUpdatedBase` and `lastUpdatedQuote`, with no subtraction involving those externally supplied timestamps. UniswapV3AdapterOracle.getPrice does not consume an external update timestamp or perform the alleged freshness check; it only converts the configured gap and queries the Uniswap pool. The only theoretical subtraction risk is `block.timestamp - maxDelayTime` if the configured delay exceeds the current timestamp, but configured gaps are bounded and this is unrelated to future oracle timestamps."
+    },
+    "hyp_ae945ab4b956": {
+      "title": "Configurable Uniswap V3 observation window permits manipulable collateral prices",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Oracle configuration permits an insufficiently resistant Uniswap V3 observation window and does not defensively enforce manipulation-resistant TWAP parameters.\nATTACK VECTOR: An attacker temporarily skews the configured Uniswap V3 pool price, then triggers borrowing, liquidation, or collateral valuation while the adapter observes the manipulated price.\nAFFECTED NODES: oracle_univ3_adapter, oracle_base_adapter, external_uniswap\nAFFECTED CODE: UniswapV3AdapterOracle pool and observation-period configuration, Uniswap V3 price retrieval used by UniswapV3AdapterOracle\nSEVERITY: high\nREASONING: The component is explicitly a Uniswap V3 price source and depends on BaseAdapter-managed configuration. Uniswap V3 prices are manipulable over short windows, and no graph evidence shows a minimum TWAP duration, sufficient observation cardinality, or liquidity sanity check. This is distinct from the existing Uniswap V2 spot-oracle finding because it concerns the V3 adapter's own observation configuration.\nSUGGESTED MITIGATION: Enforce a protocol-wide minimum nonzero TWAP duration, require adequate observation cardinality and historical coverage, reject unsupported pools or insufficient-liquidity pools, and prefer multiple independent price sources with deviation checks before using the result for collateral valuation.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_univ3_adapter",
+        "oracle_base_adapter",
+        "external_uniswap"
+      ],
+      "evidence": [],
+      "reasoning": "The component is explicitly a Uniswap V3 price source and depends on BaseAdapter-managed configuration. Uniswap V3 prices are manipulable over short windows, and no graph evidence shows a minimum TWAP duration, sufficient observation cardinality, or liquidity sanity check. This is distinct from the existing Uniswap V2 spot-oracle finding because it concerns the V3 adapter's own observation configuration.",
+      "mitigation": "Enforce a protocol-wide minimum nonzero TWAP duration, require adequate observation cardinality and historical coverage, reject unsupported pools or insufficient-liquidity pools, and prefer multiple independent price sources with deviation checks before using the result for collateral valuation.",
+      "finding_description": "The UniswapV3AdapterOracle relies on a configured Uniswap V3 pool and observation period, but the available component metadata does not indicate enforcement of a nonzero, sufficiently long minimum period or liquidity/history requirements. If a short observation window or spot observation is configured, an attacker can temporarily move the pool price with a flash loan or concentrated-liquidity trade and cause the adapter to return an inflated asset value.",
+      "impact": "The attacker may overvalue collateral, borrow more than supported, or avoid liquidation, causing direct protocol bad debt and loss of lender funds.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/oracle/BaseAdapter.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:22:11.028261",
+      "id": "hyp_ae945ab4b956"
+    },
+    "hyp_a0f2be3b44c6": {
+      "title": "BalancerPairOracle Uses Flash-Manipulable Pool Spot Balances",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: The oracle treats instantaneous Balancer pool balance ratios as authoritative prices instead of using time-weighted observations or an independently validated reference price.\nATTACK VECTOR: Use a flash loan or large capital to trade against the configured Balancer pool, move the token balance ratio, call the BlueBerry pricing-dependent operation in the same transaction, and reverse the trade afterward.\nAFFECTED NODES: oracle_balancer_pair, interface_balancer_vault, interface_balancer_pool, external_balancer, oracle_core\nAFFECTED CODE: BalancerPairOracle price calculation using Balancer Vault pool balances and normalized weights\nSEVERITY: high\nREASONING: The architecture explicitly identifies current Balancer pool balances and normalized weights as the oracle inputs. Such balance-ratio spot prices are directly affected by swaps, and the loaded component observations do not indicate TWAP, liquidity, or independent-reference validation. Exact source locations were not provided, so no line ranges are asserted.\nSUGGESTED MITIGATION: Use a Balancer-supported historical/TWAP price or combine the spot result with an independent oracle and enforce a bounded deviation. Add liquidity and freshness checks, and reject prices that move beyond configured limits before they are used for collateral valuation or liquidation.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_balancer_pair",
+        "interface_balancer_vault",
+        "interface_balancer_pool",
+        "external_balancer",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies current Balancer pool balances and normalized weights as the oracle inputs. Such balance-ratio spot prices are directly affected by swaps, and the loaded component observations do not indicate TWAP, liquidity, or independent-reference validation. Exact source locations were not provided, so no line ranges are asserted.",
+      "mitigation": "Use a Balancer-supported historical/TWAP price or combine the spot result with an independent oracle and enforce a bounded deviation. Add liquidity and freshness checks, and reject prices that move beyond configured limits before they are used for collateral valuation or liquidation.",
+      "finding_description": "BalancerPairOracle derives prices from the Balancer Vault's current pool balances and the pool's normalized weights. These balances are mutable through swaps and can be shifted within a transaction using flash liquidity; no TWAP or independent deviation bound is indicated for this component. An attacker can temporarily inflate the reported value of collateral or deflate a debt asset before invoking a borrowing or liquidation path that consumes the oracle price.",
+      "impact": "An attacker may borrow excess funds against overvalued collateral, under-repay debt, or trigger liquidations at manipulated prices, causing protocol bad debt or theft of lender assets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/BalancerPairOracle.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol",
+          "blueberry-core/contracts/interfaces/balancer/IBalancerVault.sol",
+          "blueberry-core/contracts/interfaces/balancer/IBalancerPool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:23:17.308202",
+      "id": "hyp_a0f2be3b44c6",
+      "qa_comment": "Upon reviewing BalancerPairOracle.sol, particularly computeFairReserves and getPrice, I determined that the alleged flash-manipulable spot-price vulnerability is not established by this implementation. Although getPrice reads current Vault balances through getPoolTokens and does not use lastChangedBlock or a TWAP, it does not price the LP token from the instantaneous balance ratio. Instead, it obtains independent underlying prices from base.getPrice and adjusts the observed reserves toward the fair price-weighted ratio while preserving the pool's weighted invariant. A normal Balancer swap changes the token balances and spot ratio but approximately preserves that invariant; consequently, the calculated fair-reserve value should not be materially increased and then reversed atomically without paying trading fees. No code path shows collateral being valued directly from a manipulable pool spot price. The function does contain questionable integer arithmetic, including divisions before exponentiation and exponentiation by normalized weights, which may cause inaccurate results or reverts, but that is a separate correctness or denial-of-service concern rather than the claimed flash-loan oracle manipulation. Direct donations or manipulation of the underlying base oracle would require different attack assumptions."
+    },
+    "hyp_6fe3ccca81dc": {
+      "title": "Zero-liquidity Uniswap V2 pairs can permanently revert price valuation",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: Missing validation of zero reserves, zero LP supply, and arithmetic denominators in the Uniswap V2 valuation path.\nATTACK VECTOR: Liquidity can be removed from a configured pair, or a malformed/empty pair can be configured as an oracle source; subsequent price reads revert on division by zero.\nAFFECTED NODES: oracle_uniswap_v2, external_uniswap, library_bbmath\nAFFECTED CODE: oracle_uniswap_v2: reserve-based Uniswap V2 price calculation, oracle_uniswap_v2: LP total-supply normalization\nSEVERITY: medium\nREASONING: The component is documented as using pool reserves and BBMath arithmetic, while no defensive zero-liquidity validation is shown in the available component observations. Uniswap V2 pairs can legitimately reach zero reserves after liquidity removal.\nSUGGESTED MITIGATION: Validate all denominators and reject or quarantine pairs whose reserves or total supply are zero before the route is used for collateral valuation.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_uniswap_v2",
+        "external_uniswap",
+        "library_bbmath"
+      ],
+      "evidence": [],
+      "reasoning": "The component is documented as using pool reserves and BBMath arithmetic, while no defensive zero-liquidity validation is shown in the available component observations. Uniswap V2 pairs can legitimately reach zero reserves after liquidity removal.",
+      "mitigation": "Validate all denominators and reject or quarantine pairs whose reserves or total supply are zero before the route is used for collateral valuation.",
+      "finding_description": "UniswapV2Oracle derives prices directly from pair reserves and LP supply but does not appear to validate that reserves and totalSupply are nonzero before performing divisions. A pair with withdrawn liquidity or zero LP supply can therefore trigger division-by-zero during oracle reads.",
+      "impact": "Any collateral position priced through the affected pair can become unpriceable, causing borrowing, liquidation, or position-management operations that depend on the oracle to revert and potentially freezing protocol funds or positions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol",
+          "blueberry-core/contracts/libraries/BBMath.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:24:19.506643",
+      "id": "hyp_6fe3ccca81dc",
+      "qa_comment": "Upon reviewing the alleged zero-liquidity availability vulnerability in UniswapV2Oracle.getPrice, I determined this is a false positive. The function explicitly reads pool.totalSupply() and immediately returns 0 when the LP supply is zero, preventing division by zero at the final normalization step. It then reads the reserves and computes sqrtK using BBMath.sqrt; BBMath.sqrt(0) safely returns 0, so a pair with one or both reserves equal to zero does not revert solely because of zero liquidity. The subsequent calculation therefore returns zero when reserves are empty, provided totalSupply is nonzero. Although malformed addresses, incompatible token metadata, unusual decimal values, or failures in base.getPrice could independently cause a revert, those conditions are not the claimed zero-reserve or zero-LP-supply path. Accordingly, the supplied source does not demonstrate that removing liquidity from a configured Uniswap V2 pair permanently causes price reads to revert."
+    },
+    "hyp_7327eeaffee2": {
+      "title": "Unbounded token decimals can break or distort Uniswap V2 price normalization",
+      "description": "VULNERABILITY TYPE: oracle_integrity\nROOT CAUSE: Trusting externally supplied ERC20 decimals metadata in exponentiation and reserve normalization without bounds or validation.\nATTACK VECTOR: An owner-configured pair can contain a token with malicious or nonstandard decimals metadata; the oracle then overflows during decimal scaling or computes a misnormalized price.\nAFFECTED NODES: oracle_uniswap_v2, external_uniswap, interface_icer20\nAFFECTED CODE: oracle_uniswap_v2: ERC20 decimals reads, oracle_uniswap_v2: decimal scaling of Uniswap V2 reserves\nSEVERITY: medium\nREASONING: The architecture explicitly states that UniswapV2Oracle reads token decimals. ERC20 decimals is metadata supplied by the token and may be outside assumptions made by exponentiation-based normalization; this creates both a denial-of-service and price-integrity risk unless bounded.\nSUGGESTED MITIGATION: Enforce a documented decimals range, avoid unchecked exponentiation, and fail closed for tokens whose metadata cannot be safely normalized.",
+      "vulnerability_type": "oracle_integrity",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "oracle_uniswap_v2",
+        "external_uniswap",
+        "interface_icer20"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly states that UniswapV2Oracle reads token decimals. ERC20 decimals is metadata supplied by the token and may be outside assumptions made by exponentiation-based normalization; this creates both a denial-of-service and price-integrity risk unless bounded.",
+      "mitigation": "Enforce a documented decimals range, avoid unchecked exponentiation, and fail closed for tokens whose metadata cannot be safely normalized.",
+      "finding_description": "UniswapV2Oracle reads ERC20 decimals from both pool assets and uses decimal powers to normalize reserve-based prices. Without an explicit upper bound and checked normalization policy, a token reporting an excessively large decimals value can make 10**decimals overflow and revert, while inconsistent or nonstandard decimals can produce materially incorrect prices.",
+      "impact": "A configured pair containing a nonstandard token can make oracle calls revert, disabling dependent protocol operations, or can cause collateral to be over- or undervalued and enable unsafe borrowing or liquidation decisions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol",
+          "blueberry-core/contracts/interfaces/uniswap/IUniswapV2Router02.sol",
+          "blueberry-core/contracts/interfaces/compound/ICErc20.sol",
+          "blueberry-core/contracts/interfaces/uniswap/ISwapRouter.sol",
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:24:19.535240",
+      "id": "hyp_7327eeaffee2",
+      "qa_comment": "Upon reviewing the getPrice function in UniswapV2Oracle, I confirmed that token decimals are trusted without validation and used directly in the expression 10 ** (36 - t0Decimal - t1Decimal). Because decimals() returns uint8 and the subtraction is performed under Solidity 0.8 checked arithmetic, any pair whose token decimals sum exceeds 36 causes an arithmetic underflow and the oracle call reverts. A token reporting, for example, 18 and 19 decimals already triggers this condition, while more extreme metadata values make the failure unavoidable. There is no maximum-decimals check, try/catch handling, or fail-closed pair validation in this contract. Consequently, if an accepted Uniswap V2 pair contains a token with malicious or nonstandard decimals metadata, an attacker controlling that token can make price retrieval unavailable, potentially disrupting consumers that rely on this oracle. The implementation does not demonstrate silent price distortion for out-of-range values; instead, the concrete impact is denial of service through a revert. Nevertheless, this is a real unchecked-metadata vulnerability matching the stated hypothesis in its availability aspect."
+    },
+    "hyp_a7767c474abe": {
+      "title": "BaseOracleExt deviation arithmetic can overflow and brick dependent price reads",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: Unbounded arithmetic in the max-relative deviation calculation accepts externally sourced uint256 prices without first constraining their magnitude or using overflow-safe scaling.\nATTACK VECTOR: Cause a configured underlying price source to return an abnormally large value, for example through an extreme-decimal token configuration or a malicious/misconfigured feed, then invoke a dependent price query that performs the deviation check.\nAFFECTED NODES: oracle_base_ext, oracle_aggregator, oracle_core\nAFFECTED CODE: oracle_base_ext: deviation validation arithmetic, oracle_aggregator: configured route price validation\nSEVERITY: medium\nREASONING: The component is explicitly responsible for max-relative deviation checks over 1e18-scaled prices, while its connected price sources are external and can supply uint256 values. Without explicit bounds or safe scaling, multiplication-based deviation formulas have a denial-of-service overflow condition.\nSUGGESTED MITIGATION: Validate that all input prices and the configured deviation are within safe bounds before arithmetic; calculate deviations using division-first or full-precision mulDiv logic, and reject values that cannot be represented safely.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "oracle_base_ext",
+        "oracle_aggregator",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "The component is explicitly responsible for max-relative deviation checks over 1e18-scaled prices, while its connected price sources are external and can supply uint256 values. Without explicit bounds or safe scaling, multiplication-based deviation formulas have a denial-of-service overflow condition.",
+      "mitigation": "Validate that all input prices and the configured deviation are within safe bounds before arithmetic; calculate deviations using division-first or full-precision mulDiv logic, and reject values that cannot be represented safely.",
+      "finding_description": "The relative-deviation calculation operates on uint256 oracle prices normalized to 1e18 and multiplies prices or price differences by 1e18 and a deviation factor without an evident upper-bound check. A sufficiently large externally returned price can overflow checked arithmetic and revert the deviation check, causing every dependent oracle query to fail.",
+      "impact": "Oracle reads can revert, disabling collateral valuation, borrowing, liquidation, or other protocol operations that depend on the affected route.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/AggregatorOracle.sol",
+          "blueberry-core/contracts/oracle/BaseOracleExt.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:25:08.274490",
+      "id": "hyp_a7767c474abe",
+      "qa_comment": "Upon reviewing the deviation validation in BaseOracleExt._isValidPrices and its callers in AggregatorOracle.getPrice, I confirmed an availability vulnerability. The function computes ((maxPrice - minPrice) * Constants.DENOMINATOR) / maxPrice without bounding either price or using overflow-safe multiplication. Although Solidity 0.8 reverts on overflow, that behavior causes the entire AggregatorOracle.getPrice call to fail when two configured sources return sufficiently large, closely valued prices; the deviation cap only constrains maxPriceDeviation and does not constrain source prices. The try/catch in AggregatorOracle.getPrice surrounds only each individual source getPrice call, not the subsequent deviation calculation, so it cannot contain this revert. Additionally, the averaging expressions prices[0] + prices[1] and prices[1] + prices[2] can independently overflow for near-maximum values even when the deviation calculation succeeds. CoreOracle._getPrice directly propagates aggregator reverts, causing dependent price reads to fail. Exploitation requires a configured source to return abnormal values, but the code provides no protective bound against that condition."
+    },
+    "hyp_f00be94b3d47": {
+      "title": "Zero reference price can make BaseOracleExt deviation validation revert",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The deviation helper relies on a reference price being nonzero but does not visibly enforce that precondition within BaseOracleExt.\nATTACK VECTOR: Configure or manipulate a route so that its reference source returns zero, then trigger a price read through the aggregator or another oracle implementation using BaseOracleExt.\nAFFECTED NODES: oracle_base_ext, oracle_aggregator, oracle_core\nAFFECTED CODE: oracle_base_ext: deviation validation reference-price handling\nSEVERITY: medium\nREASONING: BaseOracleExt provides the shared relative-deviation check for multiple routes. A zero result from any upstream source is an unsafe input for relative comparison, and relying solely on callers or the core oracle to reject zero values leaves direct or nested consumers exposed to a reverting path.\nSUGGESTED MITIGATION: Explicitly reject zero reference and candidate prices before performing deviation arithmetic, and have callers handle invalid upstream prices as a controlled failure rather than allowing an arithmetic panic.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_base_ext",
+        "oracle_aggregator",
+        "oracle_core"
+      ],
+      "evidence": [],
+      "reasoning": "BaseOracleExt provides the shared relative-deviation check for multiple routes. A zero result from any upstream source is an unsafe input for relative comparison, and relying solely on callers or the core oracle to reject zero values leaves direct or nested consumers exposed to a reverting path.",
+      "mitigation": "Explicitly reject zero reference and candidate prices before performing deviation arithmetic, and have callers handle invalid upstream prices as a controlled failure rather than allowing an arithmetic panic.",
+      "finding_description": "A relative-deviation check that divides by or derives a ratio from the reference price has no demonstrated local nonzero guard. If an underlying adapter returns zero or a zero-valued intermediate reaches BaseOracleExt, the check can divide by zero or otherwise revert instead of returning a controlled invalid-price result.",
+      "impact": "The affected oracle route becomes unavailable and can block borrowing, repayment, liquidation, or collateral valuation operations that synchronously query it.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/AggregatorOracle.sol",
+          "blueberry-core/contracts/oracle/BaseOracleExt.sol",
+          "blueberry-core/contracts/oracle/CoreOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:25:17.860383",
+      "id": "hyp_f00be94b3d47",
+      "qa_comment": "Upon reviewing the alleged availability vulnerability in BaseOracleExt._isValidPrices and its callers, I determined this is a false positive for the provided implementation. The helper does divide by maxPrice, so a zero maxPrice would be unsafe in isolation; however, AggregatorOracle.getPrice explicitly filters every upstream result with `if (px != 0)` before storing it for deviation validation. Consequently, _isValidPrices is only called with nonzero prices. If all configured sources return zero or revert, the aggregator terminates with the controlled NO_VALID_SOURCE error, rather than invoking the helper with a zero reference price. CoreOracle._getPrice also checks the final route result and reverts with PRICE_FAILED when it is zero, while _isTokenSupported treats zero results as unsupported and catches source failures. Although BaseOracleExt lacks an internal zero-value guard and would be safer with one, no externally reachable path in the reviewed contracts supplies zero to _isValidPrices. Therefore, the hypothesized arithmetic-panic denial of service is not demonstrated by this source."
+    },
+    "hyp_392eb74312cd": {
+      "title": "WERC20 mints wrapped shares from the requested amount instead of the amount actually received",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: The wrapper does not enforce a one-to-one backing invariant using the underlying balance delta, and may not restrict supported assets to tokens with compatible transfer semantics.\nATTACK VECTOR: A user wraps a fee-on-transfer or deflationary token, causing the wrapper to receive less than the amount credited. The attacker or another holder later burns the inflated wrapped balance and withdraws underlying assets belonging to other holders; the final holders become unable to redeem fully.\nAFFECTED NODES: wrapper_werc20, interface_erc20_wrapper, token_underlying, spell_basic\nAFFECTED CODE: wrapper_werc20: mint underlying-token transfer followed by wrapped-share mint, wrapper_werc20: burn wrapped shares followed by underlying-token transfer\nSEVERITY: high\nREASONING: The available component context identifies WERC20 as an ERC20 wrapper but does not expose source lines. The issue is conditional on the implementation crediting the requested amount rather than the received balance delta; this should be confirmed directly in mint and burn.\nSUGGESTED MITIGATION: Use balance-delta accounting and an explicit supported-token allowlist; reject tokens whose transfer semantics cannot preserve the wrapper's backing invariant.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "wrapper_werc20",
+        "interface_erc20_wrapper",
+        "token_underlying",
+        "spell_basic"
+      ],
+      "evidence": [],
+      "reasoning": "The available component context identifies WERC20 as an ERC20 wrapper but does not expose source lines. The issue is conditional on the implementation crediting the requested amount rather than the received balance delta; this should be confirmed directly in mint and burn.",
+      "mitigation": "Use balance-delta accounting and an explicit supported-token allowlist; reject tokens whose transfer semantics cannot preserve the wrapper's backing invariant.",
+      "finding_description": "If WERC20 credits the caller with the requested amount after invoking the underlying token transfer, fee-on-transfer, deflationary, rebasing, or otherwise non-standard ERC20 tokens can cause the wrapper's ERC1155 share supply to exceed its underlying-token balance. A depositor can provide fewer underlying tokens than the amount represented by the minted shares and then redeem against backing supplied by other holders.",
+      "impact": "The wrapper can become insolvent, allowing early redeemers to drain backing and causing losses or failed redemptions for later holders. If the wrapped share is accepted as collateral, the mismatch can additionally enable undercollateralized borrowing.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/interfaces/ISoftVault.sol",
+          "blueberry-core/contracts/interfaces/IERC20Wrapper.sol",
+          "blueberry-core/contracts/vault/HardVault.sol",
+          "blueberry-core/contracts/spell/BasicSpell.sol",
+          "blueberry-core/contracts/wrapper/WERC20.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:26:10.024356",
+      "id": "hyp_392eb74312cd",
+      "qa_comment": "Upon reviewing the alleged accounting vulnerability in WERC20.mint and WERC20.burn, I determined this is a false positive. WERC20.mint explicitly records the underlying token balance before safeTransferFrom, performs the transfer, records the balance afterward, and mints exactly balanceAfter - balanceBefore rather than the requested amount. Consequently, fee-on-transfer or deflationary tokens cannot cause inflated wrapped balances through this function. WERC20.burn burns the requested ERC1155 amount before transferring the same nominal amount of underlying tokens; although a transfer fee could reduce the amount received by the redeemer, it does not create excess wrapped shares or allow withdrawal of more underlying assets than the burned balance. Additionally, BasicSpell._doPutCollateral ignores mint's return value but subsequently calls bank.putCollateral with the requested amount; if mint produced fewer shares because of transfer fees, the ERC1155 transfer should revert rather than credit inflated collateral. The absence of an explicit token allowlist may present compatibility or usability concerns, but the specific over-minting and cross-holder theft path described is not demonstrated by this implementation."
+    },
+    "hyp_6cc5d030270d": {
+      "title": "BBMath integer square root reverts for uint256 maximum input",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The square-root initialization performs a checked increment of an unrestricted uint256 input instead of using an overflow-safe initialization expression.\nATTACK VECTOR: An attacker supplies or causes a caller to pass type(uint256).max to a BBMath square-root consumer. Any dependent operation then reverts whenever the value is evaluated.\nAFFECTED NODES: library_bbmath, oracle_uniswap_v2\nAFFECTED CODE: library_bbmath: integer square root implementation, oracle_uniswap_v2: BBMath square-root consumer\nSEVERITY: medium\nREASONING: The loaded component is documented as providing an integer square root, and the conventional implementation used by this library family initializes the Babylonian iteration with (x + 1) / 2. Since x is not bounded by the library, the maximum uint256 input triggers checked overflow. This is separate from the already-identified zero-liquidity and oracle arithmetic issues.\nSUGGESTED MITIGATION: Initialize the iteration without incrementing the input, such as with x / 2 + 1, or explicitly handle type(uint256).max before the increment. Add tests covering zero, one, maximum uint256, and values around powers of two.",
+      "vulnerability_type": "security_issue",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "library_bbmath",
+        "oracle_uniswap_v2"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded component is documented as providing an integer square root, and the conventional implementation used by this library family initializes the Babylonian iteration with (x + 1) / 2. Since x is not bounded by the library, the maximum uint256 input triggers checked overflow. This is separate from the already-identified zero-liquidity and oracle arithmetic issues.",
+      "mitigation": "Initialize the iteration without incrementing the input, such as with x / 2 + 1, or explicitly handle type(uint256).max before the increment. Add tests covering zero, one, maximum uint256, and values around powers of two.",
+      "finding_description": "The integer-square-root routine initializes its iteration using x + 1. With x equal to type(uint256).max, this addition overflows under Solidity 0.8 checked arithmetic before the square-root calculation can complete, causing a panic and reverting the entire caller.",
+      "impact": "A reachable consumer can be permanently or selectively denial-of-serviced for maximum-sized inputs, preventing oracle reads or other protocol operations that depend on the calculation.",
+      "vulnerable_code": [
+        {
+          "file": "",
+          "contract": "BBMath",
+          "function": "sqrt(uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "blueberry-core/contracts/oracle/UniswapV2Oracle.sol",
+          "blueberry-core/contracts/libraries/BBMath.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230144",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:27:17.571064",
+      "id": "hyp_6cc5d030270d",
+      "qa_comment": "Upon reviewing the alleged unchecked square-root initialization issue in BBMath.sqrt and its use by UniswapV2Oracle.getPrice, I determined this is a false positive. BBMath.sqrt does not initialize its iteration with the conventional (x + 1) / 2 expression; instead, it derives an initial estimate in r through magnitude checks and bit shifts, then performs seven iterations using (r + x / r) >> 1. For type(uint256).max, the shifts produce an initial r of 2^127, while x / r is approximately 4, so the addition cannot overflow. The function therefore reaches its final bounded result calculation rather than reverting because of an x + 1 overflow. UniswapV2Oracle.getPrice has no direct maximum-input guard, but that is irrelevant to the stated root cause because the supplied square-root implementation is overflow-safe for this input. Other checked arithmetic in the oracle, such as r0 * r1 and px0 * px1, may create separate failure modes, but they do not substantiate this specific hypothesis."
+    }
+  },
+  "metadata": {
+    "total": 34,
+    "confirmed": 11,
+    "last_modified": "2026-10-12T23:27:17.572021"
+  }
+}

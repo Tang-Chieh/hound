@@ -1,0 +1,109 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_455f5a009f03": {
+      "title": "Legacy router ignores minimum amounts, enabling reserve-price sandwich attacks on liquidity additions",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The router's slippage-protection parameters are unused, so liquidity operations rely on attacker-influenceable spot reserves without enforcing user-specified minimum outputs or maximum inputs.\nATTACK VECTOR: Monitor a pending addLiquidity transaction, trade against the corresponding VaderPool to move its reserve price, allow the victim transaction to execute with the manipulated ratio, then trade back after the liquidity addition.\nAFFECTED NODES: legacy_router, legacy_pool, vader_math, actor_user\nAFFECTED CODE: contracts/dex/router/VaderRouter.sol:addLiquidity(IERC20,IERC20,uint256,uint256,uint256,uint256,address,uint256), contracts/dex/pool/VaderPool.sol:addLiquidity\nSEVERITY: high\nREASONING: The loaded router code explicitly names the minimum parameters as unused. Pool liquidity calculations are reserve-based, so a transaction submitted without effective bounds can be executed against a spot price changed by a prior transaction in the same block. The attacker does not need to compromise an oracle or administrator; ordinary pool trading and transaction ordering are sufficient.\nSUGGESTED MITIGATION: Enforce amountAMin and amountBMin against the actual amounts used by the pool, and add deadline validation. Ensure every router path that performs swaps or liquidity operations propagates and checks user slippage bounds before tokens are irrevocably transferred.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "legacy_router",
+        "legacy_pool",
+        "vader_math",
+        "actor_user"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded router code explicitly names the minimum parameters as unused. Pool liquidity calculations are reserve-based, so a transaction submitted without effective bounds can be executed against a spot price changed by a prior transaction in the same block. The attacker does not need to compromise an oracle or administrator; ordinary pool trading and transaction ordering are sufficient.",
+      "mitigation": "Enforce amountAMin and amountBMin against the actual amounts used by the pool, and add deadline validation. Ensure every router path that performs swaps or liquidity operations propagates and checks user slippage bounds before tokens are irrevocably transferred.",
+      "finding_description": "VaderRouter.addLiquidity exposes amountAMin and amountBMin parameters but explicitly ignores both values when forwarding the operation. An attacker can front-run a user's transaction with trades that skew the pool reserves, causing the pool to execute the liquidity addition at a manipulated asset ratio without reverting when the received amounts fall below the user's stated limits.",
+      "impact": "The victim can supply substantially more of one asset than intended or receive fewer liquidity units than expected, allowing the attacker to extract value through the price reversal and leaving the victim with an economically unfavorable LP position.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/dex/router/VaderRouter.sol",
+          "contract": "VaderRouter",
+          "function": "addLiquidity(IERC20,IERC20,uint256,uint256,uint256,uint256,address,uint256)"
+        },
+        {
+          "file": "contracts/dex/router/VaderRouter.sol",
+          "contract": "VaderRouter",
+          "function": "addLiquidity(IERC20,IERC20,uint256,uint256,address,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/x-vader/XVader.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/dex/pool/BasePool.sol",
+          "contracts/interfaces/dex/router/IVaderRouter.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/interfaces/dex/pool/IBasePool.sol",
+          "contracts/dex/router/VaderRouter.sol",
+          "contracts/dex/math/VaderMath.sol",
+          "contracts/interfaces/dex/pool/IVaderPool.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/dex/pool/VaderPool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203013",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:31:46.673727",
+      "id": "hyp_455f5a009f03",
+      "qa_comment": "Upon reviewing VaderRouter.sol:addLiquidity and BasePool.sol:mint, I confirmed that the core slippage vulnerability exists. The Uniswap-compatible router overload explicitly declares amountAMin and amountBMin but discards both values when forwarding to the six-argument addLiquidity function. That function applies only ensure(deadline), calls _addLiquidity, and _addLiquidity returns amountADesired and amountBDesired unconditionally rather than calculating amounts against current reserves or enforcing minimums. Both desired amounts are then transferred directly to the pool before pool.mint(to) executes. BasePool.mint derives liquidity from the current reserves and deposited balances through VaderMath.calculateLiquidityUnits, including a reserve-sensitive slip adjustment. Consequently, an attacker can trade against the pool before the victim transaction, alter the reserve ratio, and cause the victim\u2019s fixed two-asset deposit to mint fewer liquidity units, effectively donating value to existing liquidity providers, before trading back. The deadline check is present and mitigates expiration, but it does not address reserve manipulation or minimum-output protection. VaderRouterV2 contains the same ignored-minimum pattern."
+    },
+    "hyp_9fce3c2a5cfb": {
+      "title": "Direct VADER donations manipulate XVader share price and enable victim deposit extraction",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Share valuation uses the raw VADER token balance rather than internally accounted assets, with no protection against unsolicited donations or donation-induced rounding distortion.\nATTACK VECTOR: The attacker acquires a small initial XVader share position, transfers VADER directly to the XVader contract to inflate its balance-based price, waits for a victim deposit, and redeems the attacker's shares for an amount that includes the victim's deposit; the attack is especially effective when the victim receives zero or materially fewer shares due to integer division.\nAFFECTED NODES: xvader, actor_user, vader_token\nAFFECTED CODE: XVader share-price calculation based on VADER balance, XVader deposit/mint share path, XVader redemption/burn share path\nSEVERITY: high\nREASONING: The architecture explicitly records that XVader shares are priced from the VADER balance. That balance is externally mutable through ordinary ERC-20 transfers, so the share price is attacker-influenceable unless the implementation separately tracks accounted assets and protects deposit rounding. No such protection is shown in the loaded observations.\nSUGGESTED MITIGATION: Use internally accounted assets for share pricing, or explicitly account for unsolicited donations. Add virtual shares/assets or equivalent anti-inflation protections, enforce minimum shares on deposits, and reject or safely handle deposits that would mint zero or economically negligible shares.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "xvader",
+        "actor_user",
+        "vader_token"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records that XVader shares are priced from the VADER balance. That balance is externally mutable through ordinary ERC-20 transfers, so the share price is attacker-influenceable unless the implementation separately tracks accounted assets and protects deposit rounding. No such protection is shown in the loaded observations.",
+      "mitigation": "Use internally accounted assets for share pricing, or explicitly account for unsolicited donations. Add virtual shares/assets or equivalent anti-inflation protections, enforce minimum shares on deposits, and reject or safely handle deposits that would mint zero or economically negligible shares.",
+      "finding_description": "XVader prices shares from the contract's current VADER balance. Because ERC-20 tokens can be transferred directly without minting shares, an attacker can donate VADER to inflate the apparent assets-per-share ratio. With low initial supply or integer rounding, a subsequent victim deposit can mint few or zero shares while the attacker redeems existing shares against the victim's newly deposited VADER.",
+      "impact": "An attacker can extract deposited VADER from subsequent users, causing direct loss of user funds and potentially draining the vault when its share supply is small or rounding is favorable.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/interfaces/x-vader/IXVader.sol",
+          "contracts/x-vader/XVader.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/interfaces/tokens/IVader.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/tokens/Vader.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/tokens/USDV.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203013",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:33:01.733286",
+      "id": "hyp_9fce3c2a5cfb",
+      "qa_comment": "Upon reviewing the XVader contract, I confirmed that the donation-based share-price manipulation is exploitable. In enter(), the contract calculates totalVader using vader.balanceOf(address(this)) and derives new shares as (_amount * totalShares) / totalVader, while the VADER transfer occurs afterward. Because any holder can transfer VADER directly to XVader, an attacker can first acquire shares, donate VADER to increase the observed balance, and then front-run or precede a victim deposit. The victim may receive substantially fewer shares or zero shares due to integer division, with no minimum-share or zero-share check. In leave(), redemption is likewise based on the entire live VADER balance, so the attacker\u2019s pre-existing shares can withdraw value attributable to the victim\u2019s deposit. For example, with one initial share, a sufficiently large donation can make a subsequent victim deposit mint zero shares, after which the attacker can redeem the original share for the full balance. No internal asset accounting, donation exclusion, virtual liquidity, slippage protection, or minimum-mint requirement exists in the reviewed implementation."
+    }
+  },
+  "metadata": {
+    "total": 2,
+    "confirmed": 2,
+    "last_modified": "2026-10-12T20:33:01.734530"
+  }
+}

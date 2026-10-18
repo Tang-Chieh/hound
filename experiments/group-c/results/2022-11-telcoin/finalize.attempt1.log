@@ -1,0 +1,239 @@
+Running hypothesis finalization...
+╭──────────────── Finalization Summary ─────────────────╮
+│ Hypothesis Finalization                               │
+│                                                       │
+│ Project: houndC-gpt56_20261012-direct-2022-11-telcoin │
+│ Total hypotheses: 10                                  │
+│ Pending (not confirmed/rejected): 10                  │
+│ Above threshold (50%): 10                             │
+│ To review: 10 hypotheses                              │
+╰───────────────────────────────────────────────────────╯
+Normal audits end; YOUR verdicts become precedent and the code falls in line.
+
+Hypotheses to review:
+┏━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Co… ┃ Type           ┃ Title                                                 ┃
+┡━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 90% │ access_control │ Uninitialized proxy can be claimed by an attacker     │
+│ 90% │ denial_of_ser… │ Unvalidated plugin registration enables global denial │
+│     │                │ of service                                            │
+│ 90% │ asset_loss     │ Removing a plugin can permanently strand user rewards │
+│ 60% │ accounting_er… │ Stake accounting can exceed actual TEL received for   │
+│     │                │ fee-on-transfer or nonstandard TEL                    │
+│ 90% │ asset_loss     │ FeeBuyback credits all residual TEL balance to the    │
+│     │                │ current referral                                      │
+│ 60% │ accounting_er… │ FeeBuyback ignores ERC20 transfer and approval return │
+│     │                │ values                                                │
+│ 90% │ asset_loss     │ RECOVERY_ROLE can drain TEL reserved for user rewards │
+│ 60% │ access_control │ RECOVERY_ROLE can redirect users’ migrated principal  │
+│     │                │ and rewards to an arbitrary recipient                 │
+│ 90% │ access_control │ Owner-controlled arbitrary call enables FeeBuyback    │
+│     │                │ asset and approval exfiltration                       │
+│ 90% │ asset_loss     │ Successful aggregator call is accepted without        │
+│     │                │ verifying TEL output                                  │
+└─────┴────────────────┴───────────────────────────────────────────────────────┘
+
+🧙 Sage openai-codex/gpt-5.6-luna enters the chamber...
+  ? UNCERTAIN: Uninitialized proxy can be claimed by an attacker
+    Note: Upon reviewing the StakingModule.initialize function in 
+contracts/StakingModule.sol, I confirmed that initialization is externally 
+callable and protected only by the OpenZeppelin initializer modifier. On its 
+first successful invocation, it assigns DEFAULT_ADMIN_ROLE to msg.sender via 
+_setupRole, while also setting the tel address, so an attacker would become 
+administrator if an upgradeable proxy were deployed without initialization data 
+or otherwise left uninitialized. The initializer modifier prevents repeated 
+initialization but does not restrict the first caller, and no deployment-time or
+trusted-controller safeguard is present in this contract. However, the provided 
+source does not include the proxy contract, deployment scripts, constructor, or 
+initialization transaction, so it cannot establish whether the affected proxy is
+actually initialized atomically during deployment. The implementation contract 
+itself being callable is not necessarily exploitable against the proxy because 
+implementation and proxy storage are distinct. Therefore, the hypothesis is 
+plausible but cannot be conclusively confirmed without verifying the deployment 
+path and proxy initialization state.
+  ✓ CONFIRMED: Unvalidated plugin registration enables global denial of ser
+    Justification: Upon reviewing the StakingModule plugin-management and 
+callback paths, I confirmed that a PLUGIN_EDITOR_ROLE holder can register an 
+arbitrary address without a nonzero-code check, interface validation, or 
+plugin-count bound. The addPlugin function only checks pluginsMapping, after 
+which the address is iterated by claimable, claimableAt, totalSupply, _claim, 
+and _notifyStakeChangeAllPlugins. The requiresNotification guard is commented 
+out, so every registered address receives notifyStakeChange during stake, exit, 
+partial exit, and slash-related flows. A malicious contract can therefore 
+deliberately revert in notifyStakeChange or any view/claim callback, causing 
+affected operations to revert for all users. An EOA or incompatible contract can
+also cause ABI decoding failures in functions expected to return values such as 
+claimable or totalClaimable. Although removePlugin allows an authorized operator
+to recover by removing the address, it does not prevent the denial of service 
+while the plugin remains registered, and pausing does not make view calls 
+succeed. SimplePlugin itself safely implements a no-op notification, but that 
+does not constrain other registered addresses.
+  ✓ CONFIRMED: Removing a plugin can permanently strand user rewards
+    Justification: Upon reviewing StakingModule.removePlugin, claim, 
+claimFromIndividualPlugin, claimable, and SimplePlugin.claim, I confirmed that 
+plugin removal can strand outstanding rewards. removePlugin removes the plugin 
+from the active plugins array and sets pluginsMapping to false without checking 
+totalClaimable, settling user balances, or preserving a claim route. All 
+user-facing claim paths iterate only over the current active plugins, and 
+SimplePlugin.claim is protected by onlyStaking, requiring the StakingModule as 
+msg.sender; therefore users cannot call the removed plugin directly. The plugin 
+retains each user’s checkpoints and _totalOwed, and its TEL balance remains 
+reserved, but those assets are inaccessible through normal user functionality 
+after removal. The PLUGIN_EDITOR_ROLE can technically restore access by calling 
+addPlugin with the same address, so permanent loss is not mathematically 
+inevitable from this code alone; however, users have no independent recovery 
+mechanism if administrators decline to re-add it or the plugin is operationally 
+deprecated. claimAndExitFor does not mitigate this because it also iterates only
+active plugins and is restricted to RECOVERY_ROLE. Thus, the core 
+reward-stranding vulnerability is real, although the hypothesis's claim of 
+irreversible loss is conditional.
+  ✓ CONFIRMED: Stake accounting can exceed actual TEL received for fee-on-t
+    Justification: Upon reviewing StakingModule.initialize, _stake, _exit, and 
+rescueTokens, I confirmed a conditional accounting vulnerability for 
+fee-on-transfer or otherwise nonstandard TEL tokens. initialize assigns 
+_telAddress directly to tel without validating its implementation or transfer 
+semantics. In _stake, the requested amount is added to the user checkpoint and 
+_totalStaked before safeTransferFrom executes, with no pre- and post-transfer 
+balance comparison; therefore, if the token credits fewer tokens than requested,
+the contract records an overstated liability. _exit subsequently attempts to 
+transfer the full recorded amount, which may revert when the contract lacks 
+sufficient balance, or may consume other users’ funds if sufficient surplus 
+exists. rescueTokens also assumes _totalStaked is backed by the token balance 
+and can underflow when the balance is lower, potentially preventing recovery 
+operations. SafeERC20 only validates call success and does not ensure the exact 
+amount was received. The issue is conditional on deployment with an incompatible
+TEL token or an intentionally nonstandard token, but no source-level guard 
+prevents that configuration.
+  ✓ CONFIRMED: FeeBuyback credits all residual TEL balance to the current r
+    Justification: Upon reviewing FeeBuyback.submit in 
+contracts/fee-buyback/FeeBuyback.sol, I confirmed the alleged asset-loss 
+vulnerability. In the direct-TEL branch, the contract transfers only amount from
+_safe, but then approves and credits _telcoin.balanceOf(address(this)) to 
+recipient through _referral.increaseClaimableBy. Consequently, any TEL already 
+held by FeeBuyback is included in the recipient's reward. The aggregator branch 
+has the same defect: after the swap, it uses the contract's entire current TEL 
+balance rather than measuring the balance increase attributable to that swap. 
+SimplePlugin.increaseClaimableBy then records the supplied amount as claimable 
+and pulls exactly that amount from FeeBuyback using transferFrom, so the 
+residual balance is transferred into the plugin and assigned to the chosen 
+recipient. There is no before/after balance accounting, output validation, or 
+guard excluding pre-existing TEL. Although submit is restricted by onlyOwner, 
+that is an authorization boundary rather than protection against a malicious, 
+compromised, or improperly acting owner, and the owner can select an arbitrary 
+recipient. The hypothesis is therefore directly supported by the implementation.
+  ✓ CONFIRMED: FeeBuyback ignores ERC20 transfer and approval return values
+    Justification: Upon reviewing FeeBuyback.submit in 
+contracts/fee-buyback/FeeBuyback.sol, I confirmed the unchecked ERC20 
+return-value vulnerability. In both the TEL branch and the general ERC20 branch,
+transferFrom and approve are invoked directly and their boolean results are 
+discarded. An ERC20 token can therefore return false without reverting, after 
+which execution continues as though funding and allowance setup succeeded. The 
+TEL branch is particularly problematic: it credits _referral with the contract’s
+entire current TEL balance, not the balance increase attributable to this 
+submission, so a failed transferFrom can cause pre-existing TEL to be assigned 
+to the requested recipient. The general branch similarly proceeds to the 
+aggregator call after a failed transferFrom or approve, potentially operating on
+existing balances or failing later depending on swap behavior. onlyOwner 
+restricts who can invoke submit, but does not make configured tokens trustworthy
+or prevent accounting errors caused by false-return tokens. rescueERC20 also 
+ignores transfer results, although it is separate from the stated path. 
+SafeERC20 checks and balance-delta accounting are therefore warranted.
+  ✗ REJECTED: RECOVERY_ROLE can drain TEL reserved for user rewards
+    Reason: Upon reviewing the alleged asset-loss issue in 
+StakingModule.rescueTokens and the reward accounting in SimplePlugin, I 
+determined this is a false positive for the supplied implementation. 
+StakingModule.rescueTokens protects the module’s TEL balance by subtracting 
+_totalStaked, but SimplePlugin’s prefunded reward TEL is held by the plugin 
+contract, not by the staking module, and is separately protected by 
+SimplePlugin.rescueTokens using _totalOwed. A normal claim invokes 
+SimplePlugin.claim, which transfers rewards directly to the user, so those 
+liabilities never become rescuable TEL in StakingModule. In _claimAndExit, 
+rewards are intentionally transferred to the module and incorporated into the 
+user’s new stake; _totalStaked is increased by the claimed amount before the 
+module transfers the requested amount, preserving the corresponding liability. 
+The recovery role therefore cannot use StakingModule.rescueTokens to drain 
+SimplePlugin’s claimable balances. Although arbitrary TEL donations or other 
+plugin-specific designs could require separate review, the shown SimplePlugin 
+architecture does not establish the claimed exploitable path.
+  ✓ CONFIRMED: RECOVERY_ROLE can redirect users’ migrated principal and rew
+    Justification: Upon reviewing StakingModule.claimAndExitFor, _claim, and 
+_exit, I confirmed that a holder of RECOVERY_ROLE can redirect both a user’s 
+claimable rewards and staked TEL to an arbitrary address. claimAndExitFor 
+accepts independent account and to parameters, invokes _claim(account, to, 
+auxData), and then _exit(account, to); neither internal function authenticates 
+the user, validates the destination, or requires migration authorization. _claim
+causes each plugin to send rewards directly to to, while _exit transfers the 
+entire recorded stake to the same address after clearing the account’s 
+checkpoint. The whenPaused modifier and nonReentrant guard do not prevent misuse
+once the contract is paused; importantly, RECOVERY_ROLE itself cannot pause the 
+contract, so exploitation by that role alone requires an already-paused state or
+additional PAUSER_ROLE privilege. Nevertheless, the code provides no consent or 
+cryptographic proof tying the migration to the affected account, making 
+arbitrary redirection possible for a compromised or misused recovery operator. 
+This is a privileged-role abuse issue rather than an unprivileged exploit.
+  ✓ CONFIRMED: Owner-controlled arbitrary call enables FeeBuyback asset and
+    Justification: Upon reviewing FeeBuyback.submit in 
+contracts/fee-buyback/FeeBuyback.sol, I confirmed that the contract grants an 
+unrestricted arbitrary-call capability to any address recognized by onlyOwner().
+The function accepts caller-controlled wallet and walletData parameters and 
+executes wallet.call{value: 0}(walletData) without validating the target, 
+function selector, or calldata contents. Consequently, an authorized owner can 
+set wallet to an ERC20 token contract and provide transfer(address,uint256) 
+calldata to move tokens held by FeeBuyback, or provide approve(address,uint256) 
+calldata to grant an attacker-controlled spender an allowance. The call executes
+with FeeBuyback as msg.sender, so token contracts will treat the FeeBuyback 
+balance and approvals as the affected assets. The subsequent token, recipient, 
+and amount checks do not prevent this because the arbitrary call occurs first 
+and execution can return early when those values are zero. Although onlyOwner 
+restricts exploitation to the owner or a compromised owner key, it does not 
+constrain the operation to the intended primary wallet transaction. No target or
+selector allowlist exists, so the reported access-control issue is real.
+  ✓ CONFIRMED: Successful aggregator call is accepted without verifying TEL
+    Justification: Upon reviewing FeeBuyback.submit in 
+contracts/fee-buyback/FeeBuyback.sol, I confirmed that the alleged 
+missing-output validation exists and can result in asset loss. For non-TEL 
+tokens, the function first calls transferFrom(_safe, address(this), amount), 
+approves the immutable _aggregator, and then executes _aggregator.call{value: 
+msg.value}(swapData). The only swap validation is require(swapResult, 
+"FeeBuyback: swap transaction failed"); there is no check of the TEL balance 
+before and after the call, no minimum-output parameter, and no verification that
+the expected source amount was consumed through an approved route. Consequently,
+an aggregator invocation can return success while producing zero or insufficient
+TEL, leaving the safe’s source tokens spent without obtaining the intended 
+reward asset. The subsequent approval and _referral.increaseClaimableBy call use
+the contract’s entire TEL balance, which does not establish that the current 
+swap produced any TEL and may even credit zero or residual TEL. Although submit 
+is restricted by onlyOwner, compromise, misconfiguration, or malicious behavior 
+of the authorized service/aggregator still provides a clear exploitable path.
+
+
+============================================================
+
+Finalization Complete:
+  ✓ Confirmed: 8
+  ✗ Rejected: 1
+  ? Uncertain: 1
+
+Total reviewed: 10
+
+Confirmed Vulnerabilities:
+  • Unvalidated plugin registration enables global denial of service
+    Type: denial_of_service | Severity: high
+  • Removing a plugin can permanently strand user rewards
+    Type: asset_loss | Severity: high
+  • Stake accounting can exceed actual TEL received for fee-on-transfer or 
+nonstandard TEL
+    Type: accounting_error | Severity: medium
+  • FeeBuyback credits all residual TEL balance to the current referral
+    Type: asset_loss | Severity: high
+  • FeeBuyback ignores ERC20 transfer and approval return values
+    Type: accounting_error | Severity: medium
+  • RECOVERY_ROLE can redirect users’ migrated principal and rewards to an 
+arbitrary recipient
+    Type: access_control | Severity: high
+  • Owner-controlled arbitrary call enables FeeBuyback asset and approval 
+exfiltration
+    Type: access_control | Severity: high
+  • Successful aggregator call is accepted without verifying TEL output
+    Type: asset_loss | Severity: high
+

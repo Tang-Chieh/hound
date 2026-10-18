@@ -1,0 +1,625 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_9b1d44bfe49e": {
+      "frame_id": "frame_9b1d44bfe49e",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of PanopticPool",
+      "artifact_refs": [
+        "Spot and oracle price inputs used for position valuation, collateral, liquidity, and settlement",
+        "Whether attacker-controlled AMM state or same-transaction swaps can manipulate prices before sensitive pool operations",
+        "Tick, liquidity, and spread validation boundaries and consistency across pricing paths",
+        "Oracle freshness, averaging, epoch gating, and fallback behavior when computing risk or payouts"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:15:56.823226",
+      "updated_at": "2026-10-12T23:16:33.640982",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:15:56.823433",
+          "status": "planned",
+          "rationale": "WHY NOW: PanopticPool is the central stateful component and is directly connected to the risk engine, position tracking, and AMM liquidity operations, making it the highest-impact unvisited location for price manipulation. EXIT CRITERIA: Trace every pool entry point that reads price, tick, liquidity, or oracle state; identify all downstream valuation and collateral effects; verify protections against intra-transaction spot manipulation, stale or selectively updated observations, and inconsistent price sources; record evidence for any exploitable path or conclude that all such paths are bounded by validated and manipulation-resistant inputs.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:15:56.833102",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:16:33.641083",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_0fef24fe88ab": {
+      "frame_id": "frame_0fef24fe88ab",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of Multicall",
+      "artifact_refs": [
+        "Whether delegatecalled batches can combine oracle-sensitive actions around stale or manipulable price state",
+        "Whether reused msg.value or call ordering permits bypassing price update, observation, or solvency assumptions",
+        "Whether atomic batching enables same-transaction price manipulation across pool, collateral, and position operations"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:16:40.557410",
+      "updated_at": "2026-10-12T23:17:37.794319",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:16:40.557901",
+          "status": "planned",
+          "rationale": "WHY NOW: Multicall is an unvisited execution component that can compose multiple state-changing calls in one transaction while preserving the original caller and msg.value; this is a high-leverage path for same-transaction price manipulation or bypass of sequencing assumptions in price-sensitive pool operations. EXIT CRITERIA: Trace every delegatecall path and call-order interaction with oracle, tick, liquidity, collateral, and position state; determine whether a batch can alter or exploit price observations within the same transaction; conclude with either a concrete price-manipulation exploit and affected flows or documented evidence that batching cannot influence price-sensitive validation.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:16:40.574133",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:17:37.794491",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_f95bfc333fbc": {
+      "frame_id": "frame_f95bfc333fbc",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of EfficientHash",
+      "artifact_refs": [
+        "Determine whether packed-key or array-payload hashing can produce collisions or ambiguous encodings affecting price, oracle, pool, or risk-state lookups",
+        "Trace all hash consumers for attacker-controlled inputs that could redirect reads or writes of price-sensitive state",
+        "Verify assembly bounds, type packing, and domain separation preserve unique keys across relevant market and position contexts"
+      ],
+      "priority": 6,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:17:43.370308",
+      "updated_at": "2026-10-12T23:18:12.342459",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:17:43.370771",
+          "status": "planned",
+          "rationale": "WHY NOW: EfficientHash is an unvisited component and its pure assembly key construction may influence mappings used by price-sensitive state, creating a potential route to redirect or overwrite oracle, pool, or risk data. EXIT CRITERIA: complete the static call-site trace for every hash variant, verify collision resistance and input encoding for attacker-controlled values, and either document a concrete price-manipulation path with affected state or rule out price-sensitive usage and exploitable collisions.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:17:43.389246",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:18:12.342574",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_625680e92680": {
+      "frame_id": "frame_625680e92680",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of MetadataStore",
+      "artifact_refs": [
+        "Determine whether mutable or caller-controlled metadata can influence token valuation, strike/price displays, collateral accounting, or any downstream pricing decision",
+        "Trace all writers and readers of stored metadata, including factory-created identifiers and external integrations",
+        "Check for discrepancies between displayed metadata and authoritative pricing or position state that could enable price manipulation"
+      ],
+      "priority": 5,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:18:18.436882",
+      "updated_at": "2026-10-12T23:18:45.149490",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:18:18.437277",
+          "status": "planned",
+          "rationale": "WHY NOW: MetadataStore is an unvisited component and is one of the two remaining major components in the sweep. Although it appears primarily presentation-oriented, metadata can become price-relevant if downstream consumers or users rely on stored strikes, bounds, or position attributes rather than canonical state. EXIT CRITERIA: complete when every metadata write and read path is mapped, all price-sensitive fields and consumers are identified, and static analysis establishes either a concrete manipulation path with affected pricing logic or that metadata cannot influence any price, oracle, collateral, or valuation computation.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:18:18.451974",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:18:45.149667",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_7da2e1bb552b": {
+      "frame_id": "frame_7da2e1bb552b",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of ERC20Minimal",
+      "artifact_refs": [
+        "Assess whether token supply, balance, transfer, and allowance semantics can be manipulated to distort collateral or asset prices used by Panoptic components",
+        "Trace minting, burning, transfer, and balance-read behavior into collateral accounting and any pricing or solvency calculations",
+        "Check for non-standard ERC20 behavior that could cause price-sensitive balances or reserves to be misreported"
+      ],
+      "priority": 6,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:18:50.342985",
+      "updated_at": "2026-10-12T23:19:25.825104",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:18:50.343519",
+          "status": "planned",
+          "rationale": "WHY NOW: This is one of the only remaining unvisited concrete components and is an underlying asset primitive that may affect collateral valuations and reserve-based price inputs. EXIT CRITERIA: Review all supply and balance mutation paths, external call boundaries, and integrations that consume ERC20 balances for pricing; conclude whether any reachable behavior permits an attacker to manipulate a price-relevant balance or document that no price manipulation path exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:18:50.361324",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:19:25.825249",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_50e68fe7a687": {
+      "frame_id": "frame_50e68fe7a687",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of RiskEngine",
+      "artifact_refs": [
+        "Price and risk parameter inputs used for solvency and collateral valuation",
+        "Dependence on AMM ticks, oracle observations, EMA or median prices",
+        "Staleness, epoch, bounds, and update validation for price data",
+        "Whether attacker-controlled liquidity or position state can influence effective prices"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:19:34.474950",
+      "updated_at": "2026-10-12T23:19:38.879376",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:19:34.475481",
+          "status": "planned",
+          "rationale": "WHY NOW: RiskEngine is an unanalyzed core pricing component and is directly connected to PanopticPool's delegated risk pricing, making it the highest-value remaining target for price manipulation coverage. Its outputs may determine solvency, collateral requirements, and position acceptance, while inputs may derive from manipulable AMM or oracle state. EXIT CRITERIA: Trace every price input and update path into RiskEngine, identify all caller-controlled or AMM-derived values, verify freshness, bounds, observation-window, and manipulation-resistance checks, and determine whether any feasible single-block or short-term price movement can improperly alter collateral valuation or risk checks. Record a hypothesis only if a concrete attacker-controlled path and exploitable impact are established.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:19:34.495774",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:19:38.879653",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_c6054210ad4e": {
+      "frame_id": "frame_c6054210ad4e",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of OraclePack",
+      "artifact_refs": [
+        "Epoch and observation update rules",
+        "EMA and median tick calculation",
+        "Tick clamping and freshness guarantees",
+        "Whether manipulable AMM observations can influence solvency or pricing decisions"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:19:47.780119",
+      "updated_at": "2026-10-12T23:20:15.274818",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:19:47.780514",
+          "status": "planned",
+          "rationale": "WHY NOW: OraclePack is the primary price-observation component and directly governs resistance to spot-price manipulation, while no completed investigation has covered it. Its epoch gating, aggregation, and clamping logic are high-value paths that may allow a transient or attacker-controlled AMM tick to affect risk pricing. EXIT CRITERIA: Trace every OraclePack state update and read path, identify all consumers of its derived ticks, verify freshness and epoch-transition constraints, and determine whether any feasible observation manipulation can materially change collateral, liquidation, mint, burn, or settlement pricing; conclude with either a concrete price-manipulation vulnerability or documented coverage of these invariants.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:19:47.796257",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:20:15.275021",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_4c39ea55abab": {
+      "frame_id": "frame_4c39ea55abab",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of SemiFungiblePositionManagerV4",
+      "artifact_refs": [
+        "AMM tick and liquidity state used in position valuation",
+        "Position mint, burn, and liquidity-accounting paths that derive prices from pool state",
+        "Fee and token-amount calculations dependent on current or manipulable ticks",
+        "Rounding, bounds, and validation that could allow transient price manipulation to affect positions"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:20:24.403341",
+      "updated_at": "2026-10-12T23:20:28.676304",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:20:24.404056",
+          "status": "planned",
+          "rationale": "WHY NOW: SemiFungiblePositionManagerV4 is an uncompleted, critical state-management component that directly interacts with AMM liquidity and likely supplies position data used by pool solvency and pricing decisions. Its handling of current tick, liquidity ranges, and token amounts is a high-value location for spot-price or transient-liquidity manipulation. EXIT CRITERIA: Trace every V4 position mint, burn, liquidity update, and amount/fee calculation; identify all price and tick inputs, their provenance and validation, and whether attacker-controlled AMM state can influence economically relevant outputs; verify bounds, rounding, and cross-component assumptions against PanopticPool and RiskEngine; conclude with either a concrete price-manipulation exploit path or documented evidence that relevant paths are manipulation-resistant.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:20:24.422589",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:20:28.676520",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_27e1c162bfd5": {
+      "frame_id": "frame_27e1c162bfd5",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of CollateralTracker",
+      "artifact_refs": [
+        "Assess whether deposit, withdrawal, and share-preview pricing can be manipulated through transient asset balances or exchange-rate changes",
+        "Trace tracked-asset accounting and collateral valuation across interactions with PanopticPool and external ERC20 transfers",
+        "Check whether rounding, cached balances, or pre/post-burn ordering permits profit from AMM price or collateral-share manipulation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:20:38.301512",
+      "updated_at": "2026-10-12T23:20:42.882431",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:20:38.301904",
+          "status": "planned",
+          "rationale": "WHY NOW: CollateralTracker is a critical uncompleted component that converts collateral assets into shares and determines withdrawal amounts, making its exchange-rate and asset-accounting logic a direct potential price-manipulation surface. It also interacts with pool solvency flows and uses bounded tracked-asset state, so a discrepancy between actual balances, tracked balances, and share supply could affect collateral valuation. EXIT CRITERIA: Review the complete component and all callers affecting collateral balances; map every pricing and conversion path; establish whether attacker-controlled balance changes, rounding, donation-like transfers, or sequencing can alter share prices or withdrawal values; record a hypothesis only if a concrete profitable manipulation path is supported, otherwise document the relevant invariants and conclude the component has no price-manipulation issue.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:20:38.319231",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:20:42.882606",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_686f6a0390d3": {
+      "frame_id": "frame_686f6a0390d3",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of SemiFungiblePositionManager",
+      "artifact_refs": [
+        "Determine whether AMM liquidity mint, burn, and position-accounting paths can be manipulated to alter pool price inputs or reported position value",
+        "Trace tick-range, liquidity, and fee state updates for inconsistencies that permit temporary price distortion or undercollateralized positions",
+        "Assess whether externally controlled liquidity changes or callback sequencing allow an attacker to influence pricing-sensitive state within a transaction"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:20:49.722751",
+      "updated_at": "2026-10-12T23:21:20.720055",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:20:49.723159",
+          "status": "planned",
+          "rationale": "WHY NOW: SemiFungiblePositionManager is an unanalyzed core component that directly mutates AMM liquidity and position state, making it a primary remaining candidate for price manipulation despite the pool, risk engine, and oracle having been reviewed. EXIT CRITERIA: Complete when all public and internally callable liquidity/position mutation paths are mapped to their tick, fee, and pricing-sensitive state effects, and each path is shown either to enforce manipulation-resistant invariants or to yield a concrete price-manipulation hypothesis with affected flows and prerequisites.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:20:49.740823",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:21:20.720227",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_63c080d25834": {
+      "frame_id": "frame_63c080d25834",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of FeesCalc",
+      "artifact_refs": [
+        "Fee-growth and fee-settlement calculations used in position valuation",
+        "Handling of AMM fee state, liquidity, ticks, and token amounts",
+        "Rounding, precision, and boundary behavior that could distort prices or enable fee-based price manipulation",
+        "Whether attacker-controlled pool state or position parameters can produce favorable mispricing"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:21:30.413894",
+      "updated_at": "2026-10-12T23:21:35.715365",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:21:30.414395",
+          "status": "planned",
+          "rationale": "WHY NOW: FeesCalc is an unanalyzed pricing-related library that may directly influence position values and settlement amounts, while the main pool, risk engine, oracle, and position managers have already been reviewed. It is therefore a high-value remaining component for broad coverage of price manipulation paths. EXIT CRITERIA: Trace every public and internal calculation in FeesCalc to all callers; verify the source and freshness of fee-growth inputs, tick/liquidity assumptions, rounding direction, overflow handling, and interaction with AMM state; determine whether any caller can cause materially incorrect valuation or settlement through manipulable state. Conclude with either a concrete price-manipulation vulnerability and evidence or a documented determination that all relevant inputs are bounded and correctly validated.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:21:30.434505",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:21:35.715594",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_ef1601df55a9": {
+      "frame_id": "frame_ef1601df55a9",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of V4StateReader",
+      "artifact_refs": [
+        "Verify packed-storage decoding of current tick, liquidity, and pool state used for pricing",
+        "Trace extsload slot and field extraction into solvency, valuation, or position-pricing calculations",
+        "Check whether malformed, stale, or misaligned V4 state can produce attacker-controlled prices or bypass price-dependent limits"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:21:45.234772",
+      "updated_at": "2026-10-12T23:21:49.404989",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:21:45.235271",
+          "status": "planned",
+          "rationale": "WHY NOW: V4StateReader is an unanalyzed price-source component that directly decodes AMM state consumed by the V4 position and pool logic; decoding errors or unsafe assumptions could turn manipulated or misread pool state into an accepted price. EXIT CRITERIA: map every reader output to its consumers, verify storage-slot layouts and masking against the V4 state representation, and determine whether any attacker-influenceable or stale field can affect valuation, tick limits, or solvency without appropriate validation; record a price-manipulation hypothesis only if a concrete exploitable path is established.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:21:45.254492",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:21:49.405177",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_2e98f2bc6b05": {
+      "frame_id": "frame_2e98f2bc6b05",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of Math",
+      "artifact_refs": [
+        "Fixed-point multiplication and division used in price and risk calculations",
+        "Unchecked arithmetic, rounding, and boundary behavior affecting tick, liquidity, or premium valuation",
+        "Taylor compounding and conversion routines for exploitable price distortion"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:21:55.176962",
+      "updated_at": "2026-10-12T23:22:14.400103",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:21:55.177473",
+          "status": "planned",
+          "rationale": "WHY NOW: Math is an uncompleted shared library with unchecked fixed-point arithmetic and full-precision mulDiv logic, making it a high-leverage component for price and risk values consumed across the protocol. EXIT CRITERIA: Trace every externally reachable pricing-related caller, verify scale factors and rounding direction across normal and extreme inputs, assess overflow/underflow and approximation error bounds, and determine whether any discrepancy can be amplified into a material manipulated price or solvency outcome; conclude with no issue or a concrete exploit path and affected callers.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:21:55.197167",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:22:14.400344",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_c1bd888f8d8a": {
+      "frame_id": "frame_c1bd888f8d8a",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of PanopticFactoryV4",
+      "artifact_refs": [
+        "Pool initialization and prevention of duplicate or misconfigured pool deployments",
+        "Binding between deployed pools, SFPM instances, risk engines, and AMM pool state",
+        "Whether attacker-controlled initialization parameters can alter price, tick, liquidity, or oracle sources used for valuation",
+        "Factory authorization and validation of pool configuration relevant to price and solvency calculations"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:22:20.252609",
+      "updated_at": "2026-10-12T23:22:24.996450",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:22:20.253098",
+          "status": "planned",
+          "rationale": "WHY NOW: PanopticFactoryV4 is an uncompleted deployment and configuration component that establishes the trusted relationships between pools, the SFPM, and risk machinery. Misconfiguration or insufficient validation at initialization could let an attacker create or register a pool whose valuation relies on manipulable AMM state or an unintended pricing component, making this a high-value price-manipulation boundary. EXIT CRITERIA: Trace every pool-initialization and registration path, identify all caller-controlled pricing-relevant parameters and their validation, verify uniqueness and canonical binding of AMM pools/SFPM/risk engines, and conclude whether any attacker can deploy or activate a configuration that bypasses oracle, tick, liquidity, or solvency pricing protections; record a concrete hypothesis only if a complete exploit path is statically supported.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:22:20.272625",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:22:24.996583",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_8b00dfc46fe1": {
+      "frame_id": "frame_8b00dfc46fe1",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of PanopticFactory",
+      "artifact_refs": [
+        "Pool and risk-engine registration paths that determine which pricing and solvency logic a deployed pool uses",
+        "Immutability and validation of pool-to-risk-engine mappings",
+        "Whether attacker-controlled or incorrectly initialized pool references can redirect price-dependent calculations",
+        "Factory-created pool configuration and any ability to alter pricing dependencies after deployment"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:22:34.398966",
+      "updated_at": "2026-10-12T23:22:38.237355",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:22:34.399455",
+          "status": "planned",
+          "rationale": "WHY NOW: PanopticFactory remains unanalyzed and controls deployment-time references between pools and pricing/risk components. A misconfigured or mutable mapping could cause a pool to consume attacker-influenced pricing logic or bypass the intended risk engine, creating a price-manipulation path despite the pool and risk engine themselves having already been reviewed. EXIT CRITERIA: Trace every factory deployment, registration, lookup, and configuration path; verify authorization, validation, and immutability of all price-relevant references; confirm no attacker can register, replace, or redirect a pool's pricing dependencies or create a pool with manipulable price inputs. Stop once all reachable factory-controlled price dependency flows are covered and any finding is either evidenced or ruled out.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:22:34.418517",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:22:38.237508",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_904a7c6dfe35": {
+      "frame_id": "frame_904a7c6dfe35",
+      "session_id": "sess_agent_20261012_231551",
+      "question": "Vulnerability analysis of PanopticMath",
+      "artifact_refs": [
+        "Price and solvency calculations derived from ticks, square-root prices, liquidity, and token amounts",
+        "Rounding direction, precision loss, overflow/underflow, and boundary behavior in pricing formulas",
+        "Consistency of price conversions across mint, burn, collateral, and risk-related flows",
+        "Whether attacker-controlled market state can produce favorable valuation discrepancies"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:22:44.268320",
+      "updated_at": "2026-10-12T23:22:54.095578",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:22:44.268792",
+          "status": "planned",
+          "rationale": "WHY NOW: PanopticMath is an unanalyzed pricing-critical library used to transform AMM state into token and position values, making it a high-leverage component for price manipulation despite the surrounding pool, risk engine, oracle, and SFPM having already been reviewed. EXIT CRITERIA: Trace every externally influenced input into the library\u2019s valuation and conversion formulas, verify rounding and fixed-point behavior at normal and extreme ticks/liquidity, compare outputs against all consuming components, and either document a concrete exploitable price discrepancy with impact or conclude that no price-manipulation path remains in this component.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:22:44.288619",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:22:54.095753",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 16,
+    "last_modified": "2026-10-12T23:22:54.095924"
+  }
+}

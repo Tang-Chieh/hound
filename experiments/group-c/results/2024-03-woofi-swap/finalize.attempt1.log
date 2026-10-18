@@ -1,0 +1,155 @@
+Running hypothesis finalization...
+╭────────────────── Finalization Summary ──────────────────╮
+│ Hypothesis Finalization                                  │
+│                                                          │
+│ Project: houndC-gpt56_20261012-direct-2024-03-woofi-swap │
+│ Total hypotheses: 6                                      │
+│ Pending (not confirmed/rejected): 6                      │
+│ Above threshold (50%): 6                                 │
+│ To review: 6 hypotheses                                  │
+╰──────────────────────────────────────────────────────────╯
+Normal reviewers tick boxes, but YOU crown truth and retire doubt.
+
+Hypotheses to review:
+┏━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Co… ┃ Type           ┃ Title                                                 ┃
+┡━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 90% │ oracle_integr… │ Global oracle timestamp allows stale asset prices to  │
+│     │                │ remain feasible                                       │
+│ 60% │ accounting_in… │ Native vault deposits can report an arbitrary token   │
+│     │                │ amount                                                │
+│ 90% │ accounting_in… │ WooRouterV3 retains excess native currency as         │
+│     │                │ stranded WETH                                         │
+│ 90% │ availability   │ SuperCharger weekly settlement can revert when        │
+│     │                │ withdrawal requests exceed liquid balance             │
+│ 60% │ security_issue │ Outgress fee quote reverts when requested amount      │
+│     │                │ exceeds current balance                               │
+│ 60% │ security_issue │ Unvalidated external dependency addresses can         │
+│     │                │ permanently disable or corrupt fee quoting            │
+└─────┴────────────────┴───────────────────────────────────────────────────────┘
+
+🧠 Reviewer openai-codex/gpt-5.6-luna enters the chamber...
+  ✓ CONFIRMED: Global oracle timestamp allows stale asset prices to remain 
+    Justification: Upon reviewing WooracleV2, I confirmed the alleged 
+oracle-integrity vulnerability. The contract stores a single global `timestamp` 
+variable, while `postPrice`, `postPriceList`, `postSpread`, `postSpreadList`, 
+`postState`, and `postStateList` update that timestamp regardless of which token
+was modified. In `isWoFeasible`, `price`, and `woState`, feasibility for 
+`infos.price` is evaluated using this global timestamp rather than a timestamp 
+associated with `base`. Consequently, if token A's price is old but token B is 
+updated through any administrative posting function, token A can satisfy 
+`block.timestamp <= timestamp + staleDuration` despite not receiving a price 
+update. `WooPPV2` retrieves each token's state in `_tryQuerySellBase`, 
+`_tryQuerySellQuote`, `_tryQueryBaseToBase`, and the swap paths, and enforces 
+only the returned `woFeasible` flag via the calculation helpers. `WooRouterV2` 
+forwards swaps to the pool without an independent freshness check. Chainlink 
+bounds may reject some stale values, but tokens without a usable reference 
+oracle, or stale values still within the bound, remain exploitable.
+  ? UNCERTAIN: Native vault deposits can report an arbitrary token amount
+    Note: Upon reviewing WOOFiDexTestVault.depositTo and 
+WOOFiDexDepositor._depositTo, I confirmed that the native-asset branch in 
+WOOFiDexTestVault transfers exactly msg.value through 
+TransferHelper.safeTransferETH(receiver, msg.value), but emits AccountDepositTo 
+using the caller-controlled data.tokenAmount. Consequently, a caller can submit 
+a small native value and an arbitrarily large tokenAmount, producing an event 
+whose recorded amount does not match the funds received. However, the provided 
+source contains no internal balance, credit, redemption, or settlement logic 
+that consumes this event, and no downstream event-processing implementation is 
+included to demonstrate that the mismatch results in actual over-crediting. The 
+normal WOOFiDexDepositor path is also internally consistent: _depositTo 
+constructs VaultDepositFE.tokenAmount from the router’s toAmount and forwards 
+that same amount as native value. Therefore, the code demonstrates an 
+event-integrity defect and a clear misleading-event vector, but the stated 
+accounting-impact vulnerability depends on unspecified off-chain or downstream 
+consumers. Additional consumer code is required for definitive confirmation.
+  ✓ CONFIRMED: WooRouterV3 retains excess native currency as stranded WETH
+    Justification: Upon reviewing the native-input branch of WooRouterV3.swap, I
+confirmed the accounting-integrity issue. When fromToken is the ETH placeholder,
+the contract only checks that fromAmount <= msg.value, then calls 
+IWETH(WETH).deposit{value: msg.value}(), wrapping the entire payment. It 
+subsequently transfers only fromAmount of WETH to wooPP and executes the swap 
+using fromAmount. There is no transfer, withdrawal, or other refund of msg.value
+- fromAmount. Consequently, any transaction that supplies excess native currency
+leaves the surplus as WETH held by the router. The nonReentrant modifier and the
+receive() restriction do not prevent this condition; they address reentrancy and
+unsolicited ETH receipts, respectively, rather than enforcing exact payment or 
+returning excess value. The WooPPV3.swap implementation also receives and 
+accounts for only fromAmount, confirming that the surplus is not credited to the
+user or applied to the swap. Although exploitation generally requires a user or 
+integrator to submit excessive msg.value and the owner can potentially rescue 
+stranded funds, the code clearly permits loss of the surplus without refund.
+  ✗ REJECTED: SuperCharger weekly settlement can revert when withdrawal re
+    Reason: Upon reviewing weeklyNeededAmountForWithdraw, startWeeklySettle, 
+endWeeklySettle, and the related withdrawal and lending accounting, I determined
+this hypothesis is a false positive. The subtraction uses balance(), which 
+represents available + reserveBalance + lendingBalance, rather than only the 
+vault’s immediately liquid token balance. requestedTotalAmount() is calculated 
+from requestedTotalShares at the same share price used by balance(), while 
+withdrawal requests can only transfer shares already owned by the requester and 
+therefore cannot normally exceed totalSupply or the vault’s total accounted 
+balance. Consequently, having assets lent out may increase the repayment amount 
+returned by weeklyNeededAmountForWithdraw, but does not itself cause balance() -
+requestedAmount to underflow. The settlement flow intentionally relies on 
+WooLendingManager.weeklyRepaymentBreakdown() and repayment before 
+endWeeklySettle, and endWeeklySettle additionally requires 
+weeklyNeededAmountForWithdraw() == 0. A revert could occur if accounting 
+invariants are externally broken, such as unrecognized losses or inconsistent 
+manager state, but the provided code does not establish an exploitable path 
+where ordinary withdrawal requests exceeding liquid balance trigger this 
+subtraction underflow.
+  ? UNCERTAIN: Outgress fee quote reverts when requested amount exceeds cur
+    Note: Upon reviewing the provided material, I cannot definitively confirm or
+reject the alleged outgress fee quote failure because no source code, function 
+implementations, line numbers, call paths, or integration behavior were 
+supplied. The hypothesis asserts that a quote operation subtracts a requested 
+amount from the current balance without validating that the amount is 
+affordable, potentially causing an arithmetic underflow or an intentional 
+revert, but there is no observable subtraction, balance retrieval, fallback 
+handler, or error-handling logic to verify that claim. It is also impossible to 
+determine whether the affected fallback node performs an explicit balance check,
+uses checked arithmetic, clamps values, or treats quoting as a non-reverting 
+simulation. Establishing exploitability would require the implementation of 
+`fallback_8249d39e05`, the outgress quote function it invokes, relevant balance 
+and amount types, compiler arithmetic semantics, and callers that rely on 
+successful quotes. Until those components are available for review and an input 
+exceeding the balance can be demonstrated to trigger the claimed failure, the 
+hypothesis remains unsubstantiated rather than confirmed.
+  ✓ CONFIRMED: Unvalidated external dependency addresses can permanently di
+    Justification: Upon reviewing the WooCrossFee constructor and 
+fee-calculation functions, I confirmed that externally supplied dependencies are
+accepted without validation. The constructor directly casts _wooracle, _wooPP, 
+and _helper to their expected interfaces and stores them, with no zero-address 
+check, code-existence check, or verification of the expected implementation. 
+currentBalance() then unconditionally calls helper.allBaseTokensLength(), 
+helper.allBaseTokens(), wooracle.price(), wooPP.decimalInfo(), and 
+wooPP.poolSize(). Consequently, a zero address, EOA, incompatible contract, or 
+malicious implementation supplied during deployment can cause ingressFee(), 
+outgressFee(), and direct currentBalance() calls to revert or return manipulated
+balances and therefore incorrect fee quotes. There are no setters or 
+administrative validation mechanisms that can repair these references after 
+deployment. The issue is not a permissionless post-deployment exploit: 
+exploitation requires a faulty, compromised, or malicious deployment 
+configuration, and trusted deployment controls may reduce practical likelihood. 
+Nevertheless, the code clearly lacks the stated dependency-validation safeguards
+and provides a direct path to quote denial of service or fee-integrity 
+compromise when those controls fail.
+
+
+============================================================
+
+Finalization Complete:
+  ✓ Confirmed: 3
+  ✗ Rejected: 1
+  ? Uncertain: 2
+
+Total reviewed: 6
+
+Confirmed Vulnerabilities:
+  • Global oracle timestamp allows stale asset prices to remain feasible
+    Type: oracle_integrity | Severity: high
+  • WooRouterV3 retains excess native currency as stranded WETH
+    Type: accounting_integrity | Severity: medium
+  • Unvalidated external dependency addresses can permanently disable or corrupt
+fee quoting
+    Type: security_issue | Severity: medium
+

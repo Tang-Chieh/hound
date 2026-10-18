@@ -1,0 +1,27 @@
+{
+  "repo_id": "2023-08-dopex",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_aa1f3f26a7fc",
+      "title": "Vault-only collateral updates can leave LP accounting stale across settlement and liquidity flows",
+      "description": "The LP component is marked as having vault-only collateral updates, while option settlement transfers assets to the LP and the share value includes rDPX. If every asset-changing path does not synchronously invoke the authorized update, LP total collateral and per-share value can diverge from actual token balances. Deposits or withdrawals executed during that divergence can be priced against stale accounting.",
+      "impact": "The attacker can acquire undervalued shares or redeem overvalued shares, causing direct loss of rDPX and other vault assets to honest LPs.",
+      "vulnerable_code": [],
+      "mitigation": "Make balance-affecting operations and collateral-account updates atomic, derive managed assets from verified token balances where practical, and block deposits and withdrawals whenever the accounting state is stale or an update is pending.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_e19bbe41e6af",
+      "title": "Caller-controlled Uniswap V3 minimum output exposes vault swaps to adverse execution",
+      "description": "The Uniswap V3 AMO is described as using a caller-set minimum output while returning swap tokens to the core. Even if only an administrator can initiate the swap, an attacker can observe the pending transaction and manipulate the pool price around execution when the supplied minimum is too permissive, causing the vault to receive materially less value.",
+      "impact": "Vault liquidity can be exchanged for substantially fewer assets, reducing collateral backing and LP share value; repeated swaps can produce significant financial loss.",
+      "vulnerable_code": [],
+      "mitigation": "Compute and enforce minimum output from a bounded oracle/TWAP quote and configured maximum slippage, require deadline and pool-parameter validation, and reject swaps whose realized price deviates beyond the protocol limit.",
+      "severity": "medium"
+    }
+  ]
+}

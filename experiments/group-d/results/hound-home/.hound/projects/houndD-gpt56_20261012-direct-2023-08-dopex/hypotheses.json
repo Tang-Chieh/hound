@@ -1,0 +1,233 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_d816c1b6feb9": {
+      "title": "UniV3 AMO swaps rely on manipulable pool spot price and caller-supplied slippage",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: Price-sensitive swaps use the instantaneous Uniswap V3 pool state as the execution price, while both the minimum output and price limit are supplied per call and are not checked against an independent reference price.\nATTACK VECTOR: Monitor an admin AMO swap, front-run it with a large trade that moves the target pool price, allow the AMO swap to execute at the manipulated price if amountOutMinimum and sqrtPriceLimitX96 permit it, then reverse the manipulation after the AMO transaction.\nAFFECTED NODES: univ3_amo, univ3_router_interface, univ3_pool_interface, liquidity_asset_flow\nAFFECTED CODE: contracts/amo/UniV3LiquidityAmo.sol:swap, contracts/uniswap_V3/ISwapRouter.sol:exactInputSingle\nSEVERITY: high\nREASONING: The loaded implementation transfers tokens from core, approves the router, and calls exactInputSingle with amountOutMinimum and sqrtPriceLimitX96 supplied directly by the caller. The only authorization is DEFAULT_ADMIN_ROLE, which does not prevent permissionless pool-price manipulation or sandwiching around an admin transaction, and no oracle or TWAP validation is shown.\nSUGGESTED MITIGATION: Derive and enforce execution bounds from an independent oracle or sufficiently long Uniswap V3 TWAP, reject materially stale or divergent pool prices, use tightly calculated slippage limits rather than caller-selected permissive values, and consider private transaction submission for large swaps.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "univ3_amo",
+        "univ3_router_interface",
+        "univ3_pool_interface",
+        "liquidity_asset_flow"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation transfers tokens from core, approves the router, and calls exactInputSingle with amountOutMinimum and sqrtPriceLimitX96 supplied directly by the caller. The only authorization is DEFAULT_ADMIN_ROLE, which does not prevent permissionless pool-price manipulation or sandwiching around an admin transaction, and no oracle or TWAP validation is shown.",
+      "mitigation": "Derive and enforce execution bounds from an independent oracle or sufficiently long Uniswap V3 TWAP, reject materially stale or divergent pool prices, use tightly calculated slippage limits rather than caller-selected permissive values, and consider private transaction submission for large swaps.",
+      "finding_description": "The AMO executes exactInputSingle against a configured Uniswap V3 pool using caller-provided amountOutMinimum and sqrtPriceLimitX96, without validating the execution price against a TWAP or independent oracle. A permissionless attacker can temporarily move the pool price immediately before an authorized AMO transaction, causing the AMO to trade at an adverse manipulated price when the supplied minimum is permissive.",
+      "impact": "The protocol's liquidity assets can be exchanged for materially less value than their fair market value, transferring value to the attacker and potentially causing treasury loss or depletion of AMO-held assets.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/amo/UniV3LiquidityAmo.sol",
+          "contract": "UniV3LiquidityAmo",
+          "function": "swap(address,address,uint24,uint256,uint256,uint160)"
+        },
+        {
+          "file": "contracts/uniswap_V3/ISwapRouter.sol",
+          "contract": "ISwapRouter",
+          "function": "exactInputSingle(ExactInputSingleParams)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/uniswap_V3/ISwapRouter.sol",
+          "contracts/reLP/ReLPContract.sol",
+          "contracts/amo/UniV2LiquidityAmo.sol",
+          "contracts/amo/UniV3LiquidityAmo.sol",
+          "contracts/uniswap_V3/IUniswapV3Pool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223834",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:40:03.475103",
+      "id": "hyp_d816c1b6feb9",
+      "qa_comment": "Upon reviewing UniV3LiquidityAmo.swap in contracts/amo/UniV3LiquidityAmo.sol, I confirmed that the alleged spot-price manipulation risk exists. The function transfers funds from rdpxV2Core and calls univ3_router.exactInputSingle with _amountOutMinimum and _sqrtPriceLimitX96 copied directly from the administrator's call. No oracle, TWAP, deviation check, pool observation validation, or contract-enforced slippage bound is applied before execution. Although only DEFAULT_ADMIN_ROLE may invoke swap, that authorization does not prevent permissionless traders from observing and sandwiching the administrator's pending transaction. If the administrator supplies a permissive minimum output or price limit, an attacker can move the selected Uniswap V3 pool price immediately before execution, cause the AMO to trade at the manipulated spot price, and potentially reverse the trade afterward. Uniswap's router only enforces the caller-provided parameters; it does not establish fair value. The hardcoded deadline of 2105300114 also provides an unusually long execution window. Exploitability depends on transaction visibility, pool liquidity, and parameter choices, but the code clearly lacks an independent price safeguard."
+    },
+    "hyp_bdfde3f29239": {
+      "title": "ReLP V2 rebalancing can be executed against a manipulable spot price",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The ReLP liquidity-management path relies on manipulable Uniswap V2 spot reserves and configurable slippage rather than a manipulation-resistant valuation source or a caller-supplied economically meaningful limit.\nATTACK VECTOR: An attacker performs a large temporary swap or sandwich transaction against the relevant V2 pair immediately before the authorized reLP operation, causing the operation to calculate or accept an unfavorable token exchange; the attacker then reverses the distortion and captures the price difference.\nAFFECTED NODES: relp_contract, univ2_amo, univ2_pair_interface, univ2_router_interface, liquidity_asset_flow\nAFFECTED CODE: contracts/reLP/ReLPContract.sol:reLP, contracts/reLP/ReLPContract.sol:slippage tolerance and router interaction, contracts/uniswap_V2/UniswapV2Pair.sol:spot reserves\nSEVERITY: high\nREASONING: The architecture explicitly links ReLPContract to the V2 AMO, pair, and router and records router approvals plus configurable slippage. The exact ReLP implementation block was omitted as a duplicate, so the finding depends on confirming that the reLP calculation or min-output value is derived from current V2 reserves rather than a TWAP or independently validated oracle.\nSUGGESTED MITIGATION: Use a manipulation-resistant TWAP or independently validated oracle for valuation, enforce a caller-supplied minimum economic output and maximum input, and reject operations when the oracle price and execution quote diverge beyond a strict bound. Avoid deriving both the quote and the acceptance threshold from the same live pair reserves.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "relp_contract",
+        "univ2_amo",
+        "univ2_pair_interface",
+        "univ2_router_interface",
+        "liquidity_asset_flow"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly links ReLPContract to the V2 AMO, pair, and router and records router approvals plus configurable slippage. The exact ReLP implementation block was omitted as a duplicate, so the finding depends on confirming that the reLP calculation or min-output value is derived from current V2 reserves rather than a TWAP or independently validated oracle.",
+      "mitigation": "Use a manipulation-resistant TWAP or independently validated oracle for valuation, enforce a caller-supplied minimum economic output and maximum input, and reject operations when the oracle price and execution quote diverge beyond a strict bound. Avoid deriving both the quote and the acceptance threshold from the same live pair reserves.",
+      "finding_description": "ReLPContract is connected to the Uniswap V2 AMO, pair, and router, and is observed to approve router tokens while using configurable slippage tolerance. If its reLP flow derives swap quantities or minimum outputs from the V2 pair's current reserves, an attacker can temporarily skew the pair price before a privileged reLP transaction and cause the contract to execute at an unfavorable rate. The configured slippage check only bounds deviation from the manipulated quote and does not provide time-weighted or independent price protection.",
+      "impact": "The reserve and liquidity-management assets can be exchanged at a materially unfavorable rate, resulting in loss of rDPX or WETH and reduced value returned to the core protocol.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/uniswap_V2/IUniswapV2Router.sol",
+          "contracts/reLP/ReLPContract.sol",
+          "contracts/amo/UniV2LiquidityAmo.sol",
+          "contracts/amo/UniV3LiquidityAmo.sol",
+          "contracts/uniswap_V2/IUniswapV2Pair.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223834",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:40:48.405854",
+      "id": "hyp_bdfde3f29239",
+      "qa_comment": "Upon reviewing ReLPContract.reLP (approximately lines 196-283), I determined that the hypothesis is overstated and is not clearly exploitable as described. The function does read the Uniswap V2 reserve through UniswapV2Library.getReserves and uses tokenALpReserve to calculate tokenAToRemove and lpToRemove, so spot reserves influence the quantity rebalanced. However, economic acceptance is not derived solely from those reserves: tokenAPrice is obtained from IRdpxEthOracle.getRdpxPriceInEth(), and both removeLiquidity minimum amounts and the subsequent swapExactTokensForTokens amountOutMin are calculated from that oracle price. A sufficiently large reserve manipulation would therefore cause the router call to revert when the oracle-based minimums are not met, rather than force execution at an arbitrary manipulated price. The operation is also restricted to RDPXV2CORE_ROLE, and no untrusted caller controls the amount or limits. Configurable slippage and the lack of caller-supplied bounds are design concerns, and modest manipulation within the configured tolerance may still create limited sandwich exposure, but the supplied code does not establish the claimed high-severity vulnerability or reliance exclusively on spot valuation."
+    },
+    "hyp_c517f0236ab1": {
+      "title": "DpxEthOracle accepts manipulable last-price updates without deviation or market-reference protection",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: The oracle relies on a single stored price and freshness validation without an independent reference price, bounded deviation check, TWAP, multi-source aggregation, or circuit breaker.\nATTACK VECTOR: Manipulate or compromise the oracle price publication path, publish an inflated or depressed price, and purchase or settle options while the manipulated value passes the heartbeat check.\nAFFECTED NODES: dpx_eth_oracle, dpx_eth_oracle_interface, asset_price_data, perp_vault, option_pricing_simple, option_settlement_flow, perp_vault_lp\nAFFECTED CODE: DpxEthOracle last-price storage and heartbeat validation, asset_price_data oracle read path, Perpetual option pricing and settlement flow\nSEVERITY: high\nREASONING: The loaded architecture explicitly identifies DpxEthOracle as a last-price oracle with heartbeat validation and shows that its value feeds Black-Scholes/option pricing and settlement. No loaded evidence shows deviation bounds, TWAP protection, multiple independent sources, or a circuit breaker. This is distinct from the already identified Uniswap V3 spot-price and ReLP V2 pool-price findings.\nSUGGESTED MITIGATION: Validate updates against one or more independent reference feeds and/or a sufficiently long TWAP; reject values exceeding configurable deviation bounds; add abnormal-movement circuit breakers and conservative fallback behavior, while enforcing a tightly controlled updater role.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "dpx_eth_oracle",
+        "dpx_eth_oracle_interface",
+        "asset_price_data",
+        "perp_vault",
+        "option_pricing_simple",
+        "option_settlement_flow",
+        "perp_vault_lp"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded architecture explicitly identifies DpxEthOracle as a last-price oracle with heartbeat validation and shows that its value feeds Black-Scholes/option pricing and settlement. No loaded evidence shows deviation bounds, TWAP protection, multiple independent sources, or a circuit breaker. This is distinct from the already identified Uniswap V3 spot-price and ReLP V2 pool-price findings.",
+      "mitigation": "Validate updates against one or more independent reference feeds and/or a sufficiently long TWAP; reject values exceeding configurable deviation bounds; add abnormal-movement circuit breakers and conservative fallback behavior, while enforcing a tightly controlled updater role.",
+      "finding_description": "DpxEthOracle is described as a last-price oracle with heartbeat validation. Heartbeat checking only confirms that a value was recently written; it does not establish that the value is economically valid. If the updater is compromised, misconfigured, or fed a manipulable market quote, an arbitrary extreme DPX/ETH price can remain valid and flow through asset_price_data into perpetual option pricing and settlement.",
+      "impact": "Options may be sold materially below fair value or settled for excessive collateral, enabling direct losses to the perpetual vault and its LPs.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/perp-vault/PerpetualAtlanticVault.sol",
+          "contracts/libraries/OptionPricingSimple.sol",
+          "contracts/core/RdpxV2Core.sol",
+          "contracts/perp-vault/IPerpetualAtlanticVault.sol",
+          "contracts/perp-vault/PerpetualAtlanticVaultLP.sol",
+          "contracts/oracles/DpxEthOracle.sol",
+          "contracts/oracles/IDpxEthOracle.sol",
+          "contracts/interfaces/IRdpxEthOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223834",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:41:38.121274",
+      "id": "hyp_c517f0236ab1"
+    },
+    "hyp_b961004d796b": {
+      "title": "UniV2 AMO swaps can execute against attacker-manipulated pair spot prices",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: Swap protection is limited to a caller/configured amountOutMin while execution pricing is determined by manipulable Uniswap V2 reserves; no independent fair-price bound is evidenced.\nATTACK VECTOR: Monitor or predict an authorized UniV2 AMO swap, temporarily buy or sell the input/output asset to skew pair reserves, allow the AMO transaction to execute within the accepted minimum-output range, then reverse the manipulation and capture value from the AMO.\nAFFECTED NODES: univ2_amo, univ2_router_interface, univ2_pair_interface, univ2_library, liquidity_asset_flow\nAFFECTED CODE: UniV2LiquidityAmo swap execution path, Uniswap V2 router/pair reserve-based pricing path, Liquidity-manager asset flow into and out of UniV2LiquidityAmo\nSEVERITY: high\nREASONING: The architecture confirms that UniV2LiquidityAmo executes router/pair swaps and uses minimum-output protection, while the available context does not show TWAP/oracle validation or a caller-independent fair-price calculation. Admin-only authorization prevents arbitrary direct triggering but does not prevent reserve manipulation or sandwiching of a predictable authorized transaction. This is distinct from the existing ReLP-specific hypothesis because it concerns the AMO's direct UniV2 execution path and liquidity flow.\nSUGGESTED MITIGATION: Derive an execution price bound from an independent trusted oracle or sufficiently long TWAP, enforce both minimum-output and maximum-input constraints against that bound, use short deadlines and transaction-private submission where possible, and reject trades when pool liquidity or reserve movement exceeds configured limits.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "univ2_amo",
+        "univ2_router_interface",
+        "univ2_pair_interface",
+        "univ2_library",
+        "liquidity_asset_flow"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture confirms that UniV2LiquidityAmo executes router/pair swaps and uses minimum-output protection, while the available context does not show TWAP/oracle validation or a caller-independent fair-price calculation. Admin-only authorization prevents arbitrary direct triggering but does not prevent reserve manipulation or sandwiching of a predictable authorized transaction. This is distinct from the existing ReLP-specific hypothesis because it concerns the AMO's direct UniV2 execution path and liquidity flow.",
+      "mitigation": "Derive an execution price bound from an independent trusted oracle or sufficiently long TWAP, enforce both minimum-output and maximum-input constraints against that bound, use short deadlines and transaction-private submission where possible, and reject trades when pool liquidity or reserve movement exceeds configured limits.",
+      "finding_description": "UniV2LiquidityAmo integrates directly with a Uniswap V2 pair/router and enforces only a minimum output, with no loaded evidence of an independent oracle, TWAP, or reserve-integrity check. An attacker can trade against the pool immediately before a predictable AMO swap to distort reserves and cause the authorized swap to execute at an unfavorable price, provided the configured minimum output remains permissive.",
+      "impact": "The AMO can lose treasury or liquidity-manager assets through unfavorable execution, and an attacker can extract the difference as arbitrage or sandwich profit.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/uniswap_V2/IUniswapV2Router.sol",
+          "contracts/uniswap_V2/libraries/UniswapV2Library.sol",
+          "contracts/reLP/ReLPContract.sol",
+          "contracts/amo/UniV2LiquidityAmo.sol",
+          "contracts/amo/UniV3LiquidityAmo.sol",
+          "contracts/uniswap_V2/IUniswapV2Pair.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223834",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:43:17.123971",
+      "id": "hyp_b961004d796b",
+      "qa_comment": "Upon reviewing UniV2LiquidityAMO.swap, I confirmed that the AMO executes an exact-input Uniswap V2 trade using the router\u2019s reserve-derived spot price without any independent fair-price validation. The function transfers token1 from rdpxV2Core, approves the configured router, constructs a two-token path, and calls swapExactTokensForTokens with only the caller-provided token2AmountOutMin and a one-second deadline. The router and UniswapV2Library calculate output from current pair reserves through getReserves and getAmountOut; the AMO does not consult addresses.rdpxOracle or impose a maximum input, price deviation, liquidity, or reserve-movement bound. An attacker able to observe a predictable administrator transaction can trade against the pair immediately before it, causing the AMO to receive materially less output while still satisfying a permissive amountOutMin, and then unwind the position afterward. Admin-only access limits who can initiate swaps but does not prevent public-mempool reserve manipulation or sandwiching. The short deadline reduces stale execution risk but does not provide price protection. Therefore, this is a real reserve-price manipulation exposure, although practical impact depends on transaction visibility and configured minimums."
+    },
+    "hyp_cea94bf38b96": {
+      "title": "Manipulable rDPX valuation enables LP share-price extraction",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: LP share issuance relies directly on the vault underlying-price response for rDPX valuation, with no TWAP, deviation bound, freshness validation, or atomic price consistency check.\nATTACK VECTOR: Manipulate the price source used by getUnderlyingPrice(), call previewDeposit/convertToShares and deposit during the depressed-price window, then restore the price and redeem the disproportionately large LP position.\nAFFECTED NODES: perp_vault_lp, perp_vault, asset_price_data, dpx_eth_oracle\nAFFECTED CODE: contracts/perp-vault/PerpetualAtlanticVaultLP.sol:convertToShares, contracts/perp-vault/PerpetualAtlanticVaultLP.sol:previewDeposit, contracts/perp-vault/PerpetualAtlanticVault.sol:getUnderlyingPrice\nSEVERITY: high\nREASONING: The loaded implementation explicitly multiplies _rdpxCollateral by getUnderlyingPrice() and uses the result as the denominator for new share issuance. Redemption subsequently returns both collateral and rDPX, so a temporarily depressed valuation can create a profitable mismatch between shares issued and assets later redeemed. This is a distinct downstream accounting exploit from the underlying oracle's manipulability.\nSUGGESTED MITIGATION: Use a manipulation-resistant rDPX valuation such as a sufficiently long TWAP or multiple independent sources, enforce freshness and deviation limits, and reject deposits or redemptions when the valuation moves beyond configured bounds within the transaction or pricing window.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 0.9,
+      "status": "proposed",
+      "node_refs": [
+        "perp_vault_lp",
+        "perp_vault",
+        "asset_price_data",
+        "dpx_eth_oracle"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation explicitly multiplies _rdpxCollateral by getUnderlyingPrice() and uses the result as the denominator for new share issuance. Redemption subsequently returns both collateral and rDPX, so a temporarily depressed valuation can create a profitable mismatch between shares issued and assets later redeemed. This is a distinct downstream accounting exploit from the underlying oracle's manipulability.",
+      "mitigation": "Use a manipulation-resistant rDPX valuation such as a sufficiently long TWAP or multiple independent sources, enforce freshness and deviation limits, and reject deposits or redemptions when the valuation moves beyond configured bounds within the transaction or pricing window.",
+      "finding_description": "PerpetualAtlanticVaultLP.convertToShares() values _rdpxCollateral using perpetualAtlanticVault.getUnderlyingPrice() without an independent manipulation-resistant check. An attacker who temporarily drives the underlying rDPX price downward can deposit alpha collateral while the vault's totalVaultCollateral is understated, receiving too many LP shares; after the price recovers, those shares can be redeemed for a proportional amount of rDPX and collateral.",
+      "impact": "The attacker can obtain an excessive claim on vault collateral and rDPX, diluting existing LPs and potentially draining economically valuable rDPX or collateral from the vault.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/perp-vault/PerpetualAtlanticVaultLP.sol",
+          "contract": "PerpetualAtlanticVaultLP",
+          "function": "convertToShares(uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/oracles/DpxEthOracle.sol",
+          "contracts/perp-vault/PerpetualAtlanticVaultLP.sol",
+          "contracts/perp-vault/PerpetualAtlanticVault.sol",
+          "contracts/interfaces/IRdpxEthOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_223834",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:44:20.608594",
+      "id": "hyp_cea94bf38b96"
+    }
+  },
+  "metadata": {
+    "total": 5,
+    "confirmed": 2,
+    "last_modified": "2026-10-12T22:44:20.611445"
+  }
+}

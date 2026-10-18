@@ -1,0 +1,265 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_9e962f22bfdf": {
+      "frame_id": "frame_9e962f22bfdf",
+      "session_id": "sess_agent_20261012_230058",
+      "question": "Vulnerability analysis of WooracleV2",
+      "artifact_refs": [
+        "Price update authorization and signer validation",
+        "Staleness, timestamp, and update sequencing checks",
+        "Token price and spread inputs consumed by downstream quote logic",
+        "Resistance to single-block, low-liquidity, or replay-based price manipulation"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:01:02.918073",
+      "updated_at": "2026-10-12T23:01:28.508222",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:01:02.918284",
+          "status": "planned",
+          "rationale": "WHY NOW: WooracleV2 is a central oracle component and its prices can directly determine swaps, pool quotes, collateral-like valuations, or settlement amounts across dependent contracts; it is unvisited and therefore offers high-impact coverage of the primary price-manipulation surface. EXIT CRITERIA: Trace every external and privileged price-update path, establish who can update each asset and under what validation constraints, verify freshness and sequencing protections, and map each stored price/spread field to consumers; conclude with either a concrete manipulation path and affected flow or documented evidence that unauthorized, stale, replayed, and economically manipulable updates are prevented.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:01:02.927417",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:01:28.508338",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_f5931b1a8ecd": {
+      "frame_id": "frame_f5931b1a8ecd",
+      "session_id": "sess_agent_20261012_230058",
+      "question": "Vulnerability analysis of WOOFiVaultV2",
+      "artifact_refs": [
+        "Share-price calculation during deposits and withdrawals",
+        "Balance and total-supply accounting vulnerable to donation or inflation manipulation",
+        "Strategy-reported asset values and their effect on mint/redeem pricing",
+        "Whether attacker-controlled token transfers or timing can distort vault share valuation"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:01:33.220353",
+      "updated_at": "2026-10-12T23:02:14.895126",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:01:33.220827",
+          "status": "planned",
+          "rationale": "WHY NOW: WOOFiVaultV2 is an unvisited, state-critical component whose annotated share-price logic uses the predeposit balance, making valuation and deposit ordering directly relevant to price manipulation. EXIT CRITERIA: Trace every deposit, withdrawal, share-mint, share-burn, and strategy-balance path; determine whether externally controllable balances, donations, stale values, or transaction ordering can produce an attacker-profitable share price; document a concrete exploit path if present, otherwise record why the pricing mechanism resists manipulation.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:01:33.239062",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:02:14.895241",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_4b81d2251e7d": {
+      "frame_id": "frame_4b81d2251e7d",
+      "session_id": "sess_agent_20261012_230058",
+      "question": "Vulnerability analysis of WOOFiDexDepositor",
+      "artifact_refs": [
+        "Swap pricing and quote-source integrity",
+        "Enforcement of minimum output parameters against manipulated execution prices",
+        "Owner-configured vault and token routing effects on deposit valuation",
+        "Whether pause and slippage controls prevent value extraction during price manipulation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:02:21.994144",
+      "updated_at": "2026-10-12T23:03:16.351878",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:02:21.994610",
+          "status": "planned",
+          "rationale": "WHY NOW: This unvisited contract performs swaps before depositing into configured vaults and exposes a minimum-output control, making it a concentrated price-manipulation boundary that may rely on router pricing or caller-supplied assumptions. It is a major component outside the already completed oracle and vault investigations, and its integration could convert manipulated swap prices into mispriced vault deposits. EXIT CRITERIA: Trace every deposit and swap path through the configured router and vaults, identify the authoritative price source and all slippage checks, verify whether attacker-controlled or stale/manipulated prices can satisfy them, and conclude whether a profitable price-manipulation path exists or document the complete mitigating invariant.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:02:22.013536",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:03:16.352026",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_b32dbafcfe3c": {
+      "frame_id": "frame_b32dbafcfe3c",
+      "session_id": "sess_agent_20261012_230058",
+      "question": "Vulnerability analysis of WooCrossChainRouterV2",
+      "artifact_refs": [
+        "Trace source-chain and destination-chain quote and swap amount calculations",
+        "Check whether WooRouterV2 oracle-priced execution is protected by caller-controlled minimum-output or slippage bounds",
+        "Review owner-configured router and slippage parameters for paths that permit manipulated prices to produce excessive cross-chain output or unfavorable settlement",
+        "Examine fee and bridged-amount accounting for price-dependent inconsistencies"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:03:24.327167",
+      "updated_at": "2026-10-12T23:03:58.051720",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:03:24.327643",
+          "status": "planned",
+          "rationale": "WHY NOW: This is an unvisited major component that directly calls WooRouterV2, an oracle-priced swap system, and exposes owner-configured slippage behavior across a cross-chain boundary. Its amount and minimum-output handling could allow a manipulated oracle or permissive slippage configuration to turn a source swap into an overvalued destination transfer. EXIT CRITERIA: Trace every price-dependent ingress and egress path, identify all oracle/quote inputs and slippage checks, verify that manipulated prices cannot authorize excess output or bypass minimum-output protection, and either document concrete exploit evidence or conclude no price-manipulation path exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:03:24.346722",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:03:58.051835",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_ff2ff5cc4753": {
+      "frame_id": "frame_ff2ff5cc4753",
+      "session_id": "sess_agent_20261012_230058",
+      "question": "Vulnerability analysis of MasterChefWoo",
+      "artifact_refs": [
+        "Determine whether pool accounting, reward emission, or token-balance checks rely on manipulable token prices or spot valuations",
+        "Trace how externally supplied prices, exchange rates, or pool balances influence reward allocation and user share calculations",
+        "Assess whether deposits, withdrawals, or pool configuration can be sequenced to exploit transient price or balance manipulation"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:04:06.688236",
+      "updated_at": "2026-10-12T23:04:44.940293",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:04:06.688492",
+          "status": "planned",
+          "rationale": "WHY NOW: MasterChefWoo is an unvisited stateful rewards component that manages multiple token pools and checks token balances; these accounting boundaries may expose price-sensitive reward or share calculations not covered by the completed oracle, vault, depositor, or cross-chain investigations. EXIT CRITERIA: Review the complete contract and all connected pricing or balance flows, identify every price-dependent calculation and its manipulation resistance, and either document a concrete price-manipulation path with impact and preconditions or conclude that no exploitable price influence exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:04:06.699918",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:04:44.940472",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_391691eadb18": {
+      "frame_id": "frame_391691eadb18",
+      "session_id": "sess_agent_20261012_230058",
+      "question": "Vulnerability analysis of Protocol users and administrators",
+      "artifact_refs": [
+        "Privileged price-update authority and administrative controls affecting oracle-fed quotes",
+        "Whether compromised or malicious administrators can manipulate prices used by swaps, vaults, or cross-chain settlement",
+        "Separation of duties, timelocks, multisig requirements, and bounds on administrator-controlled pricing actions"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:04:53.346737",
+      "updated_at": "2026-10-12T23:05:00.402316",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:04:53.347223",
+          "status": "planned",
+          "rationale": "WHY NOW: This is the only remaining unvisited component and represents the privileged actors controlling price-sensitive infrastructure; administrator misuse or compromise could directly enable price manipulation across dependent contracts. EXIT CRITERIA: Trace every administrator-controlled price or oracle configuration path, identify all downstream price-sensitive consumers, verify authorization and mitigation constraints, and document any exploitable manipulation path or conclude that no price-manipulation exposure remains.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:04:53.366800",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:05:00.402481",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_533a915b83ea": {
+      "frame_id": "frame_533a915b83ea",
+      "session_id": "sess_agent_20261012_230058",
+      "question": "System component review: Protocol users and administrators (user_admin)",
+      "artifact_refs": [
+        "user_admin@SystemArchitecture"
+      ],
+      "priority": 7,
+      "status": "planned",
+      "rationale": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:05:03.513332",
+      "updated_at": "2026-10-12T23:05:03.513564",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:05:03.513790",
+          "status": "planned",
+          "rationale": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+          "created_by": "strategist"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 7,
+    "last_modified": "2026-10-12T23:05:03.514002"
+  }
+}

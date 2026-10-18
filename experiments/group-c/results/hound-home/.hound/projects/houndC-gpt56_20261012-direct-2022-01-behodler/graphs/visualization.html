@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Knowledge Graphs Visualization</title>
+    <meta charset="utf-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e6edf3;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #1c2128 0%, #2d333b 100%);
+            color: #e6edf3;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #30a14e33;
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #30a14e;
+        }
+        
+        #controls {
+            background: #161b22;
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .control-group label {
+            font-size: 11px;
+            color: #7d8590;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        select, button {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        select:hover, button:hover {
+            background: #30363d;
+            border-color: #30a14e;
+        }
+        
+        select:focus, button:focus {
+            outline: none;
+            border-color: #30a14e;
+            box-shadow: 0 0 0 2px #30a14e22;
+        }
+        
+        #main-container {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+        
+        #graph-container {
+            flex: 1;
+            background: #0d1117;
+            position: relative;
+        }
+        
+        #sidebar {
+            width: 380px;
+            background: #161b22;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #30363d;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-section h3 {
+            color: #e6edf3;
+            margin-bottom: 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        #node-info {
+            background: #21262d;
+            padding: 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #30363d;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .observation {
+            background: #21262d;
+            padding: 10px;
+            border-left: 3px solid #30a14e;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #30363d;
+            font-size: 13px;
+        }
+        
+        .stat-value {
+            color: #30a14e;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #tooltip {
+            position: absolute;
+            padding: 12px;
+            background: rgba(22, 27, 34, 0.95);
+            color: #e6edf3;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            font-size: 12px;
+            max-width: 300px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle {
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+        
+        .node:hover circle {
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+        
+        .link {
+            stroke-opacity: 0.4;
+            transition: stroke-opacity 0.3s;
+        }
+        
+        .link:hover {
+            stroke-opacity: 0.8;
+        }
+        
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 27, 34, 0.95);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            max-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        #legend h4 {
+            margin: 0 0 12px 0;
+            color: #e6edf3;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        .legend-section {
+            margin-bottom: 15px;
+        }
+        
+        .legend-section-title {
+            color: #7d8590;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .legend-item {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #8b949e;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .legend-line {
+            width: 18px;
+            height: 2px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔍 Hound3 Knowledge Graph</h1>
+        <div style="margin-top: 8px; opacity: 0.8; font-size: 13px; color: #8b949e;">
+            Dynamic Security Analysis Visualization
+        </div>
+    </div>
+    
+    <div id="controls">
+        <div class="control-group">
+            <label>Graph</label>
+            <select id="graph-selector">
+                <option value="SystemArchitecture">SystemArchitecture</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Node Type Filter</label>
+            <select id="type-filter">
+                <option value="all">All Types</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Layout</label>
+            <select id="layout-selector">
+                <option value="force">Force Directed</option>
+                <option value="hierarchical">Hierarchical</option>
+                <option value="circular">Circular</option>
+            </select>
+        </div>
+        
+        <button id="reset-view">Reset View</button>
+    </div>
+    
+    <div id="main-container">
+        <div id="graph-container">
+            <div id="legend"></div>
+        </div>
+        
+        <div id="sidebar">
+            <div class="sidebar-section">
+                <h3>Graph Statistics</h3>
+                <div id="stats"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Selected Node</h3>
+                <div id="node-info">
+                    <em style="color: #888;">Click a node to see details</em>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Source Cards</h3>
+                <div id="card-viewer" style="display: none;">
+                    <div style="margin-bottom: 10px;">
+                        <select id="card-selector" style="width: 100%;">
+                            <option value="">Select a card to view code</option>
+                        </select>
+                    </div>
+                    <div id="card-content" style="background: #0f3460; padding: 10px; border-radius: 6px; max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; white-space: pre-wrap;">
+                        <em style="color: #888;">Select a card above to view its content</em>
+                    </div>
+                </div>
+                <div id="no-cards" style="color: #888; font-style: italic;">
+                    No source cards for this node
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Agent Observations</h3>
+                <div id="observations"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tooltip"></div>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // All graph data
+        const allGraphs = {"SystemArchitecture": {"name": "SystemArchitecture", "internal_name": "SystemArchitecture", "focus": "High-level protocol component and flow overview: delineate the Behodler/Limbo/Flan/DAO system from users, governance, and external token/AMM interfaces; show how staking and token configuration, proposal execution, token minting, liquidity migration, and Flan stabilization interact through contracts and facade interfaces.", "nodes": [{"id": "boundary_protocol", "type": "protocol_boundary", "label": "Behodler/Limbo/Flan/DAO protocol", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9c7611b5f73a", "card_80dd797cb1b5", "card_cc9b1f4be31b", "card_7499733b031e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "actor_staker", "type": "user_or_governance_actor", "label": "Limbo staker", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9c7611b5f73a", "card_2d70205cecbe", "card_99c5652fbce4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "actor_governance", "type": "user_or_governance_actor", "label": "DAO governance/proposal participants", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b5381543f567", "card_cc9b1f4be31b", "card_d3c25867d917"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "asset_staked_token", "type": "token_or_asset", "label": "Soul/staked token", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9c7611b5f73a", "card_57f808b5ab58", "card_7499733b031e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "asset_flan", "type": "token_or_asset", "label": "Flan (FLN)", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_80dd797cb1b5", "card_b7acea80c152", "card_99c5652fbce4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "asset_scx", "type": "token_or_asset", "label": "Behodler SCX", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7499733b031e", "card_65e5b73bcb9d", "card_57f808b5ab58"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "asset_stablecoin", "type": "token_or_asset", "label": "Stablecoin input asset", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e6341cedd6fe", "card_b6a3869d7d00"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_limbo", "type": "contract", "label": "Limbo", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9c7611b5f73a", "card_b7acea80c152", "card_6da10e5cf74c", "card_57f808b5ab58"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_limbo_stake", "type": "data_or_value_flow", "label": "Limbo.stake", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9c7611b5f73a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_limbo_unstake", "type": "data_or_value_flow", "label": "Limbo.unstake / _unstake", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9c7611b5f73a", "card_2d70205cecbe"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_limbo_reward", "type": "data_or_value_flow", "label": "Limbo.rewardAdjustDebt and pending Flan mint", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b7acea80c152"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_limbo_bonus", "type": "data_or_value_flow", "label": "Limbo crossing bonus claim", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_99c5652fbce4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_limbo_secondary", "type": "data_or_value_flow", "label": "Limbo.claimSecondaryRewards", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_99c5652fbce4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "state_limbo_soul", "type": "data_or_value_flow", "label": "Limbo soul, index, user and crossing configuration", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_57f808b5ab58", "card_6da10e5cf74c", "card_a82ab98b4efd"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_flan", "type": "contract", "label": "Flan", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_80dd797cb1b5"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_flan", "type": "facade_interface", "label": "FlanLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_08bcf2776e9e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_dao", "type": "contract", "label": "LimboDAO", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_cc9b1f4be31b", "card_b2d9d23d80a0"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_dao", "type": "facade_interface", "label": "LimboDAOLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b2d9d23d80a0", "card_a42b9ff4c299"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_governable", "type": "contract", "label": "Governable", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_caaba865f423"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_proposal_factory", "type": "contract", "label": "ProposalFactory", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b5381543f567"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_proposal_execute", "type": "data_or_value_flow", "label": "Proposal.orchestrateExecute / execute", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b5381543f567", "card_d3c25867d917"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proposal_soul_config", "type": "proposal", "label": "UpdateSoulConfigProposal", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d3c25867d917"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proposal_multi_soul", "type": "proposal", "label": "UpdateMultipleSoulConfigProposal", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d8fcf7559103"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proposal_mint_authority", "type": "proposal", "label": "Proposal-controlled Flan minting authority", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_cc9b1f4be31b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proposal_asset_approval", "type": "proposal", "label": "SetAssetApprovalProposal", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4f089c2136d4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proposal_factory_config", "type": "proposal", "label": "UpdateProposalConfigProposal", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_5fd2d8bc11fd"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "proposal_whitelist", "type": "proposal", "label": "ToggleWhitelistProposalProposal", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_361e3e69ad7b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_token_proxy_registry", "type": "contract", "label": "TokenProxyRegistry", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_885bda7de65f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_rebase_proxy", "type": "contract", "label": "RebaseProxy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_9a73afe6749c"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_token_proxy", "type": "facade_interface", "label": "TokenProxyLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_aacfa4cb657d", "card_7499733b031e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_migration_power", "type": "contract", "label": "LimboAddTokenToBehodler migration power", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7499733b031e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_migration_power", "type": "facade_interface", "label": "LimboAddTokenToBehodlerPowerLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_534755ed1f56"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_angband", "type": "facade_interface", "label": "AngbandLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d00c505ed82a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_behodler", "type": "contract", "label": "BehodlerLite", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7499733b031e", "card_be9315e281ab", "card_833cd586e162"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_behodler", "type": "facade_interface", "label": "BehodlerLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_65e5b73bcb9d"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_migration_liquidity", "type": "data_or_value_flow", "label": "Migration: proxy redemption, Behodler liquidity addition, SCX transfer to Limbo", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7499733b031e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_amm_helper", "type": "contract", "label": "UniswapHelper", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_cd0e3d096856"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_amm_helper", "type": "facade_interface", "label": "AMMHelper", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4698def1d5e2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "external_uniswap", "type": "external_protocol", "label": "Uniswap-compatible AMM factory and pairs", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_cd0e3d096856", "card_deb021128542", "card_d392f2266592"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_unipair", "type": "facade_interface", "label": "UniPairLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a9ee12a839fb", "card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_buy_burn_flan", "type": "data_or_value_flow", "label": "Buy Flan from AMM, reward caller and burn remainder", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_cd0e3d096856"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "func_stabilize_flan", "type": "data_or_value_flow", "label": "AMMHelper.stabilizeFlan and generateFLNQuote", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_4698def1d5e2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_backstop", "type": "contract", "label": "FlanBackstop", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b6a3869d7d00", "card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_pyro_token", "type": "facade_interface", "label": "PyroTokenLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_672baa4c0f9f", "card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "asset_pyroflan", "type": "token_or_asset", "label": "PyroFlan", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b6a3869d7d00", "card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_flash_arbiter", "type": "contract", "label": "FlashGovernanceArbiter", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_42c080d7ed42"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_flash_arbiter", "type": "facade_interface", "label": "FlashGovernanceArbiterLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_fbf097b1fcf3", "card_42c080d7ed42"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_soul_reader", "type": "contract", "label": "SoulReader", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_696a859e0571", "card_bae1b0f8d952"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "facade_morgoth_approver", "type": "facade_interface", "label": "MorgothTokenApproverLike", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_0faff6b7d0f9", "card_d8fcf7559103"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}], "edges": [{"id": "edge_7d6c8852", "type": "implements", "source_id": "contract_limbo", "target_id": "facade_limbo", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_9c7611b5f73a", "card_c873a48d8645"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f0c2643e", "type": "transfers", "source_id": "actor_staker", "target_id": "func_limbo_stake", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_9c7611b5f73a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_39b55af5", "type": "calls", "source_id": "func_limbo_stake", "target_id": "contract_limbo", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_9c7611b5f73a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9439dfd3", "type": "transfers", "source_id": "func_limbo_stake", "target_id": "asset_staked_token", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_9c7611b5f73a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_88852d6b", "type": "configures", "source_id": "state_limbo_soul", "target_id": "contract_limbo", "properties": {}, "label": "configures", "confidence": 1.0, "evidence": ["card_57f808b5ab58", "card_6da10e5cf74c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_97f67bb1", "type": "calls", "source_id": "func_limbo_unstake", "target_id": "contract_limbo", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_2d70205cecbe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7292ec65", "type": "transfers", "source_id": "func_limbo_unstake", "target_id": "actor_staker", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_2d70205cecbe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_883d9cfd", "type": "calls", "source_id": "contract_limbo", "target_id": "func_limbo_reward", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_b7acea80c152"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_bfec711c", "type": "mints", "source_id": "func_limbo_reward", "target_id": "asset_flan", "properties": {}, "label": "mints", "confidence": 1.0, "evidence": ["card_b7acea80c152"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0e17b5af", "type": "mints", "source_id": "func_limbo_bonus", "target_id": "asset_flan", "properties": {}, "label": "mints", "confidence": 1.0, "evidence": ["card_99c5652fbce4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_70f8bd28", "type": "calls", "source_id": "func_limbo_secondary", "target_id": "facade_amm_helper", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_99c5652fbce4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_01073bab", "type": "transfers", "source_id": "func_limbo_secondary", "target_id": "contract_amm_helper", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_99c5652fbce4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6a3ed346", "type": "implements", "source_id": "contract_flan", "target_id": "facade_flan", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_80dd797cb1b5", "card_08bcf2776e9e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a7430494", "type": "depends_on", "source_id": "contract_limbo", "target_id": "facade_flan", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_6da10e5cf74c", "card_b7acea80c152"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_afd45e96", "type": "implements", "source_id": "contract_dao", "target_id": "facade_dao", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_cc9b1f4be31b", "card_b2d9d23d80a0"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_be271b06", "type": "depends_on", "source_id": "contract_governable", "target_id": "facade_dao", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_caaba865f423"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5cf634fb", "type": "depends_on", "source_id": "contract_governable", "target_id": "facade_flash_arbiter", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_caaba865f423", "card_fbf097b1fcf3"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0d17214b", "type": "authorizes", "source_id": "contract_dao", "target_id": "contract_flan", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_cc9b1f4be31b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8cd0b4ae", "type": "mints", "source_id": "contract_dao", "target_id": "asset_flan", "properties": {}, "label": "mints", "confidence": 1.0, "evidence": ["card_cc9b1f4be31b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_368b9c38", "type": "proposes", "source_id": "actor_governance", "target_id": "proposal_soul_config", "properties": {}, "label": "proposes", "confidence": 1.0, "evidence": ["card_d3c25867d917"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_74bb7a2b", "type": "proposes", "source_id": "actor_governance", "target_id": "proposal_multi_soul", "properties": {}, "label": "proposes", "confidence": 1.0, "evidence": ["card_d8fcf7559103"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2ba94e01", "type": "calls", "source_id": "contract_proposal_factory", "target_id": "func_proposal_execute", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_b5381543f567"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c0abc273", "type": "executes", "source_id": "func_proposal_execute", "target_id": "proposal_soul_config", "properties": {}, "label": "executes", "confidence": 1.0, "evidence": ["card_d3c25867d917"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_fcee03b2", "type": "executes", "source_id": "func_proposal_execute", "target_id": "proposal_multi_soul", "properties": {}, "label": "executes", "confidence": 1.0, "evidence": ["card_d8fcf7559103"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2a9f5db7", "type": "calls", "source_id": "proposal_soul_config", "target_id": "contract_limbo", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_d3c25867d917"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0397c6f3", "type": "configures", "source_id": "proposal_soul_config", "target_id": "state_limbo_soul", "properties": {}, "label": "configures", "confidence": 1.0, "evidence": ["card_d3c25867d917"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7a371ace", "type": "calls", "source_id": "proposal_multi_soul", "target_id": "facade_morgoth_approver", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_d8fcf7559103"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9cfe333d", "type": "reads_from", "source_id": "proposal_multi_soul", "target_id": "facade_morgoth_approver", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_d8fcf7559103"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0702f99d", "type": "configures", "source_id": "proposal_multi_soul", "target_id": "contract_limbo", "properties": {}, "label": "configures", "confidence": 1.0, "evidence": ["card_d8fcf7559103"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0ce2b225", "type": "executes", "source_id": "func_proposal_execute", "target_id": "proposal_mint_authority", "properties": {}, "label": "executes", "confidence": 1.0, "evidence": ["card_cc9b1f4be31b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_215ef8fa", "type": "authorizes", "source_id": "proposal_mint_authority", "target_id": "contract_flan", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_cc9b1f4be31b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_c215f466", "type": "executes", "source_id": "func_proposal_execute", "target_id": "proposal_asset_approval", "properties": {}, "label": "executes", "confidence": 1.0, "evidence": ["card_4f089c2136d4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ed86030b", "type": "configures", "source_id": "proposal_asset_approval", "target_id": "contract_dao", "properties": {}, "label": "configures", "confidence": 1.0, "evidence": ["card_4f089c2136d4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_6965d814", "type": "executes", "source_id": "func_proposal_execute", "target_id": "proposal_factory_config", "properties": {}, "label": "executes", "confidence": 1.0, "evidence": ["card_5fd2d8bc11fd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4bc26218", "type": "configures", "source_id": "proposal_factory_config", "target_id": "contract_dao", "properties": {}, "label": "configures", "confidence": 1.0, "evidence": ["card_5fd2d8bc11fd"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9f5b3c43", "type": "executes", "source_id": "func_proposal_execute", "target_id": "proposal_whitelist", "properties": {}, "label": "executes", "confidence": 1.0, "evidence": ["card_361e3e69ad7b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f822dedc", "type": "configures", "source_id": "proposal_whitelist", "target_id": "contract_proposal_factory", "properties": {}, "label": "configures", "confidence": 1.0, "evidence": ["card_361e3e69ad7b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_20fa4374", "type": "depends_on", "source_id": "contract_limbo", "target_id": "contract_token_proxy_registry", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_885bda7de65f", "card_7499733b031e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f10e69fe", "type": "reads_from", "source_id": "func_migration_liquidity", "target_id": "contract_token_proxy_registry", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_7499733b031e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_86452c90", "type": "calls", "source_id": "func_migration_liquidity", "target_id": "facade_token_proxy", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_7499733b031e", "card_aacfa4cb657d"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_abb96275", "type": "calls", "source_id": "func_migration_liquidity", "target_id": "facade_behodler", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_7499733b031e", "card_65e5b73bcb9d"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_327e711b", "type": "transfers", "source_id": "func_migration_liquidity", "target_id": "asset_staked_token", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_7499733b031e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d14d2f1a", "type": "transfers", "source_id": "func_migration_liquidity", "target_id": "asset_scx", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_7499733b031e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_860bd59b", "type": "implements", "source_id": "contract_migration_power", "target_id": "facade_migration_power", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_7499733b031e", "card_534755ed1f56"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2309ff97", "type": "calls", "source_id": "contract_migration_power", "target_id": "facade_angband", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_d00c505ed82a", "card_7499733b031e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_59c2a342", "type": "routes_to", "source_id": "contract_migration_power", "target_id": "func_migration_liquidity", "properties": {}, "label": "routes_to", "confidence": 1.0, "evidence": ["card_7499733b031e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4aef069f", "type": "crosses_boundary", "source_id": "func_migration_liquidity", "target_id": "boundary_protocol", "properties": {}, "label": "crosses_boundary", "confidence": 1.0, "evidence": ["card_7499733b031e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4671c491", "type": "implements", "source_id": "contract_behodler", "target_id": "facade_behodler", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_7499733b031e", "card_65e5b73bcb9d"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_99f52476", "type": "implements", "source_id": "contract_amm_helper", "target_id": "facade_amm_helper", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_cd0e3d096856", "card_4698def1d5e2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_71df646c", "type": "depends_on", "source_id": "contract_amm_helper", "target_id": "external_uniswap", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_cd0e3d096856"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3f39c824", "type": "reads_from", "source_id": "contract_amm_helper", "target_id": "external_uniswap", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_cd0e3d096856"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_ee395b2c", "type": "calls", "source_id": "func_buy_burn_flan", "target_id": "facade_unipair", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_cd0e3d096856", "card_a9ee12b5f73a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3a02cd5e", "type": "transfers", "source_id": "func_buy_burn_flan", "target_id": "asset_flan", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_cd0e3d096856"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e5c9218b", "type": "burns", "source_id": "func_buy_burn_flan", "target_id": "asset_flan", "properties": {}, "label": "burns", "confidence": 1.0, "evidence": ["card_cd0e3d096856"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_75442e45", "type": "routes_to", "source_id": "func_limbo_secondary", "target_id": "func_buy_burn_flan", "properties": {}, "label": "routes_to", "confidence": 1.0, "evidence": ["card_99c5652fbce4", "card_cd0e3d096856"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_61d133b4", "type": "calls", "source_id": "func_stabilize_flan", "target_id": "external_uniswap", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_4698def1d5e2"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_725a06bc", "type": "depends_on", "source_id": "contract_backstop", "target_id": "facade_pyro_token", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_b6a3869d7d00", "card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_78462bfa", "type": "depends_on", "source_id": "contract_backstop", "target_id": "facade_unipair", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_b6a3869d7d00", "card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_017711fd", "type": "transfers", "source_id": "actor_staker", "target_id": "contract_backstop", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_00775d11", "type": "transfers", "source_id": "contract_backstop", "target_id": "asset_stablecoin", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_541dc0b6", "type": "mints", "source_id": "contract_backstop", "target_id": "asset_flan", "properties": {}, "label": "mints", "confidence": 1.0, "evidence": ["card_b6a3869d7d00", "card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_476c2ddb", "type": "mints", "source_id": "contract_backstop", "target_id": "asset_pyroflan", "properties": {}, "label": "mints", "confidence": 1.0, "evidence": ["card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a45477de", "type": "routes_to", "source_id": "contract_backstop", "target_id": "external_uniswap", "properties": {}, "label": "routes_to", "confidence": 1.0, "evidence": ["card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2454ae95", "type": "calls", "source_id": "contract_soul_reader", "target_id": "facade_limbo", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_696a859e0571", "card_bae1b0f8d952"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9bbc61a8", "type": "reads_from", "source_id": "contract_soul_reader", "target_id": "state_limbo_soul", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_bae1b0f8d952", "card_696a859e0571"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_34a506fe", "type": "implements", "source_id": "contract_flash_arbiter", "target_id": "facade_flash_arbiter", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_42c080d7ed42", "card_fbf097b1fcf3"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_bd32dc58", "type": "calls", "source_id": "contract_limbo", "target_id": "facade_flash_arbiter", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_6da10e5cf74c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3d7e4b49", "type": "depends_on", "source_id": "boundary_protocol", "target_id": "external_uniswap", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_cd0e3d096856", "card_e6341cedd6fe"], "created_by": "iteration_0", "iteration": 0}], "metadata": {"created_at": 1791136242.112442, "display_name": "SystemArchitecture"}, "stats": {"num_nodes": 49, "num_edges": 68, "node_types": ["user_or_governance_actor", "facade_interface", "proposal", "token_or_asset", "contract", "data_or_value_flow", "external_protocol", "protocol_boundary"], "edge_types": ["executes", "mints", "implements", "proposes", "authorizes", "calls", "reads_from", "burns", "transfers", "crosses_boundary", "routes_to", "configures", "depends_on"]}}};
+        const observations = [];
+        const cardStore = {"card_a9ee12a839fb": {"id": "card_a9ee12a839fb", "relpath": "contracts/facades/UniPairLike.sol", "char_start": 0, "char_end": 644, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract UniPairLike {\n    function", "peek_tail": "ata data\n    ) external virtual;\n\n    function totalSupply() external virtual returns (uint256);\n}\n\n", "shingle_hash": "302576a5394417d8", "top_tokens": ["function", "virtual", "returns", "uint256", "address", "external", "public", "view", "uint112", "spdx"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract UniPairLike {\n    function factory() public view virtual returns (address);\n\n    function getReserves()\n        public\n        view\n        virtual\n        returns (\n            uint112 _reserve0,\n            uint112 _reserve1,\n            uint32 _blockTimestampLast\n        );\n\n    function mint(address to) external virtual returns (uint256 liquidity);\n\n    function swap(\n        uint256 amount0Out,\n        uint256 amount1Out,\n        address to,\n        bytes calldata data\n    ) external virtual;\n\n    function totalSupply() external virtual returns (uint256);\n}\n"}, "card_b7acea80c152": {"id": "card_b7acea80c152", "relpath": "contracts/Limbo.sol", "char_start": 32419, "char_end": 33389, "peek_head": "  ///@notice analogous to ERC20 approve, this function gives third party contracts permission to mig", "peek_tail": " {\n    return ((user.stakedAmount * soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;\n  }\n}\n\n", "shingle_hash": "d60170805d53c2b2", "top_tokens": ["user", "soul", "function", "token", "address", "uint256", "unstaker", "amount", "accumulatedflanpershare", "internal"], "content": "  ///@notice analogous to ERC20 approve, this function gives third party contracts permission to migrate token balances on Limbo. Useful for both upgrades and third party integrations into Limbo\n  function approveUnstake(\n    address soul,\n    address unstaker,\n    uint256 amount\n  ) external {\n    unstakeApproval[soul][msg.sender][unstaker] = amount; //soul->owner->unstaker->amount\n  }\n\n  function rewardAdjustDebt(\n    address recipient,\n    uint256 pending,\n    uint256 accumulatedFlanPerShare,\n    User storage user\n  ) internal {\n    Flan.mint(recipient, pending);\n    user.rewardDebt = (user.stakedAmount * accumulatedFlanPerShare) / TERA;\n  }\n\n  function currentSoul(address token) internal view returns (Soul storage) {\n    return souls[token][latestIndex[token]];\n  }\n\n  function getPending(User memory user, Soul memory soul) internal pure returns (uint256) {\n    return ((user.stakedAmount * soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;\n  }\n}\n"}, "card_fbf097b1fcf3": {"id": "card_fbf097b1fcf3", "relpath": "contracts/facades/FlashGovernanceArbiterLike.sol", "char_start": 0, "char_end": 599, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract FlashGovernanceArbiterLike", "peek_tail": "uint256 amount\n    ) public virtual;\n\n     function setEnforcement(bool enforce) public virtual;\n}\n\n", "shingle_hash": "c9ec218d7e4012b1", "top_tokens": ["function", "address", "public", "virtual", "uint256", "bool", "int256", "view", "spdx", "license"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract FlashGovernanceArbiterLike {\n    function assertGovernanceApproved(address sender, address target, bool emergency)\n        public\n        virtual;\n\n    function enforceToleranceInt(int256 v1, int256 v2) public view virtual;\n\n    function enforceTolerance(uint256 v1, uint256 v2) public view virtual;\n\n    function burnFlashGovernanceAsset(\n        address targetContract,\n        address user,\n        address asset,\n        uint256 amount\n    ) public virtual;\n\n     function setEnforcement(bool enforce) public virtual;\n}\n"}, "card_9c7611b5f73a": {"id": "card_9c7611b5f73a", "relpath": "contracts/Limbo.sol", "char_start": 25695, "char_end": 26821, "peek_head": "      //Balance checking accounts for FOT discrepencies\n      uint256 oldBalance = IERC20(token).bal", "peek_tail": "s token, uint256 amount) public enabled {\n    _unstake(token, amount, msg.sender, msg.sender);\n  }\n\n", "shingle_hash": "802dab4bc5592697", "top_tokens": ["token", "user", "amount", "soul", "unstake", "for", "address", "msg", "sender", "stakedamount"], "content": "      //Balance checking accounts for FOT discrepencies\n      uint256 oldBalance = IERC20(token).balanceOf(address(this));\n      IERC20(token).safeTransferFrom(msg.sender, address(this), amount);\n      uint256 newBalance = IERC20(token).balanceOf(address(this));\n\n      user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true difference accounts for FOT tokens\n      if (soul.soulType == SoulType.threshold && newBalance > soul.crossingThreshold) {\n        soul.state = SoulState.waitingToCross;\n        tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;\n      }\n    }\n\n    user.rewardDebt = (user.stakedAmount * soul.accumulatedFlanPerShare) / TERA;\n    emit Staked(msg.sender, token, user.stakedAmount);\n  }\n\n  ///@notice User facing unstake function for handling both types of souls. For threshold souls, can only be called during staking phase.\n  ///@param token The soul to unstake\n  ///@param amount The amount of tokens to unstake\n  function unstake(address token, uint256 amount) public enabled {\n    _unstake(token, amount, msg.sender, msg.sender);\n  }\n\n"}, "card_d3c25867d917": {"id": "card_d3c25867d917", "relpath": "contracts/DAO/Proposals/UpdateSoulConfigProposal.sol", "char_start": 1456, "char_end": 1824, "peek_head": "    function execute() internal override returns (bool) {\n        console.log(\"token: %s, index: %s\"", "peek_tail": "s.state,\n            params.index,\n            params.fps\n        );\n\n        return true;\n    }\n}\n\n", "shingle_hash": "e026d713c46c402d", "top_tokens": ["params", "token", "index", "function", "execute", "internal", "override", "returns", "bool", "console"], "content": "    function execute() internal override returns (bool) {\n        console.log(\"token: %s, index: %s\",params.token,params.index);\n        limbo.configureSoul(\n            params.token,\n            params.crossingThreshold,\n            params.soulType,\n            params.state,\n            params.index,\n            params.fps\n        );\n\n        return true;\n    }\n}\n"}, "card_be9315e281ab": {"id": "card_be9315e281ab", "relpath": "contracts/testing/realBehodler/BehodlerLite.sol", "char_start": 14540, "char_end": 15769, "peek_head": "    for (uint256 i = 0; i < passes; i++) {\n      uint256 initialBalance = outputToken.tokenBalance()", "peek_tail": " burnt = (config.burnFee * amount) / (1000);\n      token.transferOut(receiver, burnt);\n    }\n  }\n}\n\n", "shingle_hash": "3caf8d16f761bbe7", "top_tokens": ["tokenstorelease", "uint256", "initialbalance", "int256", "difference", "token", "burnt", "finalbalance", "return", "lowerboundary"], "content": "    for (uint256 i = 0; i < passes; i++) {\n      uint256 initialBalance = outputToken.tokenBalance();\n      uint256 finalBalance = initialBalance - tokensToRelease;\n\n      uint256 logInitial = initialBalance.log_2();\n      uint256 logFinal = finalBalance.log_2();\n\n      int256 deltaSCX = int256(logInitial - (finalBalance > 1 ? logFinal : 0));\n      int256 difference = int256(scx) - deltaSCX;\n      // if (difference**2 < 1000000) return tokensToRelease;\n      if (difference == 0) return tokensToRelease;\n      if (difference < 0) {\n        // too many tokens requested\n        upperBoundary = tokensToRelease - 1;\n      } else {\n        //too few tokens requested\n        lowerBoundary = tokensToRelease + 1;\n      }\n      tokensToRelease = ((upperBoundary - lowerBoundary) / 2) + lowerBoundary; //bitshift\n      tokensToRelease = tokensToRelease > initialBalance ? initialBalance : tokensToRelease;\n    }\n    return tokensToRelease;\n  }\n\n  function burnToken(address token, uint256 amount) private returns (uint256 burnt) {\n    if (tokenBurnable[token]) {\n      burnt = applyBurnFee(token, amount, false);\n    } else {\n      burnt = (config.burnFee * amount) / (1000);\n      token.transferOut(receiver, burnt);\n    }\n  }\n}\n"}, "card_b6a3869d7d00": {"id": "card_b6a3869d7d00", "relpath": "contracts/FlanBackstop.sol", "char_start": 0, "char_end": 1996, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"./facades/FlanLike.sol\";\nimport \"./fa", "peek_tail": "oFlan PyroFlan address\n   */\n  constructor(\n    address dao,\n    address flan,\n    address pyroFlan\n", "shingle_hash": "8a2f6ba53c5fa6bc", "top_tokens": ["the", "flan", "pyroflan", "and", "import", "sol", "for", "address", "limbo", "facades"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"./facades/FlanLike.sol\";\nimport \"./facades/PyroTokenLike.sol\";\nimport \"./DAO/Governable.sol\";\nimport \"./ERC677/ERC20Burnable.sol\";\nimport \"./facades/UniPairLike.sol\";\nimport \"hardhat/console.sol\";\n\n///@title FlanBackstop (placeholder name)\n///@author Justin Goro\n/**\n * @notice Initially Flan's liquidity may be fairly low, limiting Limbo's ability to reward souls. Flan backstop accepts stablecoins in return for minting Pyroflan.\n *Under the hood a smaller quantity of Flan is minted and paired with the stablecoin in Uniswap in order to tilt the price of Flan higher while incresaing liquidity.\n * The same operation is performed with PyroFlan\n * The calling user then receives PyroFlan equal in value to the intial amount sent in but at the new price. A small premium is added.\n * The incentives facing the user: mint $X of PyroFlan with <$X of stablecoin, stake PyroFlan in Limbo for high APY, do not immediately dump because PyroFlan increases in value and because of 2% exit fee.\n * The incentives should be enough to encourage a gradual increase in pooled Flan and stablecoins, creating some minting runway for Limbo to accelerate.\n * In the future when Flan and Limbo are thriving and Flan is listed on Curve, we can create a version of this for Curve and Uniswap V3 in order to concentrate Flan liquidity and further cement stablecoin status.\n * Note: in this version, LP tokens generated are cast into the void. The argument of keeping them for fee revenue is negated by the impact on Flan. It would just be taking from Peter to give to Paul. \n */\n///@dev This contract uses Pyrotokens3. At the time of authoring, Pyrotokens3 implementation is incomplete and not fully tested but the interface (ABI) is locked.\ncontract FlanBackstop is Governable {\n  /**\n   *@param dao LimboDAO\n   *@param flan Flan address\n   *@param pyroFlan PyroFlan address\n   */\n  constructor(\n    address dao,\n    address flan,\n    address pyroFlan\n"}, "card_885bda7de65f": {"id": "card_885bda7de65f", "relpath": "contracts/TokenProxyRegistry.sol", "char_start": 0, "char_end": 1207, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"./DAO/Governable.sol\";\n\n///@author Ju", "peek_tail": "n;\n        bool migrateBaseToBehodler;\n    }\n    mapping (address=>TokenConfig) public tokenProxy;\n\n", "shingle_hash": "2996839cc4948a53", "top_tokens": ["limbo", "token", "the", "proxy", "this", "rebase", "balances", "changes", "governable", "for"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"./DAO/Governable.sol\";\n\n///@author Justin Goro\n///@title Token Proxy Registry for exotic token registration on Limbo\n/**@notice\nExotic tokens may cause Limbo to act unpredictably. The token type that inspired the writing of this class is the rebase token.\nSince Limbo keeps track of balances, a token who's balance changes dynamically will fall our of sync with Limbo balances.\nBy using a proxy token, we can neutralize balance changes within limbo without changing Limbo code. If we were to force Limbo to dynamically account for changing \nbalances then we might impose additional gas costs on all users. This scenario offloads additional gas consumption to stakers of rebase tokens only. From a security standpoint, arbitrary rebase logic\ncould open up unanticipated security holes. This proxy forces governance to neutralize such holes on a per token basis, allowing Limbo to adapt over time without requiring disruptive changes to the protocol.\n*/\ncontract TokenProxyRegistry is Governable {\n    struct TokenConfig{\n        address baseToken;\n        bool migrateBaseToBehodler;\n    }\n    mapping (address=>TokenConfig) public tokenProxy;\n\n"}, "card_6da10e5cf74c": {"id": "card_6da10e5cf74c", "relpath": "contracts/Limbo.sol", "char_start": 16662, "char_end": 18108, "peek_head": "  ///@notice Each token maintains its own index to allow Limbo to keep rewards for each staking even", "peek_tail": "d);\n    flashGoverner.enforceTolerance(soul.flanPerSecond, fps);\n    soul.flanPerSecond = fps;\n  }\n\n", "shingle_hash": "029605ae3cb7fd79", "top_tokens": ["mapping", "address", "soul", "uint256", "token", "for", "public", "fps", "dev", "function"], "content": "  ///@notice Each token maintains its own index to allow Limbo to keep rewards for each staking event separate\n  mapping(address => uint256) public latestIndex;\n\n  ///@dev tokenAddress->userAddress->soulIndex->Userinfo\n  mapping(address => mapping(address => mapping(uint256 => User))) public userInfo;\n  ///@dev token->index->data\n  mapping(address => mapping(uint256 => CrossingParameters)) public tokenCrossingParameters;\n\n  ///@dev soul->owner->unstaker->amount\n  mapping(address => mapping(address => mapping(address => uint256))) unstakeApproval;\n  FlanLike Flan;\n\n  modifier enabled() {\n    require(protocolEnabled, \"EF\");\n    _;\n  }\n\n  ///@notice helper function for approximating a total dollar value APY for a threshold soul.\n  ///@param token threshold soul\n  ///@param desiredAPY because values may be out of sync with the market, this function can only ever approximate an APY\n  ///@param daiThreshold user can select a Behodler AVB in Dai. 0 indicates the migration oracle value for AVB should be used.\n  function attemptToTargetAPY(\n    address token,\n    uint256 desiredAPY,\n    uint256 daiThreshold\n  ) public governanceApproved(false) {\n    Soul storage soul = currentSoul(token);\n    require(soul.soulType == SoulType.threshold, \"EI\");\n    uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(desiredAPY, daiThreshold);\n    flashGoverner.enforceTolerance(soul.flanPerSecond, fps);\n    soul.flanPerSecond = fps;\n  }\n\n"}, "card_2d70205cecbe": {"id": "card_2d70205cecbe", "relpath": "contracts/Limbo.sol", "char_start": 26821, "char_end": 28094, "peek_head": "  ///@notice Allows for Limbo to be upgraded 1 user at a time without introducing a system wide secu", "peek_tail": "ding, soul.accumulatedFlanPerShare, user);\n      emit Unstaked(unstaker, token, amount);\n    }\n  }\n\n", "shingle_hash": "2b2c340f825f0991", "top_tokens": ["token", "user", "amount", "soul", "address", "holder", "unstaker", "function", "uint256", "stakedamount"], "content": "  ///@notice Allows for Limbo to be upgraded 1 user at a time without introducing a system wide security risk. Anticipates moving tokens to Limbo2 (wen Limbo2??)\n  ///@dev similar to ERC20.transferFrom, this function allows a user to approve an upgrade contract migrate their staked tokens safely.\n  function unstakeFor(\n    address token,\n    uint256 amount,\n    address holder\n  ) public {\n    _unstake(token, amount, msg.sender, holder);\n  }\n\n  function _unstake(\n    address token,\n    uint256 amount,\n    address unstaker,\n    address holder\n  ) internal {\n    if (unstaker != holder) {\n      unstakeApproval[token][holder][unstaker] -= amount;\n    }\n    Soul storage soul = currentSoul(token);\n    require(soul.state == SoulState.calibration || soul.state == SoulState.staking, \"E2\");\n    updateSoul(token, soul);\n    User storage user = userInfo[token][holder][latestIndex[token]];\n    require(user.stakedAmount >= amount, \"E4\");\n\n    uint256 pending = getPending(user, soul);\n\n    if (pending > 0 && amount > 0) {\n      user.stakedAmount = user.stakedAmount - amount;\n      IERC20(token).safeTransfer(address(unstaker), amount);\n      rewardAdjustDebt(unstaker, pending, soul.accumulatedFlanPerShare, user);\n      emit Unstaked(unstaker, token, amount);\n    }\n  }\n\n"}, "card_cc9b1f4be31b": {"id": "card_cc9b1f4be31b", "relpath": "contracts/DAO/LimboDAO.sol", "char_start": 17386, "char_end": 18581, "peek_head": "  ///@notice grants unlimited Flan minting power to an address.\n  function approveFlanMintingPower(a", "peek_tail": "> proposalConfig.votingDuration) return 0;\n    return proposalConfig.votingDuration - elapsed;\n  }\n\n", "shingle_hash": "1f2742d427dd0b08", "top_tokens": ["address", "flan", "function", "public", "domainconfig", "notice", "uint256", "this", "dao", "elapsed"], "content": "  ///@notice grants unlimited Flan minting power to an address.\n  function approveFlanMintingPower(address minter, bool enabled) public onlySuccessfulProposal isLive {\n    Flan(domainConfig.flan).increaseMintAllowance(minter, enabled ? type(uint256).max : 0);\n  }\n\n  ///@notice call this after initial config is complete.\n  function makeLive() public onlyOwner {\n    require(\n      Governable(domainConfig.limbo).DAO() == address(this) && Governable(domainConfig.flan).DAO() == address(this),\n      \"LimboDAO: transfer ownership of limbo and flan.\"\n    );\n    domainConfig.live = true;\n  }\n\n  ///@notice if the DAO is being dismantled, it's necessary to transfer any owned items\n  function transferOwnershipOfThing(address thing, address destination) public onlySuccessfulProposal {\n    Ownable(thing).transferOwnership(destination);\n  }\n\n  function timeRemainingOnProposal() public view returns (uint256) {\n    require(currentProposalState.decision == ProposalDecision.voting, \"LimboDAO: proposal finished.\");\n    uint256 elapsed = block.timestamp - currentProposalState.start;\n    if (elapsed > proposalConfig.votingDuration) return 0;\n    return proposalConfig.votingDuration - elapsed;\n  }\n\n"}, "card_672baa4c0f9f": {"id": "card_672baa4c0f9f", "relpath": "contracts/facades/PyroTokenLike.sol", "char_start": 0, "char_end": 254, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract PyroTokenLike {\n  function", "peek_tail": "yable virtual returns (uint256);\n\n  function redeemRate() public view virtual returns (uint256);\n}\n\n", "shingle_hash": "016572bb4701a170", "top_tokens": ["uint256", "function", "virtual", "returns", "spdx", "license", "identifier", "mit", "pragma", "solidity"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract PyroTokenLike {\n  function mint(address to, uint256 baseTokenAmount) external payable virtual returns (uint256);\n\n  function redeemRate() public view virtual returns (uint256);\n}\n"}, "card_534755ed1f56": {"id": "card_534755ed1f56", "relpath": "contracts/facades/LimboAddTokenToBehodlerPowerLike.sol", "char_start": 0, "char_end": 184, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract LimboAddTokenToBehodlerPow", "peek_tail": "kenToBehodlerPowerLike {\n    function parameterize(address soul, bool burnable) public virtual;\n}\n\n\n", "shingle_hash": "254ea199c357835d", "top_tokens": ["spdx", "license", "identifier", "mit", "pragma", "solidity", "abstract", "contract", "limboaddtokentobehodlerpowerlike", "function"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract LimboAddTokenToBehodlerPowerLike {\n    function parameterize(address soul, bool burnable) public virtual;\n}\n\n"}, "card_99c5652fbce4": {"id": "card_99c5652fbce4", "relpath": "contracts/Limbo.sol", "char_start": 29358, "char_end": 31013, "peek_head": "    User storage user = userInfo[token][msg.sender][index];\n    require(!user.bonusPaid, \"E5\");\n    ", "peek_tail": " balance);\n    AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(token, balance, msg.sender);\n  }\n\n", "shingle_hash": "0193000fabbf746b", "top_tokens": ["token", "the", "user", "int256", "crossing", "flan", "msg", "sender", "require", "flanbonus"], "content": "    User storage user = userInfo[token][msg.sender][index];\n    require(!user.bonusPaid, \"E5\");\n    user.bonusPaid = true;\n    int256 accumulatedFlanPerTeraToken = crossing.crossingBonusDelta *\n      int256(crossing.stakingEndsTimestamp - crossing.stakingBeginsTimestamp);\n\n    //assert signs are the same\n    require(accumulatedFlanPerTeraToken * crossing.crossingBonusDelta >= 0, \"E6\");\n\n    int256 finalFlanPerTeraToken = int256(crossing.initialCrossingBonus) + accumulatedFlanPerTeraToken;\n\n    uint256 flanBonus = 0;\n    require(finalFlanPerTeraToken > 0, \"ED\");\n\n    flanBonus = uint256((int256(user.stakedAmount) * finalFlanPerTeraToken)) / TERA;\n    Flan.mint(msg.sender, flanBonus);\n\n    emit BonusPaid(token, index, msg.sender, flanBonus);\n  }\n\n  /**@notice some tokens may be sent to Limbo by mistake or unhandled in some manner. For instance, if a Pooltogether token is listed and Limbo wins,\n  the reward token may not have relevance on Limbo. If the token exists as a pair with Flan on the external AMM\n  this function buys Flan from the AMM and burns it. A small percentage of the purchased Flan is sent to the caller to incentivize \n  flushing Limbo of stuck tokens. A secondary incentive exists to create new pairs for Flan.\n  */\n  function claimSecondaryRewards(address token) public {\n    SoulState state = currentSoul(token).state;\n    require(state == SoulState.calibration || state == SoulState.crossedOver, \"E7\");\n    uint256 balance = IERC20(token).balanceOf(address(this));\n    IERC20(token).safeTransfer(crossingConfig.ammHelper, balance);\n    AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(token, balance, msg.sender);\n  }\n\n"}, "card_caaba865f423": {"id": "card_caaba865f423", "relpath": "contracts/DAO/Governable.sol", "char_start": 2298, "char_end": 2770, "peek_head": "  function assertSuccessfulProposal(address sender) internal view {\n    require(!configured || Limbo", "peek_tail": "= dao;\n    flashGoverner = FlashGovernanceArbiterLike(LimboDAOLike(dao).getFlashGoverner());\n  }\n}\n\n", "shingle_hash": "90f59bb2b2d99025", "top_tokens": ["dao", "address", "sender", "function", "require", "configured", "limbodaolike", "setdao", "assertsuccessfulproposal", "internal"], "content": "  function assertSuccessfulProposal(address sender) internal view {\n    require(!configured || LimboDAOLike(DAO).successfulProposal(sender), \"EJ\");\n  }\n\n  constructor(address dao) {\n    setDAO(dao);\n  }\n\n  ///@param dao The LimboDAO contract address\n  function setDAO(address dao) public {\n    require(DAO == address(0) || msg.sender == DAO || !configured, \"EK\");\n    DAO = dao;\n    flashGoverner = FlashGovernanceArbiterLike(LimboDAOLike(dao).getFlashGoverner());\n  }\n}\n"}, "card_0faff6b7d0f9": {"id": "card_0faff6b7d0f9", "relpath": "contracts/facades/MorgothTokenApproverLike.sol", "char_start": 0, "char_end": 175, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract MorgothTokenApproverLike{\n", "peek_tail": "orgothTokenApproverLike{\n    function approved(address token) public virtual view returns (bool);\n}\n", "shingle_hash": "2e56259873e97005", "top_tokens": ["spdx", "license", "identifier", "mit", "pragma", "solidity", "abstract", "contract", "morgothtokenapproverlike", "function"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract MorgothTokenApproverLike{\n    function approved(address token) public virtual view returns (bool);\n}"}, "card_65e5b73bcb9d": {"id": "card_65e5b73bcb9d", "relpath": "contracts/facades/BehodlerLike.sol", "char_start": 0, "char_end": 679, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract BehodlerLike {\n    functio", "peek_tail": "   virtual\n        returns (bool);\n\n    function totalSupply () external virtual returns (uint);\n}\n\n", "shingle_hash": "e06926ef57c28ebf", "top_tokens": ["uint256", "function", "virtual", "returns", "address", "external", "view", "public", "bool", "spdx"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract BehodlerLike {\n    function withdrawLiquidityFindSCX(\n        address outputToken,\n        uint256 tokensToRelease,\n        uint256 scx,\n        uint256 passes\n    ) external view virtual returns (uint256);\n\n    function burn(uint256 value) public virtual returns (bool);\n\n    function config()\n        public\n        virtual\n        view\n        returns (\n            uint256,\n            uint256,\n            address\n        );\n\n    function transfer(address dest, uint256 amount)\n        external\n        virtual\n        returns (bool);\n\n    function totalSupply () external virtual returns (uint);\n}\n"}, "card_4f089c2136d4": {"id": "card_4f089c2136d4", "relpath": "contracts/DAO/Proposals/SetAssetApprovalProposal.sol", "char_start": 0, "char_end": 802, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../ProposalFactory.sol\";\n\n/**\n* @auth", "peek_tail": "(bool) {\n        DAO.setApprovedAsset(params.asset, params.approved);\n        return true;\n    }\n}\n\n", "shingle_hash": "53f8ab03a7a6435f", "top_tokens": ["asset", "approved", "params", "proposal", "address", "bool", "dao", "eye", "parameters", "public"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../ProposalFactory.sol\";\n\n/**\n* @author Justin Goro\n* @notice EYE and EYE based assets can be used to earn fate. This proposal determines which tokens fall into the latter category.\n*/\ncontract SetAssetApprovalProposal is Proposal {\n    struct Parameters {\n        address asset;\n        bool approved;\n    }\n\n    Parameters public params;\n\n    constructor(address dao, string memory _description)\n        Proposal(dao, description)\n    {}\n\n    function parameterize(address asset, bool approved) public notCurrent {\n        params.asset = asset;\n        params.approved = approved;\n    }\n\n    function execute() internal override returns (bool) {\n        DAO.setApprovedAsset(params.asset, params.approved);\n        return true;\n    }\n}\n"}, "card_d392f2266592": {"id": "card_d392f2266592", "relpath": "contracts/testing/realUniswap/RealUniswapV2Pair.sol", "char_start": 6513, "char_end": 7869, "peek_head": "    // this low-level function should be called from a contract which performs important safety chec", "peek_tail": "20(_token0).balanceOf(address(this));\n        balance1 = IERC20(_token1).balanceOf(address(this));\n\n", "shingle_hash": "25ad30232e2df0fe", "top_tokens": ["address", "this", "uint256", "token0", "token1", "balanceof", "liquidity", "totalsupply", "amount0", "amount1"], "content": "    // this low-level function should be called from a contract which performs important safety checks\n    function burn(address to)\n        external\n        lock\n        returns (uint256 amount0, uint256 amount1)\n    {\n        (uint112 _reserve0, uint112 _reserve1, ) = getReserves(); // gas savings\n        address _token0 = token0; // gas savings\n        address _token1 = token1; // gas savings\n        uint256 balance0 = IERC20(_token0).balanceOf(address(this));\n        uint256 balance1 = IERC20(_token1).balanceOf(address(this));\n        uint256 liquidity = balanceOf[address(this)];\n\n        bool feeOn = _mintFee(_reserve0, _reserve1);\n        uint256 _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee\n        amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution\n        amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution\n        require(\n            amount0 > 0 && amount1 > 0,\n            \"UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED\"\n        );\n        _burn(address(this), liquidity);\n        _safeTransfer(_token0, to, amount0);\n        _safeTransfer(_token1, to, amount1);\n        balance0 = IERC20(_token0).balanceOf(address(this));\n        balance1 = IERC20(_token1).balanceOf(address(this));\n\n"}, "card_9a73afe6749c": {"id": "card_9a73afe6749c", "relpath": "contracts/TokenProxies/RebaseProxy.sol", "char_start": 1029, "char_end": 1766, "peek_head": "    function mint(address to, uint256 amount)\n        public\n        override\n        returns (uint2", "peek_tail": "NE;\n        _burn(msg.sender, amount);\n        IERC20(baseToken).transfer(to, baseTokens);\n    }\n}\n\n", "shingle_hash": "dde67c176486dd13", "top_tokens": ["uint256", "redeemrate", "amount", "address", "ierc20", "basetoken", "function", "mint", "public", "override"], "content": "    function mint(address to, uint256 amount)\n        public\n        override\n        returns (uint256)\n    {\n        uint256 _redeemRate = redeemRate();\n        require(\n            IERC20(baseToken).transferFrom(msg.sender, address(this), amount)\n        );\n        uint256 baseBalance = IERC20(baseToken).balanceOf(address(this));\n        uint256 proxy = (baseBalance * ONE) / _redeemRate;\n        _mint(to, proxy);\n    }\n\n    function redeem(address to, uint256 amount)\n        public\n        override\n        returns (uint256)\n    {\n        uint256 _redeemRate = redeemRate();\n        uint256 baseTokens = (_redeemRate * amount) / ONE;\n        _burn(msg.sender, amount);\n        IERC20(baseToken).transfer(to, baseTokens);\n    }\n}\n"}, "card_696a859e0571": {"id": "card_696a859e0571", "relpath": "contracts/periphery/SoulReader.sol", "char_start": 0, "char_end": 1092, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../facades/LimboLike.sol\";\nimport \"..", "peek_tail": "ion getLimbo(address _limbo) internal pure returns (LimboLike) {\n    return LimboLike(_limbo);\n  }\n\n", "shingle_hash": "191c798fcc4bc856", "top_tokens": ["uint256", "import", "sol", "the", "limbo", "limbolike", "soulreader", "this", "contract", "facades"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../facades/LimboLike.sol\";\nimport \"../facades/LimboDAOLike.sol\";\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\n// import \"hardhat/console.sol\";\n\n/**\n *@title SoulReader\n * @author Justin Goro\n * @notice Coneptually similar to the Router contracts in Uniswap, this is a helper contract for reading Limbo data in a manner more friendly to a UI\n * @dev passing the limbo contract address in allows the SoulReader to remain stateless and also allows front end devs to perform comparisons and experiments in real time.\n */\ncontract SoulReader {\n  uint256 constant TERA = 1E12;\n  struct Soul {\n    uint256 lastRewardTimestamp; //I know masterchef counts by block but this is less reliable than timestamp.\n    uint256 accumulatedFlanPerShare;\n    uint256 crossingThreshold; //the value at which this soul is elligible to cross over to Behodler\n    uint256 soulType;\n    uint256 state;\n    uint256 flanPerSecond;\n  }\n\n  function getLimbo(address _limbo) internal pure returns (LimboLike) {\n    return LimboLike(_limbo);\n  }\n\n"}, "card_7499733b031e": {"id": "card_7499733b031e", "relpath": "contracts/testing/realBehodler/LimboAddTokenToBehodler.sol", "char_start": 2086, "char_end": 3146, "peek_head": "        uint256 balanceOfToken = CommonIERC20(params.soul).balanceOf(\n            address(this)\n    ", "peek_tail": "       params.soul = address(0); // prevent non limbo from executing.\n        return true;\n    }\n}\n\n", "shingle_hash": "26b9cdeab8d8e6bf", "top_tokens": ["params", "address", "soul", "tokentomigrate", "behodler", "balanceoftoken", "commonierc20", "uint256", "this", "basetoken"], "content": "        uint256 balanceOfToken = CommonIERC20(params.soul).balanceOf(\n            address(this)\n        );\n        require(balanceOfToken > 0, \"MORGOTH: remember to seed contract\");\n        (address baseToken, bool migrate) = TokenProxyRegistry(\n            params.tokenProxyRegistry\n        ).tokenProxy(params.soul);\n\n        address tokenToMigrate = params.soul;\n        if (migrate && baseToken != address(0)) {\n            tokenToMigrate = baseToken;\n            TokenProxyLike(params.soul).redeem(address(this), balanceOfToken);\n        }\n\n        CommonIERC20(tokenToMigrate).approve(behodler, type(uint256).max);\n        BehodlerLiteLike(behodler).setTokenBurnable(\n            tokenToMigrate,\n            params.burnable\n        );\n        BehodlerLiteLike(behodler).addLiquidity(tokenToMigrate, balanceOfToken);\n        uint256 scxBal = CommonIERC20(behodler).balanceOf(address(this));\n        CommonIERC20(behodler).transfer(params.limbo, scxBal);\n        params.soul = address(0); // prevent non limbo from executing.\n        return true;\n    }\n}\n"}, "card_b5381543f567": {"id": "card_b5381543f567", "relpath": "contracts/DAO/ProposalFactory.sol", "char_start": 1007, "char_end": 2110, "peek_head": "  function orchestrateExecute() public onlyDAO {\n    require(execute(), \"LimboDAO: execution of prop", "peek_tail": "edProposalContracts[_soulUpdateProposal] = true;\n    soulUpdateProposal = _soulUpdateProposal;\n  }\n\n", "shingle_hash": "fcbc5c56068f7cbd", "top_tokens": ["proposal", "address", "soulupdateproposal", "function", "public", "whitelistedproposalcontracts", "execute", "limbodao", "this", "bool"], "content": "  function orchestrateExecute() public onlyDAO {\n    require(execute(), \"LimboDAO: execution of proposal failed\");\n  }\n\n  //override this function with all proposal logic. Only instructions included in this function will be executed if the proposal is a success.\n  function execute() internal virtual returns (bool);\n}\n\n///@title Proposal Factory\n///@author Justin Goro\n///@notice authenticates and gatekeeps proposals up for vote on LimboDAO.\n///@dev constructors are prefered to initializers when an imporant base contract exists.\ncontract ProposalFactory is Governable, Ownable {\n  mapping(address => bool) public whitelistedProposalContracts;\n  address public soulUpdateProposal;\n\n  constructor(\n    address _dao,\n    address whitelistingProposal,\n    address _soulUpdateProposal\n  ) Governable(_dao) {\n    //in order for proposals to be white listed, an initial whitelisting proposal needs to be whitelisted at deployment\n    whitelistedProposalContracts[whitelistingProposal] = true;\n    whitelistedProposalContracts[_soulUpdateProposal] = true;\n    soulUpdateProposal = _soulUpdateProposal;\n  }\n\n"}, "card_e6341cedd6fe": {"id": "card_e6341cedd6fe", "relpath": "contracts/FlanBackstop.sol", "char_start": 4629, "char_end": 5721, "peek_head": "    UniPairLike(flanLP).mint(address(this));\n    uint256 redeemRate = PyroTokenLike(config.pyroFlan)", "peek_tail": "arger the purchase, the better the return\n    uint256 premium = (flanToMint * (growth / 2)) / 100;\n\n", "shingle_hash": "15fb961f8c6b4da1", "top_tokens": ["uint256", "redeemrate", "config", "the", "pyrotokenlike", "pyroflan", "stablecoin", "tiltedprice", "flanlp", "mint"], "content": "    UniPairLike(flanLP).mint(address(this));\n    uint256 redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();\n    PyroTokenLike(config.pyroFlan).mint(pyroFlanLP, normalizedAmount / 4);\n    redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();\n    redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();\n    IERC20(stablecoin).transferFrom(msg.sender, pyroFlanLP, amount / 2);\n    UniPairLike(pyroFlanLP).mint(address(this));\n\n    uint256 balanceOfFlan = IERC20(config.flan).balanceOf(flanLP);\n    uint256 balanceOfStable = IERC20(stablecoin).balanceOf(flanLP);\n\n    uint256 tiltedPrice = (balanceOfFlan * getMagnitude(stablecoin)) / balanceOfStable;\n    require(tiltedPrice < config.acceptableHighestPrice[stablecoin], \"BACKSTOP: potential price manipulation\");\n    uint256 growth = ((priceBefore - tiltedPrice) * 100) / priceBefore;\n\n    uint256 flanToMint = (tiltedPrice * normalizedAmount) / (1 ether);\n\n    //share some price tilting with the user to incentivize minting: The larger the purchase, the better the return\n    uint256 premium = (flanToMint * (growth / 2)) / 100;\n\n"}, "card_d8fcf7559103": {"id": "card_d8fcf7559103", "relpath": "contracts/DAO/Proposals/UpdateMultipleSoulConfigProposal.sol", "char_start": 0, "char_end": 1552, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../ProposalFactory.sol\";\nimport \"../.", "peek_tail": "index: index,\n        targetAPY: targetAPY,\n        daiThreshold: daiThreshold\n      })\n    );\n  }\n\n", "shingle_hash": "9d586fdc31b06af9", "top_tokens": ["uint256", "ammhelper", "address", "token", "limbo", "import", "sol", "crossingthreshold", "soultype", "state"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../ProposalFactory.sol\";\nimport \"../../facades/LimboLike.sol\";\nimport \"../../facades/AMMHelper.sol\";\nimport \"../../facades/MorgothTokenApproverLike.sol\";\n\n/**\n* @author Justin Goro\n* @notice For adding a list of new souls to Limbo for staking \n*/\ncontract UpdateMultipleSoulConfigProposal is Proposal {\n  struct Parameters {\n    address token;\n    uint256 crossingThreshold;\n    uint256 soulType;\n    uint256 state;\n    uint256 index;\n    uint256 targetAPY;\n    uint256 daiThreshold;\n  }\n\n  Parameters[] params;\n  LimboLike limbo;\n  AMMHelper ammHelper;\n  MorgothTokenApproverLike morgothApprover;\n\n  constructor(\n    address dao,\n    string memory _description,\n    address _limbo,\n    address _ammHelper,\n    address morgothTokenApprover\n  ) Proposal(dao, _description) {\n    limbo = LimboLike(_limbo);\n    ammHelper = AMMHelper(_ammHelper);\n    morgothApprover = MorgothTokenApproverLike(morgothTokenApprover);\n  }\n\n  function parameterize(\n    address token,\n    uint256 crossingThreshold,\n    uint256 soulType,\n    uint256 state,\n    uint256 index,\n    uint256 targetAPY,\n    uint256 daiThreshold\n  ) public notCurrent {\n    require(morgothApprover.approved(token), \"MORGOTH: token not approved for listing on Behodler\");\n    params.push(\n      Parameters({\n        token: token,\n        crossingThreshold: crossingThreshold,\n        soulType: soulType,\n        state: state,\n        index: index,\n        targetAPY: targetAPY,\n        daiThreshold: daiThreshold\n      })\n    );\n  }\n\n"}, "card_deb021128542": {"id": "card_deb021128542", "relpath": "contracts/testing/realUniswap/RealUniswapV2Factory.sol", "char_start": 0, "char_end": 1556, "peek_head": "// SPDX-License-Identifier: GPL-3.0-or-later\npragma solidity 0.8.4;\n\nimport './interfaces/IUniswapV2", "peek_tail": "       allPairs.push(pair);\n        emit PairCreated(token0, token1, pair, allPairs.length);\n    }\n\n", "shingle_hash": "4cf9370b39ca8861", "top_tokens": ["address", "pair", "token0", "token1", "override", "tokena", "tokenb", "public", "feetosetter", "getpair"], "content": "// SPDX-License-Identifier: GPL-3.0-or-later\npragma solidity 0.8.4;\n\nimport './interfaces/IUniswapV2Factory.sol';\nimport './RealUniswapV2Pair.sol';\n\ncontract RealUniswapV2Factory is IUniswapV2Factory {\n    address public override feeTo;\n    address public override feeToSetter;\n\n    mapping(address => mapping(address => address)) public override getPair;\n    address[] public override allPairs;\n\n    constructor(address _feeToSetter) {\n        feeToSetter = _feeToSetter;\n    }\n\n    function allPairsLength() external override view returns (uint) {\n        return allPairs.length;\n    }\n\n    function createPair(address tokenA, address tokenB) external override returns (address pair) {\n        require(tokenA != tokenB, 'UniswapV2: IDENTICAL_ADDRESSES');\n        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);\n        require(token0 != address(0), 'UniswapV2: ZERO_ADDRESS');\n        require(getPair[token0][token1] == address(0), 'UniswapV2: PAIR_EXISTS'); // single check is sufficient\n        bytes memory bytecode = type(RealUniswapV2Pair).creationCode;\n        bytes32 salt = keccak256(abi.encodePacked(token0, token1));\n        assembly {\n            pair := create2(0, add(bytecode, 32), mload(bytecode), salt)\n        }\n        IUniswapV2Pair(pair).initialize(token0, token1);\n        getPair[token0][token1] = pair;\n        getPair[token1][token0] = pair; // populate mapping in the reverse direction\n        allPairs.push(pair);\n        emit PairCreated(token0, token1, pair, allPairs.length);\n    }\n\n"}, "card_80dd797cb1b5": {"id": "card_80dd797cb1b5", "relpath": "contracts/Flan.sol", "char_start": 0, "char_end": 1190, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"./ERC677/ERC677.sol\";\nimport \"../cont", "peek_tail": "Governer.enforceTolerance(newFee, burnOnTransferFee);\n        _setBurnOnTransferFee(newFee);\n    }\n\n", "shingle_hash": "151255152c61c1a3", "top_tokens": ["uint8", "flan", "newfee", "public", "erc677", "dao", "governable", "and", "burnontransferfee", "fee"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"./ERC677/ERC677.sol\";\nimport \"../contracts/DAO/Governable.sol\";\n\n///@author Justin Goro\n///@title Flan\n/**\n *@notice The reward token for Limbo. Flan can be minted without limit and is intended to converge on the price of DAI via various external incentives\n */\ncontract Flan is ERC677(\"Flan\", \"FLN\"), Governable {\n    event burnOnTransferFeeAdjusted(uint8 oldFee, uint8 newFee);\n    mapping(address => uint256) public mintAllowance; //type(uint).max == whitelist\n\n    uint8 public burnOnTransferFee = 0; //% between 1 and 100, recipient pays\n\n    constructor(address dao) Governable(dao) {}\n\n    /**\n    * @param fee - % between 1 and 100, recipient pays\n     */\n    function setBurnOnTransferFee(uint8 fee) public onlySuccessfulProposal {\n        _setBurnOnTransferFee(fee);\n    }\n\n    ///@notice flash governance technique for FOT change.\n    function incrementBurnOnTransferFee(int8 change)\n        public\n        governanceApproved(false)\n    {\n        uint8 newFee = uint8(int8(burnOnTransferFee) + change);\n        flashGoverner.enforceTolerance(newFee, burnOnTransferFee);\n        _setBurnOnTransferFee(newFee);\n    }\n\n"}, "card_bae1b0f8d952": {"id": "card_bae1b0f8d952", "relpath": "contracts/periphery/SoulReader.sol", "char_start": 1092, "char_end": 2102, "peek_head": "  /**\n   *@param token the token contract address\n   *@param _limbo the limbo contract address\n   */", "peek_tail": "limbo.latestIndex(token);\n    (, , , , , uint256 flanPerSecond) = limbo.souls(token, latestIndex);\n\n", "shingle_hash": "d762b0bf777d32df", "top_tokens": ["limbo", "token", "uint256", "address", "latestindex", "param", "the", "contract", "fps", "state"], "content": "  /**\n   *@param token the token contract address\n   *@param _limbo the limbo contract address\n   */\n  function SoulStats(address token, address _limbo)\n    public\n    view\n    returns (\n      uint256, //state\n      uint256, //staked balance\n      uint256 //fps\n    )\n  {\n    LimboLike limbo = getLimbo(_limbo);\n    uint256 latestIndex = limbo.latestIndex(token);\n    (, , , , uint256 state, uint256 fps) = limbo.souls(token, latestIndex);\n    uint256 stakeBalance = IERC20(token).balanceOf(address(limbo));\n    return (state, stakeBalance, fps);\n  }\n\n  /**\n   *@param token the token contract address\n   *@param _limbo the limbo contract address\n   */\n  function CrossingParameters(address token, address _limbo)\n    public\n    view\n    returns (\n      uint256, //initialCrossingbonus\n      int256, //bonusDelta,\n      uint256 //fps\n    )\n  {\n    LimboLike limbo = getLimbo(_limbo);\n    uint256 latestIndex = limbo.latestIndex(token);\n    (, , , , , uint256 flanPerSecond) = limbo.souls(token, latestIndex);\n\n"}, "card_a42b9ff4c299": {"id": "card_a42b9ff4c299", "relpath": "contracts/facades/LimboDAOLike.sol", "char_start": 1023, "char_end": 1161, "peek_head": "    function proposalConfig() public virtual view returns (uint,uint,address);\n\n  function setFateTo", "peek_tail": "irtual view returns (uint,uint,address);\n\n  function setFateToFlan(uint256 rate) public virtual;\n}\n\n", "shingle_hash": "9e18abd3601fb897", "top_tokens": ["function", "public", "virtual", "uint", "proposalconfig", "view", "returns", "address", "setfatetoflan", "uint256"], "content": "    function proposalConfig() public virtual view returns (uint,uint,address);\n\n  function setFateToFlan(uint256 rate) public virtual;\n}\n"}, "card_57f808b5ab58": {"id": "card_57f808b5ab58", "relpath": "contracts/Limbo.sol", "char_start": 11228, "char_end": 12353, "peek_head": "struct Soul {\n  uint256 lastRewardTimestamp;\n  uint256 accumulatedFlanPerShare;\n  uint256 crossingTh", "peek_tail": "the community finds the requirement to be too strict, they can inflate how much SCX to hold back\n}\n\n", "shingle_hash": "04deb5e298b46826", "top_tokens": ["uint256", "the", "address", "struct", "soul", "this", "behodler", "soultype", "fps", "teraflanpertoken"], "content": "struct Soul {\n  uint256 lastRewardTimestamp;\n  uint256 accumulatedFlanPerShare;\n  uint256 crossingThreshold; //the value at which this soul is elligible to cross over to Behodler\n  SoulType soulType;\n  SoulState state;\n  uint256 flanPerSecond; // fps: we use a helper function to convert min APY into fps\n}\n\nstruct CrossingParameters {\n  uint256 stakingBeginsTimestamp; //to calculate bonus\n  uint256 stakingEndsTimestamp;\n  int256 crossingBonusDelta; //change in teraFlanPerToken per second\n  uint256 initialCrossingBonus; //measured in teraFlanPerToken\n  bool burnable;\n}\n\nstruct CrossingConfig {\n  address behodler;\n  uint256 SCX_fee;\n  uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in Flan.\n  uint256 crossingMigrationDelay; // this ensures that if Flan is successfully attacked, governance will have time to lock Limbo and prevent bogus migrations\n  address morgothPower;\n  address angband;\n  address ammHelper;\n  uint16 rectangleOfFairnessInflationFactor; //0-100: if the community finds the requirement to be too strict, they can inflate how much SCX to hold back\n}\n\n"}, "card_5fd2d8bc11fd": {"id": "card_5fd2d8bc11fd", "relpath": "contracts/DAO/Proposals/UpdateProposalConfigProposal.sol", "char_start": 0, "char_end": 1108, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../ProposalFactory.sol\";\n\n/**\n* @auth", "peek_tail": "rams.requiredFateStake,\n            params.proposalFactory\n        );\n        return true;\n    }\n}\n\n", "shingle_hash": "d51d828902544625", "top_tokens": ["params", "proposalfactory", "votingduration", "requiredfatestake", "uint256", "proposal", "address", "dao", "subject", "parameters"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../ProposalFactory.sol\";\n\n/**\n* @author Justin Goro\n* @notice Each proposal is subject to a fate cost and a duration of voting. These values are themselves subject to governance\n*/\ncontract UpdateProposalConfigProposal is Proposal {\n    struct Parameters {\n        uint256 votingDuration;\n        uint256 requiredFateStake;\n        address proposalFactory;\n    }\n\n    Parameters public params;\n\n    constructor(address dao, string memory _description)\n        Proposal(dao, _description)\n    {}\n\n    function parameterize(\n        uint256 votingDuration,\n        uint256 requiredFateStake,\n        address proposalFactory\n    ) public notCurrent {\n        params.proposalFactory = proposalFactory;\n        params.requiredFateStake = requiredFateStake;\n        params.votingDuration = votingDuration;\n    }\n\n    function execute() internal override returns (bool) {\n        DAO.setProposalConfig(\n            params.votingDuration,\n            params.requiredFateStake,\n            params.proposalFactory\n        );\n        return true;\n    }\n}\n"}, "card_a82ab98b4efd": {"id": "card_a82ab98b4efd", "relpath": "contracts/Limbo.sol", "char_start": 15588, "char_end": 16662, "peek_head": "  event SoulUpdated(address soul, uint256 fps);\n  event Staked(address staker, address soul, uint256", "peek_tail": "@dev tokenAddress->index->stakingInfo\n  mapping(address => mapping(uint256 => Soul)) public souls;\n\n", "shingle_hash": "29dfcbc1f1780c93", "top_tokens": ["uint256", "address", "event", "soul", "amount", "index", "staker", "token", "behodler", "bonuspaid"], "content": "  event SoulUpdated(address soul, uint256 fps);\n  event Staked(address staker, address soul, uint256 amount);\n  event Unstaked(address staker, address soul, uint256 amount);\n  event TokenListed(address token, uint256 amount, uint256 scxfln_LP_minted);\n\n  event ClaimedReward(address staker, address soul, uint256 index, uint256 amount);\n\n  event BonusPaid(address token, uint256 index, address recipient, uint256 bonus);\n\n  struct User {\n    uint256 stakedAmount;\n    uint256 rewardDebt;\n    bool bonusPaid;\n  }\n\n  uint256 constant TERA = 1E12;\n  uint256 constant RectangleOfFairness = 30 ether; //MP = 1/t. Rect = tMP = t(1/t) = 1. 25 is the result of scaling factors on Behodler.\n  bool protocolEnabled = true;\n\n  ///@notice protocol settings for migrating threshold tokens to Behodler\n  CrossingConfig public crossingConfig;\n\n  ///@notice Since a token can be listed more than once on Behodler, we index each listing to separate the rewards from each staking event.\n  ///@dev tokenAddress->index->stakingInfo\n  mapping(address => mapping(uint256 => Soul)) public souls;\n\n"}, "card_b2d9d23d80a0": {"id": "card_b2d9d23d80a0", "relpath": "contracts/facades/LimboDAOLike.sol", "char_start": 0, "char_end": 1023, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract LimboDAOLike {\n    functio", "peek_tail": "      address\n        );\n\n    function getFlashGoverner() external view virtual returns (address);\n\n", "shingle_hash": "3f6605476cef6fc4", "top_tokens": ["address", "function", "virtual", "public", "bool", "returns", "view", "uint", "proposal", "uint256"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract LimboDAOLike {\n    function approveFlanMintingPower(address minter, bool enabled)\n        public\n        virtual;\n\n    function makeProposal(address proposal, address proposer) public virtual;\n\n    function currentProposalState() public view virtual returns (uint,uint,address,uint,address);\n\n    function setProposalConfig(\n        uint256 votingDuration,\n        uint256 requiredFateStake,\n        address proposalFactory\n    ) public virtual;\n\n    function setApprovedAsset(address asset, bool approved) public virtual;\n\n    function successfulProposal(address proposal)\n        public\n        view\n        virtual\n        returns (bool);\n\n    function domainConfig()\n        public\n        virtual\n        returns (\n            address,\n            address,\n            address,\n            address,\n            bool,\n            address,\n            address\n        );\n\n    function getFlashGoverner() external view virtual returns (address);\n\n"}, "card_cd0e3d096856": {"id": "card_cd0e3d096856", "relpath": "contracts/UniswapHelper.sol", "char_start": 10310, "char_end": 11482, "peek_head": "  ///@notice Buys Flan with a specified token, apportions 1% of the purchased Flan to the caller and", "peek_tail": "VARS.flan).transfer(recipient, reward);\n    ERC20Burnable(VARS.flan).burn(amountOut - reward);\n  }\n\n", "shingle_hash": "086913232fde04d3", "top_tokens": ["flan", "inputtoken", "uint256", "vars", "pair", "amount", "amountout", "the", "address", "token"], "content": "  ///@notice Buys Flan with a specified token, apportions 1% of the purchased Flan to the caller and burns the rest.\n  ///@param inputToken The token used to buy Flan\n  ///@param amount amount of input token used to buy Flan\n  ///@param recipient receives 1% of Flan purchased as an incentive to call this function regularly\n  ///@dev Assumes a pair for Flan/InputToken exists on Uniswap\n  function buyFlanAndBurn(\n    address inputToken,\n    uint256 amount,\n    address recipient\n  ) public override {\n    address pair = VARS.factory.getPair(inputToken, VARS.flan);\n\n    uint256 flanBalance = IERC20(VARS.flan).balanceOf(pair);\n    uint256 inputBalance = IERC20(inputToken).balanceOf(pair);\n\n    uint256 amountOut = getAmountOut(amount, inputBalance, flanBalance);\n    uint256 amount0Out = inputToken < VARS.flan ? 0 : amountOut;\n    uint256 amount1Out = inputToken < VARS.flan ? amountOut : 0;\n    IERC20(inputToken).transfer(pair, amount);\n    UniPairLike(pair).swap(amount0Out, amount1Out, address(this), \"\");\n    uint256 reward = (amountOut / 100);\n    ERC20Burnable(VARS.flan).transfer(recipient, reward);\n    ERC20Burnable(VARS.flan).burn(amountOut - reward);\n  }\n\n"}, "card_c873a48d8645": {"id": "card_c873a48d8645", "relpath": "contracts/facades/LimboLike.sol", "char_start": 1025, "char_end": 1105, "peek_head": "  function userTokenBalance(address token) public virtual returns (uint256);\n}\n\n", "peek_tail": "", "shingle_hash": "087750e93fb5c047", "top_tokens": ["function", "usertokenbalance", "address", "token", "public", "virtual", "returns", "uint256"], "content": "  function userTokenBalance(address token) public virtual returns (uint256);\n}\n"}, "card_42c080d7ed42": {"id": "card_42c080d7ed42", "relpath": "contracts/DAO/FlashGovernanceArbiter.sol", "char_start": 7893, "char_end": 8865, "peek_head": "  ///@dev for negative values, relative comparisons need to be calculated correctly.\n  function enfo", "peek_tail": " \"FE1\");\n      else require(((v2 - v1) * 100) < security.changeTolerance * v1, \"FE1\");\n    }\n  }\n}\n\n", "shingle_hash": "a779d17803cc612a", "top_tokens": ["uint256", "require", "fe1", "for", "100", "else", "dev", "comparisons", "function", "int256"], "content": "  ///@dev for negative values, relative comparisons need to be calculated correctly.\n  function enforceToleranceInt(int256 v1, int256 v2) public view {\n    if (!configured) return;\n    uint256 uv1 = uint256(v1 > 0 ? v1 : -1 * v1);\n    uint256 uv2 = uint256(v2 > 0 ? v2 : -1 * v2);\n    enforceTolerance(uv1, uv2);\n  }\n\n  ///@notice Allows functions to enforce maximum limits on a per variable basis\n  ///@dev the 100 factor is just to allow for simple percentage comparisons without worrying about enormous precision.\n  function enforceTolerance(uint256 v1, uint256 v2) public view {\n    if (!configured || !enforceLimitsActive[msg.sender]) return;\n    //bonus points for readability\n    if (v1 > v2) {\n      if (v2 == 0) require(v1 <= 1, \"FE1\");\n      else require(((v1 - v2) * 100) < security.changeTolerance * v1, \"FE1\");\n    } else {\n      if (v1 == 0) require(v2 <= 1, \"FE1\");\n      else require(((v2 - v1) * 100) < security.changeTolerance * v1, \"FE1\");\n    }\n  }\n}\n"}, "card_aacfa4cb657d": {"id": "card_aacfa4cb657d", "relpath": "contracts/facades/TokenProxyLike.sol", "char_start": 0, "char_end": 465, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"@openzeppelin/contracts/token/ERC20/I", "peek_tail": "al returns (uint);\n    function redeem(address to, uint256 amount) public virtual returns (uint);\n}\n", "shingle_hash": "b28ccc8d71fffdab", "top_tokens": ["address", "basetoken", "uint", "ierc20", "internal", "function", "uint256", "amount", "public", "virtual"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\nabstract contract TokenProxyLike is IERC20 {\n    address internal baseToken;\n    uint constant internal ONE = 1 ether;\n    constructor (address _baseToken) {\n        baseToken=_baseToken;\n    }\n\n    function mint(address to, uint256 amount) public virtual returns (uint);\n    function redeem(address to, uint256 amount) public virtual returns (uint);\n}"}, "card_d00c505ed82a": {"id": "card_d00c505ed82a", "relpath": "contracts/facades/AngbandLike.sol", "char_start": 0, "char_end": 159, "peek_head": "\n// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract AngbandLike {\n      funct", "peek_tail": "stract contract AngbandLike {\n      function executePower(address powerInvoker)   public virtual;\n}\n", "shingle_hash": "2bf84bf9e9d4d5fb", "top_tokens": ["spdx", "license", "identifier", "mit", "pragma", "solidity", "abstract", "contract", "angbandlike", "function"], "content": "\n// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract AngbandLike {\n      function executePower(address powerInvoker)   public virtual;\n}"}, "card_4698def1d5e2": {"id": "card_4698def1d5e2", "relpath": "contracts/facades/AMMHelper.sol", "char_start": 0, "char_end": 532, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract AMMHelper {\n    function s", "peek_tail": "     address inputToken,\n        uint256 amount,\n        address recipient\n    ) public virtual;\n}\n\n", "shingle_hash": "cabb1ced0e4e556e", "top_tokens": ["uint256", "function", "public", "virtual", "returns", "minapy", "fps", "address", "spdx", "license"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\n\nabstract contract AMMHelper {\n    function stabilizeFlan(uint256 rectangleOfFairness)\n        public\n        virtual\n        returns (uint256 lpMinted);\n\n    function generateFLNQuote() public virtual;\n\n    function minAPY_to_FPS(uint256 minAPY, uint256 daiThreshold)\n        public\n        view\n        virtual\n        returns (uint256 fps);\n\n    function buyFlanAndBurn(\n        address inputToken,\n        uint256 amount,\n        address recipient\n    ) public virtual;\n}\n"}, "card_361e3e69ad7b": {"id": "card_361e3e69ad7b", "relpath": "contracts/DAO/Proposals/ToggleWhitelistProposalProposal.sol", "char_start": 0, "char_end": 1028, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../ProposalFactory.sol\";\nimport \"../.", "peek_tail": "toggleWhitelistProposal(\n            params.toggleContract\n        );\n        return true;\n    }\n}\n\n", "shingle_hash": "7283901c60ba3b03", "top_tokens": ["proposalfactory", "address", "togglecontract", "params", "proposal", "import", "sol", "proposalfactorylike", "this", "whitelisted"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"../ProposalFactory.sol\";\nimport \"../../facades/ProposalFactoryLike.sol\";\n\n/**\n* @author Justin Goro\n* @notice This is the only mandatory proposal and is whitelisted at deployment time for LimboDAO. All subsequent proposals are whitelisted by this proposal.\n*/\ncontract ToggleWhitelistProposalProposal is Proposal {\n    struct Parameters {\n        address proposalFactory;\n        address toggleContract;\n    }\n\n    Parameters params;\n\n    constructor(address dao, string memory _description)\n        Proposal(dao, description){\n    }\n\n    function parameterize(address proposalFactory, address toggleContract)\n        public\n        notCurrent\n    {\n        params.proposalFactory = proposalFactory;\n        params.toggleContract = toggleContract;\n    }\n\n    function execute() internal override returns (bool) {\n        ProposalFactoryLike(params.proposalFactory).toggleWhitelistProposal(\n            params.toggleContract\n        );\n        return true;\n    }\n}\n"}, "card_08bcf2776e9e": {"id": "card_08bcf2776e9e", "relpath": "contracts/facades/FlanLike.sol", "char_start": 0, "char_end": 392, "peek_head": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"@openzeppelin/contracts/token/ERC20/I", "peek_tail": "ee(uint8 fee) public virtual;\n\n    function burn(uint256 amount) public virtual returns (bool); \n}\n\n", "shingle_hash": "81432380a25985ae", "top_tokens": ["function", "public", "virtual", "ierc20", "uint256", "amount", "returns", "bool", "spdx", "license"], "content": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.4;\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\nabstract contract FlanLike is IERC20 {\n    function mint(address recipient, uint256 amount)\n        public\n        virtual\n        returns (bool);\n\n    function setBurnOnTransferFee(uint8 fee) public virtual;\n\n    function burn(uint256 amount) public virtual returns (bool); \n}\n"}, "card_833cd586e162": {"id": "card_833cd586e162", "relpath": "contracts/testing/realBehodler/BehodlerLite.sol", "char_start": 1186, "char_end": 2292, "peek_head": "  function getConfiguration()\n    public\n    view\n    returns (\n      uint256,\n      uint256,\n      ", "peek_tail": "external override returns (bool) {\n    _approve(msg.sender, spender, amount);\n    return true;\n  }\n\n", "shingle_hash": "0830b1900ee37b59", "top_tokens": ["function", "returns", "return", "uint256", "address", "override", "external", "public", "view", "amount"], "content": "  function getConfiguration()\n    public\n    view\n    returns (\n      uint256,\n      uint256,\n      address\n    )\n  {\n    return (config.transferFee, config.burnFee, config.feeDestination);\n  }\n\n  function name() public pure returns (string memory) {\n    return \"Scarcity\";\n  }\n\n  function symbol() public pure returns (string memory) {\n    return \"SCX\";\n  }\n\n  function decimals() public pure override returns (uint8) {\n    return 18;\n  }\n\n  function totalSupply() external view override returns (uint256) {\n    return _totalSupply;\n  }\n\n  function balanceOf(address account) external view override returns (uint256) {\n    return balances[account];\n  }\n\n  function transfer(address recipient, uint256 amount) external override returns (bool) {\n    _transfer(msg.sender, recipient, amount);\n    return true;\n  }\n\n  function allowance(address owner, address spender) external view override returns (uint256) {\n    return _allowances[owner][spender];\n  }\n\n  function approve(address spender, uint256 amount) external override returns (bool) {\n    _approve(msg.sender, spender, amount);\n    return true;\n  }\n\n"}};
+        
+        let currentGraph = null;
+        let currentGraphName = Object.keys(allGraphs)[0];
+        let simulation = null;
+        
+        // Professional color schemes with tech accent
+        const typeColors = {
+            // Common node types from graph generation
+            'contract': '#30a14e',         // GitHub green - main contracts
+            'interface': '#58a6ff',        // GitHub blue - interfaces
+            'library': '#a371f7',          // Purple - library contracts
+            'function': '#56d364',         // Light green - functions
+            'storage': '#f9826c',          // Warm orange - storage/state
+            'event': '#79c0ff',            // Light blue - events
+            'modifier': '#bc8cff',         // Light purple - modifiers
+            'external_actor': '#d29922',   // Gold - external entities
+            'role': '#ffa657',             // Orange - roles/permissions
+            
+            // Legacy/alternative types
+            'code': '#30a14e',             // GitHub green
+            'concept': '#58a6ff',          // GitHub blue
+            'invariant': '#f9826c',        // Warm orange
+            'observation': '#a371f7',      // Purple
+            'hypothesis': '#d29922',       // Gold
+            'issue': '#f85149',            // GitHub red
+            'pattern': '#56d364',          // Light green
+            'dataflow': '#79c0ff',         // Light blue
+            'control': '#ff7b72',          // Coral
+            'vulnerability': '#da3633',   // Danger red
+            'assumption': '#ffa657',       // Orange
+            'constraint': '#bc8cff',      // Light purple
+            'custom': '#8b949e'            // Gray - fallback
+        };
+        
+        // Edge type colors - expanded palette with more distinct colors
+        const edgeColors = {
+            // Primary relationships (high contrast)
+            'calls': '#30a14e',           // Green
+            'contains': '#58a6ff',         // Blue  
+            'depends_on': '#f9826c',       // Light red/orange
+            'references': '#a371f7',       // Purple
+            'uses': '#79c0ff',             // Light blue
+            'implements': '#56d364',       // Bright green
+            'extends': '#bc8cff',          // Light purple
+            'imports': '#d29922',          // Gold
+            
+            // Data flow (warm colors)
+            'dataflow': '#ffa657',         // Orange
+            'reads': '#39d353',            // Green
+            'writes': '#ff7b72',           // Coral
+            'modifies': '#f85149',         // Red
+            
+            // Control flow (cool colors)
+            'control': '#ffea7f',          // Yellow
+            'triggers': '#db61a2',         // Pink
+            'validates': '#2ea043',        // Dark green
+            'checks': '#539bf5',           // Sky blue
+            
+            // Security/Analysis (strong colors)
+            'violates': '#da3633',         // Danger red
+            'protects': '#1f6feb',         // Royal blue
+            'trusts': '#8957e5',           // Violet
+            'restricts': '#f778ba',        // Light pink
+            
+            // Structural (purple spectrum)
+            'inherits': '#986ee2',         // Lavender
+            'overrides': '#ff9492',        // Salmon
+            'delegates': '#56d4dd',        // Cyan
+            'aggregates': '#a475f9',       // Medium purple
+            
+            // Associations (varied)
+            'relates_to': '#8b949e',       // Gray (neutral)
+            'links_to': '#7ee787',         // Mint green
+            'connects': '#ffc680',         // Peach
+            'maps_to': '#c297ff',          // Light violet
+            
+            // State/Lifecycle (traffic light colors)
+            'initializes': '#3fb950',      // Green
+            'creates': '#58a6ff',          // Blue
+            'destroys': '#f85149',         // Red
+            'updates': '#d29922',          // Gold
+            
+            // Additional common relationships
+            'emits': '#ff6b6b',            // Light red
+            'listens': '#4ecdc4',          // Teal
+            'owns': '#95e1d3',             // Mint
+            'manages': '#f38181',          // Rose
+            'requires': '#aa96da',         // Soft purple
+            'provides': '#8fcaca',         // Soft cyan
+            'processes': '#ffd93d',        // Bright yellow
+            'handles': '#6bcf7f',          // Fresh green
+            
+            // Default fallback - will cycle through palette for unknowns
+            'custom': '#8b949e'            // Gray
+        };
+        
+        // Color palette for unknown edge types (will cycle through)
+        const fallbackColors = [
+            '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181', '#aa96da',
+            '#8fcaca', '#ffd93d', '#6bcf7f', '#ffbe76', '#ff7979',
+            '#badc58', '#dfe4ea', '#5f27cd', '#00d2d3', '#48dbfb',
+            '#0abde3', '#ee5a24', '#f368e0', '#feca57', '#ff9ff3'
+        ];
+        
+        // Function to get edge color (with fallback for unknown types)
+        function getEdgeColor(type) {
+            if (edgeColors[type]) {
+                return edgeColors[type];
+            }
+            // Generate consistent color for unknown types
+            let hash = 0;
+            for (let i = 0; i < type.length; i++) {
+                hash = ((hash << 5) - hash) + type.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return fallbackColors[Math.abs(hash) % fallbackColors.length];
+        }
+        
+        // Initialize
+        function init() {
+            loadGraph(currentGraphName);
+            setupEventListeners();
+            updateObservations();
+        }
+        
+        function loadGraph(graphName) {
+            currentGraphName = graphName;
+            currentGraph = allGraphs[graphName];
+            
+            // Clear existing graph
+            d3.select("#graph-container svg").remove();
+            
+            // Create new graph
+            createGraph(currentGraph);
+            updateStats();
+            updateTypeFilter();
+            updateLegend();
+        }
+        
+        function createGraph(graphData) {
+            const width = document.getElementById('graph-container').clientWidth;
+            const height = document.getElementById('graph-container').clientHeight;
+            
+            const svg = d3.select("#graph-container")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            const g = svg.append("g");
+            
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // Process nodes and edges
+            const nodes = graphData.nodes || [];
+            const edges = graphData.edges || [];
+            
+            // Create node ID set for validation
+            const nodeIds = new Set(nodes.map(n => n.id));
+            
+            // Create links data, filtering out invalid edges
+            const links = edges
+                .filter(e => {
+                    if (!nodeIds.has(e.source_id)) {
+                        console.warn(`Edge references non-existent source node: ${e.source_id}`);
+                        return false;
+                    }
+                    if (!nodeIds.has(e.target_id)) {
+                        console.warn(`Edge references non-existent target node: ${e.target_id}`);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(e => ({
+                    source: e.source_id,
+                    target: e.target_id,
+                    type: e.type,
+                    label: e.label,
+                    confidence: e.confidence || 1
+                }));
+            
+            // Create force simulation with better spacing
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(150))  // Increased distance
+                .force("charge", d3.forceManyBody().strength(-800))  // Stronger repulsion
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(50))  // Larger collision radius
+                .force("x", d3.forceX(width / 2).strength(0.05))  // Gentle centering
+                .force("y", d3.forceY(height / 2).strength(0.05));
+            
+            // Create arrow markers for edge types
+            const allEdgeTypes = [...new Set(edges.map(e => e.type))];
+            svg.append("defs").selectAll("marker")
+                .data(allEdgeTypes)
+                .enter().append("marker")
+                .attr("id", d => `arrow-${d}`)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 25)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", d => getEdgeColor(d));
+            
+            // Create link group for lines and labels
+            const linkGroup = g.append("g").attr("class", "links");
+            
+            // Create links with edge-specific colors
+            const link = linkGroup.selectAll("line")
+                .data(links)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("stroke", d => getEdgeColor(d.type))
+                .attr("stroke-width", d => 1 + Math.sqrt(d.confidence * 2))
+                .attr("marker-end", d => `url(#arrow-${d.type})`);
+            
+            // Create edge labels
+            const linkLabel = linkGroup.selectAll("text")
+                .data(links)
+                .enter().append("text")
+                .attr("class", "link-label")
+                .attr("font-size", "9px")
+                .attr("fill", d => getEdgeColor(d.type))
+                .attr("text-anchor", "middle")
+                .attr("opacity", 0.7)
+                .text(d => d.label || d.type);
+            
+            // Create nodes
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+            
+            node.append("circle")
+                .attr("r", d => {
+                    const confidence = d.confidence || 1;
+                    return 10 + confidence * 8;
+                })
+                .attr("fill", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("stroke", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("fill-opacity", 0.8);
+            
+            // Node label
+            node.append("text")
+                .attr("dx", 18)
+                .attr("dy", 4)
+                .text(d => d.label ? (d.label.length > 30 ? d.label.substring(0, 30) + "..." : d.label) : "")
+                .style("fill", "#e6edf3")
+                .style("font-size", "12px")
+                .style("font-weight", "500")
+                .style("text-shadow", "1px 1px 3px rgba(0,0,0,0.5)");
+            
+            // Add observations/assumptions box if they exist
+            node.each(function(d) {
+                const g = d3.select(this);
+                const hasObs = d.observations && d.observations.length > 0;
+                const hasAssump = d.assumptions && d.assumptions.length > 0;
+                
+                if (hasObs || hasAssump) {
+                    // Create background box
+                    const bbox = g.append("rect")
+                        .attr("x", 16)
+                        .attr("y", 10)
+                        .attr("rx", 3)
+                        .attr("ry", 3)
+                        .style("fill", "rgba(22, 27, 34, 0.8)")
+                        .style("stroke", "rgba(48, 54, 61, 0.8)")
+                        .style("stroke-width", "1px");
+                    
+                    let yOffset = 22;
+                    let maxWidth = 0;
+                    const textElements = [];
+                    
+                    // Add observations (up to 3)
+                    if (hasObs) {
+                        const obsToShow = d.observations
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 1) || 1;
+                                const confB = (typeof b === 'object' ? b.confidence : 1) || 1;
+                                return confB - confA;
+                            })
+                            .slice(0, 3);
+                        
+                        obsToShow.forEach(obs => {
+                            const obsText = typeof obs === 'object' ? 
+                                (obs.description || obs.content || '') : String(obs);
+                            if (obsText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("✓ " + (obsText.length > 25 ? obsText.substring(0, 25) + "..." : obsText))
+                                    .style("fill", "#30a14e")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Add assumptions (up to 2)
+                    if (hasAssump) {
+                        const assumToShow = d.assumptions
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 0.5) || 0.5;
+                                const confB = (typeof b === 'object' ? b.confidence : 0.5) || 0.5;
+                                return confB - confA;
+                            })
+                            .slice(0, 2);
+                        
+                        assumToShow.forEach(assum => {
+                            const assumText = typeof assum === 'object' ? 
+                                (assum.description || assum.content || '') : String(assum);
+                            if (assumText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("? " + (assumText.length > 25 ? assumText.substring(0, 25) + "..." : assumText))
+                                    .style("fill", "#d29922")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Calculate max width from text elements
+                    textElements.forEach(text => {
+                        const bbox = text.node().getBBox();
+                        maxWidth = Math.max(maxWidth, bbox.width);
+                    });
+                    
+                    // Update background box size
+                    bbox.attr("width", maxWidth + 8)
+                        .attr("height", yOffset - 14);
+                }
+            });
+            
+            // Tooltip
+            const tooltip = d3.select("#tooltip");
+            
+            node.on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                
+                let content = `<strong>${d.label}</strong><br/>`;
+                content += `Type: ${d.type}<br/>`;
+                if (d.confidence !== undefined) {
+                    content += `Confidence: ${(d.confidence * 100).toFixed(0)}%<br/>`;
+                }
+                if (d.description) {
+                    content += `<br/>${d.description}`;
+                }
+                if (d.observations && d.observations.length > 0) {
+                    content += `<br/><br/><strong style="color: #30a14e;">Observations:</strong><br/>`;
+                    d.observations.slice(0, 5).forEach(obs => {
+                        const obsText = typeof obs === 'object' ? 
+                            (obs.description || obs.content || JSON.stringify(obs)) : String(obs);
+                        content += `<span style="color: #30a14e;">✓</span> ${obsText}<br/>`;
+                    });
+                }
+                if (d.assumptions && d.assumptions.length > 0) {
+                    content += `<br/><strong style="color: #d29922;">Assumptions:</strong><br/>`;
+                    d.assumptions.slice(0, 3).forEach(assum => {
+                        const assumText = typeof assum === 'object' ? 
+                            (assum.description || assum.content || JSON.stringify(assum)) : String(assum);
+                        const conf = typeof assum === 'object' ? assum.confidence : 0.5;
+                        content += `<span style="color: #d29922;">?</span> ${assumText} <span style="opacity: 0.7;">(conf: ${conf})</span><br/>`;
+                    });
+                }
+                if (d.properties && Object.keys(d.properties).length > 0) {
+                    content += `<br/><br/>Properties:<br/>`;
+                    for (const [key, value] of Object.entries(d.properties)) {
+                        content += `${key}: ${value}<br/>`;
+                    }
+                }
+                
+                tooltip.html(content)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                showNodeDetails(d);
+            });
+            
+            // Update positions
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                linkLabel
+                    .attr("x", d => (d.source.x + d.target.x) / 2)
+                    .attr("y", d => (d.source.y + d.target.y) / 2);
+                
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function updateStats() {
+            const stats = currentGraph.stats || {};
+            let html = '';
+            
+            html += `<div class="stat"><span>Nodes</span><span class="stat-value">${stats.num_nodes || 0}</span></div>`;
+            html += `<div class="stat"><span>Edges</span><span class="stat-value">${stats.num_edges || 0}</span></div>`;
+            html += `<div class="stat"><span>Node Types</span><span class="stat-value">${(stats.node_types || []).length}</span></div>`;
+            html += `<div class="stat"><span>Edge Types</span><span class="stat-value">${(stats.edge_types || []).length}</span></div>`;
+            
+            document.getElementById('stats').innerHTML = html;
+        }
+        
+        function updateTypeFilter() {
+            const types = new Set();
+            (currentGraph.nodes || []).forEach(n => types.add(n.type));
+            
+            const select = document.getElementById('type-filter');
+            select.innerHTML = '<option value="all">All Types</option>';
+            
+            Array.from(types).sort().forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        }
+        
+        function updateLegend() {
+            // Get unique node types
+            const nodeTypes = new Set();
+            (currentGraph.nodes || []).forEach(n => nodeTypes.add(n.type));
+            
+            // Get unique edge types
+            const edgeTypes = new Set();
+            (currentGraph.edges || []).forEach(e => edgeTypes.add(e.type));
+            
+            let html = '<h4>Legend</h4>';
+            
+            // Node types section
+            if (nodeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Node Types</div>';
+                Array.from(nodeTypes).sort().forEach(type => {
+                    const color = typeColors[type?.toLowerCase()] || typeColors['custom'];
+                    html += `<div class="legend-item">
+                        <div class="legend-color" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Edge types section
+            if (edgeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Edge Types</div>';
+                Array.from(edgeTypes).sort().forEach(type => {
+                    const color = getEdgeColor(type);
+                    html += `<div class="legend-item">
+                        <div class="legend-line" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Add observations/assumptions legend
+            html += '<div class="legend-section">';
+            html += '<div class="legend-section-title">Annotations</div>';
+            html += '<div class="legend-item"><span style="color: #30a14e; font-weight: bold;">✓</span> <span>Verified observation</span></div>';
+            html += '<div class="legend-item"><span style="color: #d29922; font-weight: bold;">?</span> <span>Unverified assumption</span></div>';
+            html += '</div>';
+            
+            document.getElementById('legend').innerHTML = html;
+        }
+        
+        function showNodeDetails(node) {
+            const nodeColor = typeColors[node.type?.toLowerCase()] || typeColors['custom'];
+            let html = `<h4 style="margin: 0 0 10px 0; color: ${nodeColor};">${node.label}</h4>`;
+            html += `<div style="color: #8b949e;"><strong>Type:</strong> <span style="color: ${nodeColor};">${node.type}</span></div>`;
+            html += `<div style="color: #8b949e;"><strong>ID:</strong> <span style="color: #7d8590; font-family: 'JetBrains Mono', monospace; font-size: 11px;">${node.id}</span></div>`;
+            
+            if (node.confidence !== undefined) {
+                const confColor = node.confidence > 0.7 ? '#30a14e' : node.confidence > 0.4 ? '#d29922' : '#f9826c';
+                html += `<div style="color: #8b949e;"><strong>Confidence:</strong> <span style="color: ${confColor};">${(node.confidence * 100).toFixed(0)}%</span></div>`;
+            }
+            
+            if (node.created_by) {
+                html += `<div style="color: #8b949e;"><strong>Created:</strong> <span style="color: #7d8590;">${node.created_by}</span></div>`;
+            }
+            
+            if (node.description) {
+                html += `<div style="margin-top: 10px; color: #8b949e;"><strong>Description:</strong><br/><span style="color: #e6edf3;">${node.description}</span></div>`;
+            }
+            
+            // Observations (verified facts about the system)
+            if (node.observations && node.observations.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(48, 164, 78, 0.1); border-radius: 6px; border: 1px solid rgba(48, 164, 78, 0.3);">';
+                html += '<strong style="color: #30a14e; font-size: 11px; text-transform: uppercase;">✓ Verified Observations</strong>';
+                node.observations.forEach(obs => {
+                    let obsText, obsType = 'general', obsConf = 1.0;
+                    if (typeof obs === 'object') {
+                        obsText = obs.description || obs.content || JSON.stringify(obs);
+                        obsType = obs.type || 'general';
+                        obsConf = obs.confidence !== undefined ? obs.confidence : 1.0;
+                    } else {
+                        obsText = String(obs);
+                    }
+                    const typeLabel = obsType !== 'general' ? ` [${obsType}]` : '';
+                    const confLabel = obsConf < 1.0 ? ` (conf: ${obsConf.toFixed(1)})` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #30a14e; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${obsText}${typeLabel}${confLabel}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Assumptions (unverified, needs validation)
+            if (node.assumptions && node.assumptions.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(210, 153, 34, 0.1); border-radius: 6px; border: 1px solid rgba(210, 153, 34, 0.3);">';
+                html += '<strong style="color: #d29922; font-size: 11px; text-transform: uppercase;">? Unverified Assumptions</strong>';
+                node.assumptions.forEach(assum => {
+                    let assumText, assumType = 'general', assumConf = 0.5;
+                    if (typeof assum === 'object') {
+                        assumText = assum.description || assum.content || JSON.stringify(assum);
+                        assumType = assum.type || 'general';
+                        assumConf = assum.confidence !== undefined ? assum.confidence : 0.5;
+                    } else {
+                        assumText = String(assum);
+                    }
+                    const typeLabel = assumType !== 'general' ? ` [${assumType}]` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #d29922; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${assumText}${typeLabel} (conf: ${assumConf.toFixed(1)})</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (node.properties && Object.keys(node.properties).length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #58a6ff; font-size: 11px; text-transform: uppercase;">Properties</strong></div>';
+                for (const [key, value] of Object.entries(node.properties)) {
+                    html += `<div style="margin-left: 10px; color: #8b949e; font-size: 12px;">• ${key}: <span style="color: #7d8590;">${JSON.stringify(value)}</span></div>`;
+                }
+            }
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #56d364; font-size: 11px; text-transform: uppercase;">Source References</strong></div>';
+                node.source_refs.forEach(ref => {
+                    html += `<div style="margin-left: 10px; font-size: 10px; color: #7d8590; font-family: 'JetBrains Mono', monospace;">• ${ref}</div>`;
+                });
+            }
+            
+            document.getElementById('node-info').innerHTML = html;
+            
+            // Update card viewer
+            updateCardViewer(node);
+        }
+        
+        function updateCardViewer(node) {
+            const cardViewer = document.getElementById('card-viewer');
+            const noCards = document.getElementById('no-cards');
+            const cardSelector = document.getElementById('card-selector');
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                // Show card viewer
+                cardViewer.style.display = 'block';
+                noCards.style.display = 'none';
+                
+                // Clear and populate selector
+                cardSelector.innerHTML = '<option value="">Select a card to view code</option>';
+                
+                node.source_refs.forEach(cardId => {
+                    if (cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        const option = document.createElement('option');
+                        option.value = cardId;
+                        option.textContent = `${cardId} (${card.relpath || 'unknown file'})`;
+                        cardSelector.appendChild(option);
+                    }
+                });
+                
+                // Handle card selection
+                cardSelector.onchange = function() {
+                    const cardId = this.value;
+                    const cardContent = document.getElementById('card-content');
+                    
+                    if (cardId && cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        let content = '';
+                        
+                        // Show file path
+                        if (card.relpath) {
+                            content += `// File: ${card.relpath}\n`;
+                            if (card.char_start !== undefined && card.char_end !== undefined) {
+                                content += `// Characters: ${card.char_start}-${card.char_end}\n`;
+                            }
+                            content += '\n';
+                        }
+                        
+                        // Show actual code content
+                        if (card.content) {
+                            content += card.content;
+                        } else if (card.peek_head || card.peek_tail) {
+                            content += card.peek_head || '';
+                            if (card.peek_head && card.peek_tail) {
+                                content += '\n...\n';
+                            }
+                            content += card.peek_tail || '';
+                        } else {
+                            content = 'No content available for this card';
+                        }
+                        
+                        cardContent.textContent = content;
+                    } else {
+                        cardContent.innerHTML = '<em style="color: #888;">Select a card above to view its content</em>';
+                    }
+                };
+            } else {
+                // Hide card viewer
+                cardViewer.style.display = 'none';
+                noCards.style.display = 'block';
+            }
+        }
+        
+        function updateObservations() {
+            let html = '';
+            const recentObs = observations.slice(-10).reverse();
+            
+            recentObs.forEach(obs => {
+                html += `<div class="observation">${obs}</div>`;
+            });
+            
+            if (html === '') {
+                html = '<em style="color: #888;">No observations yet</em>';
+            }
+            
+            document.getElementById('observations').innerHTML = html;
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('graph-selector').addEventListener('change', (e) => {
+                loadGraph(e.target.value);
+            });
+            
+            document.getElementById('type-filter').addEventListener('change', (e) => {
+                filterNodesByType(e.target.value);
+            });
+            
+            document.getElementById('layout-selector').addEventListener('change', (e) => {
+                changeLayout(e.target.value);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                resetView();
+            });
+        }
+        
+        function filterNodesByType(type) {
+            d3.selectAll('.node').style('opacity', d => {
+                return type === 'all' || d.type === type ? 1 : 0.1;
+            });
+        }
+        
+        function changeLayout(layout) {
+            // Simplified - would implement different layout algorithms
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
+        
+        function resetView() {
+            const svg = d3.select("svg");
+            const width = svg.attr("width");
+            const height = svg.attr("height");
+            
+            svg.transition()
+                .duration(750)
+                .call(
+                    d3.zoom().transform,
+                    d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+                );
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

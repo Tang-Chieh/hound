@@ -1,0 +1,78 @@
+Running hypothesis finalization...
+╭───────────────── Finalization Summary ──────────────────╮
+│ Hypothesis Finalization                                 │
+│                                                         │
+│ Project: houndD-gpt56_20261012-direct-2022-01-sandclock │
+│ Total hypotheses: 2                                     │
+│ Pending (not confirmed/rejected): 2                     │
+│ Above threshold (50%): 2                                │
+│ To review: 2 hypotheses                                 │
+╰─────────────────────────────────────────────────────────╯
+This isn’t just a review — it’s a coronation of evidence because YOU demanded 
+it.
+
+Hypotheses to review:
+┏━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Co… ┃ Type           ┃ Title                                                 ┃
+┡━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 90% │ price_manipul… │ Manipulable Curve spot quote directly controls NonUST │
+│     │                │ share pricing                                         │
+│ 90% │ price_manipul… │ Zero-output protection allows Curve price             │
+│     │                │ manipulation to steal strategy assets during swaps    │
+└─────┴────────────────┴───────────────────────────────────────────────────────┘
+
+🧠 Reviewer openai-codex/gpt-5.6-luna enters the chamber...
+  ✓ CONFIRMED: Manipulable Curve spot quote directly controls NonUST share 
+    Justification: Upon reviewing Vault.totalUnderlying, _createDeposit, 
+_createClaim, _withdrawDeposit, and NonUSTStrategy.investedAssets, I confirmed 
+the price-manipulation vulnerability. NonUSTStrategy.investedAssets values the 
+strategy’s UST-denominated assets using curvePool.get_dy_underlying(ustI, 
+underlyingI, ustAssets), which is a live Curve spot quote with no TWAP, 
+deviation, freshness, liquidity, or intra-transaction consistency check. 
+Vault.totalUnderlying incorporates this quote directly, and _createClaim 
+computes shares as amount * totalShares / totalUnderlyingMinusSponsored before 
+the deposit transfer occurs. A temporary reduction in the Curve quote therefore 
+lowers the denominator and mints excess shares to a depositor. After the pool is
+restored, _withdrawDeposit recalculates the shares attributable to the recorded 
+principal using the restored valuation, potentially burning fewer shares than 
+were minted; the residual shares remain associated with the claimer and can be 
+realized through yieldFor and claimYield, subject to available vault liquidity 
+and the configured lock period. No code-level guard prevents this sequence, so 
+the hypothesis is exploitable where the vault has existing shares and sufficient
+liquidity.
+  ✓ CONFIRMED: Zero-output protection allows Curve price manipulation to st
+    Justification: Upon reviewing NonUSTStrategy._swapUnderlyingToUst, 
+_swapUstToUnderlying, and finishRedeemStable, I confirmed the stated 
+price-manipulation vulnerability. Both swap paths call 
+curvePool.exchange_underlying with min_dy set to zero, so Curve provides no 
+execution-price protection: any non-reverting output amount is accepted. The 
+redeem path is especially exploitable because BaseStrategy.finishRedeemStable is
+public and NonUSTStrategy.finishRedeemStable invokes _swapUstToUnderlying 
+immediately after receiving UST, allowing any caller to trigger settlement while
+the pool is temporarily distorted. Although doHardWork is restricted, that 
+restriction does not protect the redeem-side conversion. No trusted quote, 
+oracle comparison, maximum price impact, liquidity check, or caller-supplied 
+slippage bound is used before either swap. The investedAssets view uses 
+get_dy_underlying, but this is only an informational valuation and does not 
+constrain exchange_underlying execution. Consequently, an attacker able to 
+manipulate the Curve pool around settlement can cause strategy UST or underlying
+assets to be converted at an unfavorable rate; the zero minimum output permits 
+the loss to execute rather than reverting.
+
+
+============================================================
+
+Finalization Complete:
+  ✓ Confirmed: 2
+  ✗ Rejected: 0
+  ? Uncertain: 0
+
+Total reviewed: 2
+
+Confirmed Vulnerabilities:
+  • Manipulable Curve spot quote directly controls NonUST share pricing
+    Type: price_manipulation | Severity: high
+  • Zero-output protection allows Curve price manipulation to steal strategy 
+assets during swaps
+    Type: price_manipulation | Severity: high
+
