@@ -71,7 +71,7 @@ graph／audit／finalize／report 會依設定呼叫模型。這是一般使用�
 - 補上 clean install 依賴、CLI package 設定及 regression tests。
 - main 另加入 price manipulation scope。
 
-Public fork 保存程式、設定範例、測試與說明；完整實驗結果、Ground Truth 及 LLM Judge 保存在 Private 整合 repo。
+Public fork 保存程式、設定範例、測試、說明，以及最新 C/D 的完整實驗結果與評估報告，兩個分支都有相同結果。請由 [實驗索引](../experiments/README.md) 查看。評估 manifest 本身包含此次比對的 Ground Truth 文字；獨立 Ground Truth dataset、LLM Judge 程式與完整重現工具仍保存在 Private 整合 repo。
 
 ## 測試
 
