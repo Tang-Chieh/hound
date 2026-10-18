@@ -1,0 +1,719 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_d52af1b6d264": {
+      "title": "Uniswap buy path accepts zero minimum output",
+      "description": "VULNERABILITY TYPE: slippage_oracle_manipulation\nROOT CAUSE: The swap does not enforce a caller- or protocol-supplied minimum output and relies on the current pool state without slippage protection.\nATTACK VECTOR: A searcher observes a pending buyMalt transaction, trades against the Malt/reward pool before it executes, allows the swap to execute at the manipulated price, and reverses the trade afterward.\nAFFECTED NODES: contract_uniswap_handler, contract_stabilizer_node\nAFFECTED CODE: src/contracts/DexHandlers/UniswapHandler.sol:UniswapHandler.buyMalt, src/contracts/StabilizerNode.sol:stabilize\nSEVERITY: high\nREASONING: The loaded buyMalt implementation explicitly calls swapExactTokensForTokens with amountOutMin set to zero and uses the full contract balance as the input amount.\nSUGGESTED MITIGATION: Require a nonzero minimum output derived from a trusted price limit and bounded slippage, or use a deadline and explicit min-output parameter supplied by the protected caller. Apply equivalent protections to the sell path.",
+      "vulnerability_type": "slippage_oracle_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_uniswap_handler",
+        "contract_stabilizer_node"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded buyMalt implementation explicitly calls swapExactTokensForTokens with amountOutMin set to zero and uses the full contract balance as the input amount.",
+      "mitigation": "Require a nonzero minimum output derived from a trusted price limit and bounded slippage, or use a deadline and explicit min-output parameter supplied by the protected caller. Apply equivalent protections to the sell path.",
+      "finding_description": "UniswapHandler.buyMalt() passes amountOutMin = 0 to swapExactTokensForTokens(), so the caller accepts any amount of Malt returned by the router. Because the trade size is the entire reward-token balance, a searcher can sandwich the transaction and force an arbitrarily poor execution price.",
+      "impact": "The protocol can spend substantially more reward tokens than intended for the acquired Malt, transferring value to sandwich attackers and reducing stabilization funds.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/DexHandlers/UniswapHandler.sol",
+          "contract": "UniswapHandler",
+          "function": "buyMalt"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/StabilizerNode.sol",
+          "src/contracts/DexHandlers/UniswapHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:32:13.098192",
+      "id": "hyp_d52af1b6d264",
+      "qa_comment": "Upon reviewing UniswapHandler.buyMalt in src/contracts/DexHandlers/UniswapHandler.sol, I confirmed that the alleged slippage protection vulnerability exists. The function obtains the handler's entire rewardToken balance, approves the router, and calls swapExactTokensForTokens with amountOutMin set explicitly to zero. Consequently, any amount of Malt returned by the pool is accepted, subject only to the router's basic execution requirements. The deadline is now, but this does not constrain the execution price or prevent same-block transaction ordering and sandwich manipulation. StabilizerNode._startAuction invokes swingTrader.buyMalt before triggering an auction, while the trade size is calculated from pool reserves and a target price; neither that calculation nor StabilizerNode.stabilize supplies an execution-time minimum output to the handler. A searcher can therefore observe a pending authorized buy, trade against the Malt/reward pool to worsen the effective rate, allow the buy to execute, and potentially unwind the position afterward. The sellMalt function also uses amountOutMin zero, indicating the same missing control on the reverse path."
+    },
+    "hyp_8cf140b52dd1": {
+      "title": "RewardThrottle double-counts its entire token balance on repeated calls",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: Cumulative accounting adds an absolute token balance to an already accumulated value instead of recording and adding only the balance delta.\nATTACK VECTOR: An attacker or automation bot repeatedly calls handleReward() during the same epoch while the contract retains a nonzero reward balance.\nAFFECTED NODES: contract_reward_throttle\nAFFECTED CODE: src/contracts/RewardSystem/RewardThrottle.sol:RewardThrottle.handleReward\nSEVERITY: high\nREASONING: The shown implementation executes `_state[_activeEpoch].profit = _state[_activeEpoch].profit.add(balance)` whenever the epoch has not advanced, where balance is the complete current token balance rather than an incremental amount.\nSUGGESTED MITIGATION: Track the last accounted token balance or transfer amount and add only the delta; alternatively clear or escrow accounted funds before subsequent calls. Add invariant tests proving repeated calls with no new funds do not change epoch profit.",
+      "vulnerability_type": "accounting_error",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_reward_throttle"
+      ],
+      "evidence": [],
+      "reasoning": "The shown implementation executes `_state[_activeEpoch].profit = _state[_activeEpoch].profit.add(balance)` whenever the epoch has not advanced, where balance is the complete current token balance rather than an incremental amount.",
+      "mitigation": "Track the last accounted token balance or transfer amount and add only the delta; alternatively clear or escrow accounted funds before subsequent calls. Add invariant tests proving repeated calls with no new funds do not change epoch profit.",
+      "finding_description": "RewardThrottle.handleReward() reads the contract's full reward-token balance. On the first call in an epoch it assigns that balance to profit, but on later calls in the same epoch it adds the full balance again rather than only newly received rewards. Since handleReward() is public, repeated calls can inflate epoch profit accounting.",
+      "impact": "Epoch profit, APR, and reward-target calculations can be materially overstated, potentially causing excess reward allocation or distortion of throttling and overflow decisions.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/RewardSystem/RewardThrottle.sol",
+          "contract": "RewardThrottle",
+          "function": "handleReward"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/RewardSystem/RewardThrottle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:32:13.119038",
+      "id": "hyp_8cf140b52dd1",
+      "qa_comment": "Upon reviewing the alleged accounting error in RewardThrottle.handleReward, I determined this is a false positive under the normal ERC20 execution flow. Although the same-epoch branch adds the current balance to _state[_activeEpoch].profit, handleReward subsequently distributes the entire balance: either _sendToDistributor(balance, _activeEpoch) executes, or the overflow branch transfers the remainder to overflowPool and any remaining amount to the distributor. Consequently, after a successful call, the contract should retain no previously accounted reward tokens, so a later call with no new funding observes balance == 0 and does not increase profit. A later call with newly transferred tokens accounts for that new balance rather than double-counting the prior one. checkRewardUnderflow may itself request and distribute capital before this logic, but it likewise does not leave the prior balance retained. Exploitation would require a nonstandard or malicious token whose transfer does not reduce the contract balance, or reentrant behavior involving trusted external components, neither of which is established by the shown code. Therefore, the proposed repeated-call attack is not clearly exploitable."
+    },
+    "hyp_177db425543c": {
+      "title": "Permissionless reserve-ratio sampling enables flash manipulation of the moving average",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: A security-sensitive moving-average oracle accepts permissionless updates from manipulable spot reserves without access control, deviation checks, or validation against a trusted observation source.\nATTACK VECTOR: The attacker uses a flash swap or large temporary pool trade to distort reserves, calls trackReserveRatio while reserves are distorted, then reverses the trade.\nAFFECTED NODES: contract_malt_data_lab, contract_liquidity_extension, contract_stabilizer_node\nAFFECTED CODE: src/contracts/MaltDataLab.sol:MaltDataLab.trackReserveRatio, src/contracts/LiquidityExtension.sol:LiquidityExtension.reserveRatio\nSEVERITY: high\nREASONING: trackReserveRatio() is externally callable by anyone and directly feeds the moving average from liquidityExtension.reserveRatio(), which derives its values from current Uniswap reserves. The loaded code shows no caller restriction or manipulation-resistance mechanism.\nSUGGESTED MITIGATION: Restrict sampling to authorized keepers or a controller, enforce minimum time between observations, reject implausible deviations, and use a manipulation-resistant oracle or TWAP whose observation cannot be changed atomically with the sampled trade.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_malt_data_lab",
+        "contract_liquidity_extension",
+        "contract_stabilizer_node"
+      ],
+      "evidence": [],
+      "reasoning": "trackReserveRatio() is externally callable by anyone and directly feeds the moving average from liquidityExtension.reserveRatio(), which derives its values from current Uniswap reserves. The loaded code shows no caller restriction or manipulation-resistance mechanism.",
+      "mitigation": "Restrict sampling to authorized keepers or a controller, enforce minimum time between observations, reject implausible deviations, and use a manipulation-resistant oracle or TWAP whose observation cannot be changed atomically with the sampled trade.",
+      "finding_description": "MaltDataLab.trackReserveRatio() is public and samples reserveRatio() from the Uniswap pool before updating the moving average. An attacker can temporarily manipulate pool reserves within a transaction or around the sampling call, invoke trackReserveRatio(), and leave the manipulated value as the moving average's latest sample.",
+      "impact": "Liquidity-deficit calculations, stabilization decisions, auction behavior, and collateral valuation can be driven by an attacker-selected reserve ratio, enabling unfavorable trades or misdirected protocol funds.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/MaltDataLab.sol",
+          "contract": "MaltDataLab",
+          "function": "trackReserveRatio"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/MaltDataLab.sol",
+          "src/contracts/StabilizerNode.sol",
+          "src/contracts/LiquidityExtension.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:32:13.134453",
+      "id": "hyp_177db425543c",
+      "qa_comment": "Upon reviewing MaltDataLab.trackReserveRatio and LiquidityExtension.reserveRatio, I confirmed that the reported oracle-manipulation condition exists. trackReserveRatio is public and has no caller restriction, timing requirement, deviation bound, or trusted-source comparison. It obtains the ratio directly from liquidityExtension.reserveRatio(), which computes the value from the current Uniswap pair reserves returned by UniswapV2Library.getReserves. Those reserves can be temporarily distorted through a large swap or flash-swap transaction, after which the attacker can invoke trackReserveRatio while the manipulated state is observable, then unwind the trade in the same transaction. The sampled value is passed directly to reserveRatioMA.update without validation. StabilizerNode also invokes trackReserveRatio during stabilization paths, confirming that this data is part of protocol operations, although the supplied code does not include the moving-average implementation or every downstream consumer, so the ultimate economic impact and persistence constraints cannot be fully quantified. Existing role checks protect other sampling functions but do not protect this function, and no manipulation-resistant oracle mechanism is visible in the reviewed code."
+    },
+    "hyp_b3fe17339d4f": {
+      "title": "Observation History Can Be Distorted by Permissionless Stabilization Timing",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Observation weighting is event-count based and does not incorporate the amount argument or minimum economic significance of the stabilization action.\nATTACK VECTOR: An attacker repeatedly invokes the permissionless stabilization path with the smallest qualifying purchase amount, filling the observation ring buffer with attacker-selected timing and biasing subsequent burn-budget calculations.\nAFFECTED NODES: contract_auction_burn_reserve_skew, contract_stabilizer_node\nAFFECTED CODE: src/contracts/AuctionBurnReserveSkew.sol:addAbovePegObservation(uint256), src/contracts/AuctionBurnReserveSkew.sol:addBelowPegObservation(uint256), src/contracts/StabilizerNode.sol:stabilize(...)\nSEVERITY: medium\nREASONING: The observation functions explicitly ignore amount and update the ring buffer on every call. The exploitability depends on the stabilization entry point being permissionless and permitting repeated low-value actions, which should be confirmed from the complete StabilizerNode implementation.\nSUGGESTED MITIGATION: Record observations using amount-weighted values or enforce a minimum stabilization amount before updating history; alternatively restrict observation updates to finalized auctions or otherwise rate-limit them independently of the stabilization call path.",
+      "vulnerability_type": "logic_error",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_auction_burn_reserve_skew",
+        "contract_stabilizer_node"
+      ],
+      "evidence": [],
+      "reasoning": "The observation functions explicitly ignore amount and update the ring buffer on every call. The exploitability depends on the stabilization entry point being permissionless and permitting repeated low-value actions, which should be confirmed from the complete StabilizerNode implementation.",
+      "mitigation": "Record observations using amount-weighted values or enforce a minimum stabilization amount before updating history; alternatively restrict observation updates to finalized auctions or otherwise rate-limit them independently of the stabilization call path.",
+      "finding_description": "AuctionBurnReserveSkew records one binary peg observation for each StabilizerNode stabilization call, while the supplied amount is ignored. If stabilization is callable by arbitrary accounts, a caller can trigger qualifying dust-sized stabilization actions whenever the market condition permits, causing many low-economic-value observations to occupy the ring buffer and disproportionately affect the frequency component of the burn skew.",
+      "impact": "The protocol can apply an incorrect burn budget for later auctions, causing excess Malt burning or insufficient reserve correction and creating avoidable supply and reserve losses.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/AuctionBurnReserveSkew.sol",
+          "contract": "AuctionBurnReserveSkew",
+          "function": "addAbovePegObservation(uint256)"
+        },
+        {
+          "file": "src/contracts/AuctionBurnReserveSkew.sol",
+          "contract": "AuctionBurnReserveSkew",
+          "function": "addBelowPegObservation(uint256)"
+        },
+        {
+          "file": "src/contracts/StabilizerNode.sol",
+          "contract": "StabilizerNode",
+          "function": "stabilize"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/StabilizerNode.sol",
+          "src/contracts/AuctionBurnReserveSkew.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:33:10.801090",
+      "id": "hyp_b3fe17339d4f",
+      "qa_comment": "Upon reviewing the alleged observation-history distortion in AuctionBurnReserveSkew.addAbovePegObservation(), addBelowPegObservation(), and StabilizerNode.stabilize(), I determined that the hypothesis is not established as an exploitable vulnerability. The observation functions do ignore their amount arguments and increment the ring-buffer count for every successful observation, but StabilizerNode.stabilize() has no caller-supplied purchase amount. Instead, _distributeSupply() and _startAuction() derive trade sizes internally through dexHandler, and below-peg observations require purchaseAmount to be at least one reward-token unit before an auction is triggered. Stabilization is permissionless, but it is protected by the stabilizeWindowEnd backoff and the _stabilityWindowOverride() timing and price-deviation checks; calls that do not meet _shouldAdjustSupply() merely track reserves and add no observation. Consequently, an attacker cannot simply submit repeated minimum-value observations or select arbitrary timing and direction through this interface. The amount-insensitive accounting may be a design limitation, but the claimed permissionless low-value attack path is not demonstrated by the provided implementation."
+    },
+    "hyp_65e363c6719d": {
+      "title": "Hardcoded Pair Init Code Hash Can Route Reserve Reads to a Nonexistent or Wrong Pair",
+      "description": "VULNERABILITY TYPE: integration_error\nROOT CAUSE: The pair-address derivation is coupled to a fixed init-code hash without validating that the derived address is the factory's actual pair for the token pair.\nATTACK VECTOR: An administrator configures a compatible-looking but differently deployed factory, or the protocol is deployed against a Uniswap-compatible factory using a different pair init code. Subsequent reserve and pricing calls use the wrong pair address.\nAFFECTED NODES: library_uniswap_v2, data_source_uniswap_reserves, contract_uniswap_handler, contract_liquidity_extension\nAFFECTED CODE: src/contracts/libraries/UniswapV2Library.sol:pairFor, src/contracts/libraries/UniswapV2Library.sol:getReserves, src/contracts/DexHandlers/UniswapHandler.sol:reserves, src/contracts/LiquidityExtension.sol:collateralDeficit\nSEVERITY: medium\nREASONING: The library visibly hardcodes the pair init-code hash. Correctness therefore depends on an unstated deployment invariant that the configured factory uses exactly that bytecode hash; no validation against factory.getPair is shown.\nSUGGESTED MITIGATION: Use the factory's pair lookup as the authoritative address, or validate at initialization that the configured factory's pair matches the derived address and reject incompatible factories. Verify pair existence before consuming reserves.",
+      "vulnerability_type": "integration_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "library_uniswap_v2",
+        "data_source_uniswap_reserves",
+        "contract_uniswap_handler",
+        "contract_liquidity_extension"
+      ],
+      "evidence": [],
+      "reasoning": "The library visibly hardcodes the pair init-code hash. Correctness therefore depends on an unstated deployment invariant that the configured factory uses exactly that bytecode hash; no validation against factory.getPair is shown.",
+      "mitigation": "Use the factory's pair lookup as the authoritative address, or validate at initialization that the configured factory's pair matches the derived address and reject incompatible factories. Verify pair existence before consuming reserves.",
+      "finding_description": "UniswapV2Library.pairFor derives the pair address from a hardcoded init-code hash rather than querying the configured factory. If the configured factory deploys pairs with a different creation bytecode, or if the factory is misconfigured, reserve reads and quote calculations target an incorrect address. Calls to that address can revert or return invalid pricing data, disrupting liquidity and stabilization operations.",
+      "impact": "Liquidity management, collateral-deficit calculations, and trade sizing can revert or operate on incorrect reserves, potentially halting stabilization and making dependent operations unavailable.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/libraries/UniswapV2Library.sol",
+          "contract": "UniswapV2Library",
+          "function": "pairFor"
+        },
+        {
+          "file": "src/contracts/libraries/UniswapV2Library.sol",
+          "contract": "UniswapV2Library",
+          "function": "getReserves"
+        },
+        {
+          "file": "src/contracts/DexHandlers/UniswapHandler.sol",
+          "contract": "UniswapHandler",
+          "function": "reserves"
+        },
+        {
+          "file": "src/contracts/LiquidityExtension.sol",
+          "contract": "LiquidityExtension",
+          "function": "collateralDeficit"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/libraries/UniswapV2Library.sol",
+          "src/contracts/MaltDataLab.sol",
+          "src/contracts/DexHandlers/UniswapHandler.sol",
+          "src/contracts/LiquidityExtension.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:34:51.719035",
+      "id": "hyp_65e363c6719d",
+      "qa_comment": "Upon reviewing UniswapV2Library.pairFor and getReserves, I confirmed the integration error exists. pairFor deterministically computes the pair address using a fixed init-code hash (the hex value embedded in UniswapV2Library.sol) and performs no call to the configured factory's getPair function. This derived address is then used by getReserves, which directly invokes IUniswapV2Pair(pair).getReserves(). UniswapHandler.initialize and LiquidityExtension.initialize accept arbitrary factory addresses but do not validate the factory, its pair-code hash, or the existence and token composition of the derived pair. Consequently, deploying either contract with a Uniswap-compatible fork or factory using different pair bytecode causes reserve reads to target an unrelated address or a nonexistent contract, potentially reverting all dependent pricing, reserve-ratio, and collateral-deficit operations. If an address containing compatible pair-like code happens to exist, incorrect reserves could instead be consumed. The issue is conditional on privileged deployment misconfiguration rather than an unprivileged attacker, but the source clearly lacks the required invariant validation."
+    },
+    "hyp_aec894ec2751": {
+      "title": "External Token Decimal Metadata Can Cause Arithmetic Reverts in Reserve Pricing and Deficit Calculations",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Arithmetic scaling trusts ERC20 decimals() values and performs exponentiation and multiplication without constraining the exponent or checking the scaling domain before calculation.\nATTACK VECTOR: A token with an excessive decimals value is configured as the reward or collateral token, or a nonstandard token returns an oversized decimals value. Calls to market-price, reserve-ratio, or collateral-deficit functions then revert due to overflow.\nAFFECTED NODES: data_source_uniswap_reserves, contract_uniswap_handler, contract_liquidity_extension\nAFFECTED CODE: src/contracts/DexHandlers/UniswapHandler.sol:maltMarketPrice, src/contracts/LiquidityExtension.sol:collateralDeficit\nSEVERITY: medium\nREASONING: The shown code directly uses external decimals in exponentiation and scaled multiplications. Standard 18-decimal tokens remain within range, but the component does not enforce that deployment invariant at the calculation boundary.\nSUGGESTED MITIGATION: Validate token decimals against a safe maximum during initialization/configuration, use bounded scaling with explicit overflow checks, and reject unsupported decimal combinations before enabling reserve-dependent operations.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "data_source_uniswap_reserves",
+        "contract_uniswap_handler",
+        "contract_liquidity_extension"
+      ],
+      "evidence": [],
+      "reasoning": "The shown code directly uses external decimals in exponentiation and scaled multiplications. Standard 18-decimal tokens remain within range, but the component does not enforce that deployment invariant at the calculation boundary.",
+      "mitigation": "Validate token decimals against a safe maximum during initialization/configuration, use bounded scaling with explicit overflow checks, and reject unsupported decimal combinations before enabling reserve-dependent operations.",
+      "finding_description": "Reserve pricing and collateral calculations exponentiate and multiply by values derived from external token decimals, including 10**rewardDecimals, 10**maltDecimals, 10**collateralDecimals, and products of those scaled reserves. There is no visible upper-bound validation on decimal metadata or checked handling for oversized scaling factors. A token with unusually large decimals, or a misconfigured token, can make these operations overflow and revert whenever pricing or collateral status is queried.",
+      "impact": "Reserve-dependent views and state-changing stabilization or liquidity operations that rely on them can become permanently unavailable, preventing collateral assessment, liquidity actions, and automated stabilization.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/DexHandlers/UniswapHandler.sol",
+          "contract": "UniswapHandler",
+          "function": "maltMarketPrice"
+        },
+        {
+          "file": "src/contracts/LiquidityExtension.sol",
+          "contract": "LiquidityExtension",
+          "function": "collateralDeficit"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/MaltDataLab.sol",
+          "src/contracts/DexHandlers/UniswapHandler.sol",
+          "src/contracts/LiquidityExtension.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:34:51.736178",
+      "id": "hyp_aec894ec2751",
+      "qa_comment": "Upon reviewing the decimal-scaling logic in UniswapHandler.maltMarketPrice, MaltDataLab._normalizedPrice, and LiquidityExtension.collateralDeficit and reserveRatio, I confirmed that excessive token metadata can cause reserve-dependent calls to revert. These functions obtain decimals() from externally configured ERC20 contracts and use the result directly in 10**decimals and SafeMath multiplications, without validating a supported range. Although the OpenZeppelin ERC20 interface returns uint8, a token can still report a value such as 255, and the resulting exponentiation or subsequent multiplication by reserves will generally overflow or produce invalid scaling; malformed return data can also make the decimals() call revert. The same issue affects hasMinimumReserves through reserveRatio. Token addresses are supplied during privileged initialization, so this is not an arbitrary permissionless attack against an already correctly configured deployment, but governance or deployment of a malicious/nonstandard token can permanently make public views and updater workflows unusable. No initialization or configuration guard rejects unsafe decimals values, and SafeMath only converts the overflow into a revert rather than preventing the denial of service."
+    },
+    "hyp_986004be27f4": {
+      "title": "buyMalt Sweeps Pre-existing Malt Balance to the Buyer",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: The function uses an absolute post-swap balance instead of a before-and-after balance delta when determining the amount attributable to the current purchase.\nATTACK VECTOR: A BUYER_ROLE account calls buyMalt while UniswapHandler holds Malt from another source or a prior operation; the function transfers the complete balance to that caller. If the role is compromised or incorrectly assigned, the account can drain the retained inventory.\nAFFECTED NODES: contract_uniswap_handler, contract_stabilizer_node, token_malt\nAFFECTED CODE: src/contracts/DexHandlers/UniswapHandler.sol:buyMalt, src/contracts/StabilizerNode.sol:buyMalt caller\nSEVERITY: medium\nREASONING: The code explicitly assigns purchased = malt.balanceOf(address(this)) after the swap and then transfers that full amount to msg.sender. The BUYER_ROLE gate limits exploitation to an authorized caller, but any pre-existing handler balance is not protected by the trade accounting.\nSUGGESTED MITIGATION: Record the Malt balance before the swap, compute the post-swap increase, and transfer only that delta. Separately account for or reject pre-existing Malt inventory, and ensure BUYER_ROLE is assigned only to the intended stabilization contract.",
+      "vulnerability_type": "accounting_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_uniswap_handler",
+        "contract_stabilizer_node",
+        "token_malt"
+      ],
+      "evidence": [],
+      "reasoning": "The code explicitly assigns purchased = malt.balanceOf(address(this)) after the swap and then transfers that full amount to msg.sender. The BUYER_ROLE gate limits exploitation to an authorized caller, but any pre-existing handler balance is not protected by the trade accounting.",
+      "mitigation": "Record the Malt balance before the swap, compute the post-swap increase, and transfer only that delta. Separately account for or reject pre-existing Malt inventory, and ensure BUYER_ROLE is assigned only to the intended stabilization contract.",
+      "finding_description": "buyMalt records purchased as the handler's entire Malt balance after the swap rather than measuring the balance increase caused by the current trade. Any Malt already held by UniswapHandler\u2014including tokens accidentally transferred there or retained due to an interrupted accounting flow\u2014is sent to msg.sender along with the newly purchased amount. A caller possessing BUYER_ROLE can therefore capture unrelated Malt inventory.",
+      "impact": "Unrelated Malt held by UniswapHandler can be transferred to the buyer, causing direct token loss and reducing funds available for stabilization or liquidity operations.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/DexHandlers/UniswapHandler.sol",
+          "contract": "UniswapHandler",
+          "function": "buyMalt"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/StabilizerNode.sol",
+          "src/contracts/interfaces/IMalt.sol",
+          "src/contracts/DexHandlers/UniswapHandler.sol",
+          "src/contracts/Malt.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:35:35.053026",
+      "id": "hyp_986004be27f4",
+      "qa_comment": "Upon reviewing UniswapHandler.buyMalt in src/contracts/DexHandlers/UniswapHandler.sol, I confirmed the accounting error exists. The function records the handler's reward-token balance, swaps that balance through the router with the Malt output sent to address(this), and then sets purchased = malt.balanceOf(address(this)) before transferring the entire value to msg.sender. It never records the Malt balance before the swap or calculates the post-swap increase. Consequently, any Malt already held by the handler\u2014whether accidentally transferred, retained from another operation, or introduced through an integration flow\u2014is swept to the authorized caller along with the current trade output. onlyRole(BUYER_ROLE) is a meaningful access control and prevents arbitrary public callers, but it does not distinguish legitimate purchased output from pre-existing inventory; therefore, a compromised, misconfigured, or otherwise authorized buyer can extract that inventory by calling buyMalt. The issue is not demonstrated in StabilizerNode itself, but the handler implementation clearly contains the vulnerable balance accounting and should use a before/after delta or reject nonzero pre-swap Malt balances."
+    },
+    "hyp_a8086e3b1c06": {
+      "title": "Residual RewardToken Allowance Remains Authorized to Auction",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: One-time reward allocation uses a persistent ERC20 allowance without clearing unused approval.\nATTACK VECTOR: A compromised, incorrectly configured, or vulnerable auction contract invokes transferFrom against StabilizerNode after allocation, using any residual allowance and potentially tokens subsequently held by StabilizerNode.\nAFFECTED NODES: contract_stabilizer_node, contract_auction, token_reward\nAFFECTED CODE: src/contracts/StabilizerNode.sol:_distributeRewards, src/contracts/StabilizerNode.sol:rewardToken.approve(address(auction), rewarded), src/contracts/StabilizerNode.sol:auction.allocateArbRewards(rewarded)\nSEVERITY: medium\nREASONING: The loaded implementation explicitly grants the auction an allowance for rewarded before making the external allocation call, with no visible allowance reset afterward. The risk is conditional on the configured auction being able to act outside the intended allocation path, but the allowance itself persists across transactions.\nSUGGESTED MITIGATION: Use an exact-transfer pattern that sets allowance to zero after allocation, or approve only the amount actually consumed. Prefer safeIncreaseAllowance/safeDecreaseAllowance where appropriate and verify the auction spent exactly the intended amount.",
+      "vulnerability_type": "access_control",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_stabilizer_node",
+        "contract_auction",
+        "token_reward"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation explicitly grants the auction an allowance for rewarded before making the external allocation call, with no visible allowance reset afterward. The risk is conditional on the configured auction being able to act outside the intended allocation path, but the allowance itself persists across transactions.",
+      "mitigation": "Use an exact-transfer pattern that sets allowance to zero after allocation, or approve only the amount actually consumed. Prefer safeIncreaseAllowance/safeDecreaseAllowance where appropriate and verify the auction spent exactly the intended amount.",
+      "finding_description": "_distributeRewards approves the auction for the full rewarded amount before calling allocateArbRewards(), but the approval is not reset after the call. If allocateArbRewards consumes less than the approved amount, the auction retains an allowance to transfer reward tokens from StabilizerNode later.",
+      "impact": "Reward tokens held by StabilizerNode can be drained up to the residual allowance, including tokens received after the original allocation.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/StabilizerNode.sol",
+          "contract": "StabilizerNode",
+          "function": "_distributeRewards"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/DexHandlers/UniswapHandler.sol",
+          "src/contracts/Auction.sol",
+          "src/contracts/RewardSystem/RewardThrottle.sol",
+          "src/contracts/ForfeitHandler.sol",
+          "src/contracts/StabilizerNode.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:37:14.662183",
+      "id": "hyp_a8086e3b1c06",
+      "qa_comment": "Upon reviewing StabilizerNode._distributeRewards and Auction.allocateArbRewards, I confirmed the residual-allowance vulnerability exists. StabilizerNode calls rewardToken.approve(address(auction), rewarded) before invoking auction.allocateArbRewards(rewarded), but never resets the allowance afterward or verifies the amount actually consumed. Auction.allocateArbRewards may return without transferring any tokens when the replenishing auction is invalid, has no commitments, or already has sufficient claimable tokens, leaving the full approval outstanding. Even when it transfers only a fraction through collateralToken.safeTransferFrom(stabilizerNode, address(this), maxArbAllocation), the unused allowance remains authorized. The allowance is not limited to the current transaction and can apply to reward tokens subsequently held by StabilizerNode. Auction's STABILIZER_NODE_ROLE check restricts the intended implementation, but it does not protect against a compromised, replaceable, or otherwise malicious auction implementation using transferFrom. The existing code therefore creates a persistent authorization from StabilizerNode to the auction and should clear or tightly reconcile the allowance after allocation."
+    },
+    "hyp_feb9e626f8d9": {
+      "title": "Independent Reward-Cut Configuration Can Make Stabilization Revert",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: No demonstrated aggregate invariant protects the sum of independently configurable reward cuts from exceeding the full reward amount.\nATTACK VECTOR: An administrator or governance configuration sets reward cuts whose sum exceeds 1000, then any stabilization cycle producing nonzero rewards reaches the aggregate subtraction and reverts.\nAFFECTED NODES: contract_stabilizer_node\nAFFECTED CODE: src/contracts/StabilizerNode.sol:_distributeRewards, src/contracts/StabilizerNode.sol:callerCut/lpCut/daoCut/auctionPoolCut/swingTraderCut calculations\nSEVERITY: medium\nREASONING: The loaded code calculates five independent percentage-based cuts and subsequently must account for them from rewarded. The setter implementations and final subtraction were not included in the loaded excerpt, so the finding depends on whether aggregate validation is absent; this should be confirmed in the complete source.\nSUGGESTED MITIGATION: Enforce sum(callerRewardCut, lpRewardCut, daoRewardCut, auctionPoolRewardCut, swingTraderRewardCut) <= 1000 whenever any cut is updated, and add an invariant check before subtraction so invalid configurations fail at update time rather than during stabilization.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_stabilizer_node"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded code calculates five independent percentage-based cuts and subsequently must account for them from rewarded. The setter implementations and final subtraction were not included in the loaded excerpt, so the finding depends on whether aggregate validation is absent; this should be confirmed in the complete source.",
+      "mitigation": "Enforce sum(callerRewardCut, lpRewardCut, daoRewardCut, auctionPoolRewardCut, swingTraderRewardCut) <= 1000 whenever any cut is updated, and add an invariant check before subtraction so invalid configurations fail at update time rather than during stabilization.",
+      "finding_description": "Reward distribution subtracts caller, LP, DAO, auction-pool, and swing-trader cuts from the allocated reward. If the individual cut setters allow values independently up to 1000 basis points without enforcing that their aggregate is at most 1000, the aggregate deductions can exceed rewarded and SafeMath subtraction will revert whenever rewards are distributed.",
+      "impact": "Reward-producing stabilization transactions fail, preventing liquidity replenishment and reward distribution until configuration is corrected; dependent stabilization operations may remain unavailable during the misconfiguration.",
+      "vulnerable_code": [
+        {
+          "file": "src/contracts/StabilizerNode.sol",
+          "contract": "StabilizerNode",
+          "function": "_distributeRewards"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/StabilizerNode.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:37:14.677883",
+      "id": "hyp_feb9e626f8d9",
+      "qa_comment": "Upon reviewing the alleged denial-of-service vulnerability in StabilizerNode._distributeRewards and setRewardCut, I determined this is a false positive. _distributeRewards calculates the caller, LP, DAO, auction-pool, and swing-trader cuts and derives treasuryCut using SafeMath subtraction. However, setRewardCut explicitly computes the sum of all five configurable cuts with SafeMath and requires sum <= 1000 before updating any state. There are no separate setters that could bypass this aggregate validation, and the function also sets treasuryRewardCut to 1000 - sum. Consequently, each individual cut is bounded collectively to at most 100% of rewarded, while integer division can only reduce the aggregate calculated cuts through rounding; it cannot make them exceed rewarded. The subsequent subtraction therefore cannot revert because of an over-allocation caused by reward-cut configuration. Although an administrator can intentionally configure values that cause other operational behavior, the specific hypothesized aggregate-subtraction denial of service is prevented by the setter-level invariant."
+    },
+    "hyp_9fa3605e9161": {
+      "title": "Bonding State Is Updated After External Mining Call, Enabling Reentrant Unbonding",
+      "description": "VULNERABILITY TYPE: reentrancy\nROOT CAUSE: External MiningService callbacks execute while Bonding's balance and epoch accounting still represent the pre-operation state.\nATTACK VECTOR: Trigger bond or unbond through a callback path that invokes MiningService and reenters Bonding.unbond before the original balance decrement is applied.\nAFFECTED NODES: contract_bonding, contract_mining_service, interface_ibonding\nAFFECTED CODE: contract_bonding:bond, contract_bonding:unbond, contract_bonding:bonded balance and epoch accounting updates, contract_mining_service:onBond/onUnbond\nSEVERITY: high\nREASONING: The architecture explicitly shows Bonding calling MiningService and the IBonding integration documenting callbacks before balance updates. This creates a stale-state reentrancy window; exploitability depends on whether the deployed callback chain can reach Bonding or invoke a token with reentrant behavior.\nSUGGESTED MITIGATION: Apply checks-effects-interactions: validate and update the user's bonded balance and aggregate epoch accounting before invoking MiningService, and add a reentrancy guard around bond and unbond flows. Ensure configured reward mines cannot call back into Bonding during these operations.",
+      "vulnerability_type": "reentrancy",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_bonding",
+        "contract_mining_service",
+        "interface_ibonding"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly shows Bonding calling MiningService and the IBonding integration documenting callbacks before balance updates. This creates a stale-state reentrancy window; exploitability depends on whether the deployed callback chain can reach Bonding or invoke a token with reentrant behavior.",
+      "mitigation": "Apply checks-effects-interactions: validate and update the user's bonded balance and aggregate epoch accounting before invoking MiningService, and add a reentrancy guard around bond and unbond flows. Ensure configured reward mines cannot call back into Bonding during these operations.",
+      "finding_description": "Bonding invokes MiningService callbacks before completing its bonded-balance update. If the callback path reaches a reward mine or other externally controlled contract that reenters Bonding.unbond, the reentrant call observes the pre-unbond balance and can withdraw the same stake again before the original call decrements accounting.",
+      "impact": "An attacker able to trigger a reentrant callback can withdraw more stake tokens than their recorded bonded balance, potentially draining the Bonding contract's stake-token reserves and causing insolvency for other bonded users.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/TransferService.sol",
+          "src/contracts/interfaces/IBonding.sol",
+          "src/contracts/Bonding.sol",
+          "src/contracts/MiningService.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:38:30.571263",
+      "id": "hyp_9fa3605e9161",
+      "qa_comment": "Upon reviewing the alleged reentrancy in Bonding.bondToAccount, Bonding.unbond, Bonding.unbondAndBreak, and MiningService.onBond/onUnbond, I determined this is not a clearly exploitable vulnerability from the supplied code. MiningService does make external calls to configured reward mines before Bonding updates its accounting, and no explicit reentrancy guard exists. However, callbacks execute with the reward mine as msg.sender, not the original bonding user, so a callback cannot directly reenter unbond for that user. A malicious mine could only operate on its own bonded balance or invoke bondToAccount subject to its own token allowance and the notSameBlock checks. More importantly, _removeFromBonded uses SafeMath and updates the bonded balance before transferring tokens; nested unbond operations that collectively exceed the recorded balance revert rather than over-withdraw. The unbondAndBreak path likewise updates accounting before its subsequent external calls. Therefore, although the interaction ordering is defensively undesirable and trusted reward mines should not call back into Bonding, the code does not demonstrate a practical balance-draining reentrancy exploit."
+    },
+    "hyp_6eb39c0333f1": {
+      "title": "Unbounded Outstanding-Auction Iteration Enables Claim/Replenishment Denial of Service",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Auction accounting relies on an unbounded loop over outstanding auction entries instead of bounded, resumable processing.\nATTACK VECTOR: Create or acquire a large number of small auction positions, then trigger a participant operation that scans all outstanding entries; the transaction eventually runs out of gas and the affected account cannot complete the operation.\nAFFECTED NODES: contract_auction_participant, contract_auction_pool, contract_auction\nAFFECTED CODE: AuctionParticipant outstanding-auction iteration, AuctionPool participant processing, Auction claim/redemption flow\nSEVERITY: high\nREASONING: The architecture explicitly records that AuctionParticipant iterates outstanding auctions and that AuctionPool calls it. Without evidence of a hard iteration bound or pagination in the loaded context, this is a concrete gas-exhaustion risk; confirm whether users can create enough entries and whether processing is resumable.\nSUGGESTED MITIGATION: Process auction entries with a strict maximum per transaction and persistent cursor, or use per-auction accounting that avoids scanning historical positions. Ensure users can independently settle individual entries.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_auction_participant",
+        "contract_auction_pool",
+        "contract_auction"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records that AuctionParticipant iterates outstanding auctions and that AuctionPool calls it. Without evidence of a hard iteration bound or pagination in the loaded context, this is a concrete gas-exhaustion risk; confirm whether users can create enough entries and whether processing is resumable.",
+      "mitigation": "Process auction entries with a strict maximum per transaction and persistent cursor, or use per-auction accounting that avoids scanning historical positions. Ensure users can independently settle individual entries.",
+      "finding_description": "AuctionParticipant iterates over a user's outstanding auctions during auction-related processing, while AuctionPool delegates into it. If the number of outstanding auctions can grow without a strict bounded batch size, an attacker can accumulate many positions and cause subsequent claim, redemption, or replenishment calls to exceed the block gas limit.",
+      "impact": "Affected users may be unable to claim or redeem auction proceeds, and dependent auction-pool or stabilization operations may become permanently unavailable for accounts with sufficiently large position sets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/AuctionParticipant.sol",
+          "src/contracts/Auction.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:39:20.105546",
+      "id": "hyp_6eb39c0333f1",
+      "qa_comment": "Upon reviewing AuctionParticipant.claim and outstandingArbTokens, I determined that the alleged claim-path denial of service is a false positive. The claim function processes exactly one auction entry per transaction using auctionIds[replenishingIndex], and advances replenishingIndex only after that entry is fully claimable, so claim execution is bounded and resumable rather than scanning the entire array. outstandingArbTokens does contain an unbounded loop over auctionIds, but it is a view function and is not invoked by claim or by the shown participant processing path; excessive length can make RPC estimation or on-chain view calls expensive, but it cannot directly make state-changing claims fail. Auction.allocateArbRewards contains a separate while loop that skips finalized auctions with zero commitments, but it is controlled by the privileged stabilizer node and is not the outstanding-auction iteration described in the hypothesis. Although array growth and other unbounded view functions merit optimization, the supplied code does not establish an attacker-controlled transaction denial of service preventing claims or replenishment."
+    },
+    "hyp_dbd3f5f60401": {
+      "title": "Auction Start Gate Dependency Can Halt Auction Lifecycle",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Core auction-start functionality synchronously depends on an externally configured start-controller contract without a demonstrated fail-safe or recovery path.\nATTACK VECTOR: Cause or arrange for the configured start controller to revert or reject starts, for example through misconfiguration, controller upgrade behavior, or controller state manipulation; calls to start an auction then revert.\nAFFECTED NODES: contract_auction, interface_i_auction_start_controller, contract_stabilizer_node\nAFFECTED CODE: Auction start gate check, StabilizerNode auction-start call\nSEVERITY: medium\nREASONING: The architecture states that Auction calls an optional start controller and that the auction start gate is a dependency. The loaded context does not establish a timeout, fallback, or emergency bypass; this should be treated as a lifecycle availability risk rather than an authorization bypass.\nSUGGESTED MITIGATION: Provide a governed emergency fallback or bounded timeout for controller failures, validate controller configuration, and ensure authorized operators can disable or replace a failed controller without preventing required auction settlement.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_auction",
+        "interface_i_auction_start_controller",
+        "contract_stabilizer_node"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture states that Auction calls an optional start controller and that the auction start gate is a dependency. The loaded context does not establish a timeout, fallback, or emergency bypass; this should be treated as a lifecycle availability risk rather than an authorization bypass.",
+      "mitigation": "Provide a governed emergency fallback or bounded timeout for controller failures, validate controller configuration, and ensure authorized operators can disable or replace a failed controller without preventing required auction settlement.",
+      "finding_description": "Auction start depends on an external IAuctionStartController check. If the configured controller reverts, becomes unavailable, or returns a blocking result, auction creation cannot proceed even when the auction is otherwise inactive. Because the gate is an external dependency, its availability and configuration directly control the core auction lifecycle.",
+      "impact": "New auctions cannot be started, preventing stabilization mechanisms that rely on auctions and potentially leaving the protocol unable to respond to market conditions or settle its auction cycle.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/StabilizerNode.sol",
+          "src/contracts/interfaces/IAuctionStartController.sol",
+          "src/contracts/Auction.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:39:30.116782",
+      "id": "hyp_dbd3f5f60401",
+      "qa_comment": "Upon reviewing the alleged denial-of-service condition in StabilizerNode._startAuction and Auction._triggerAuction, I determined this is not a clearly exploitable vulnerability. Both functions treat the start controller as optional: they skip the external call when auctionStartController is address(0), and a controller returning false merely causes the function to return without starting an auction. A reverting controller can make StabilizerNode.stabilize revert, but the dependency is administrator-configurable. StabilizerNode.setAuctionStartController and Auction.setAuctionStartController both permit an ADMIN_ROLE holder to replace or clear the controller, explicitly documenting that address(0) is valid. Auction.triggerAuction is additionally restricted to STABILIZER_NODE_ROLE, preventing arbitrary users from forcing the dependency path. Thus, a controller-induced halt would require privileged configuration or failure of an administrator-controlled component and has an existing recovery mechanism: clearing or replacing the controller in both contracts. Although no timeout or automated fallback exists, that is an operational resilience consideration rather than a demonstrated unprivileged denial-of-service vulnerability."
+    },
+    "hyp_51f785b9d67b": {
+      "title": "Per-Transfer Pool Outflow Threshold Can Be Bypassed by Splitting Transfers",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Threshold enforcement is stateless and appears to apply only to the current transfer amount; no cumulative accounting or rate limiting is represented in the component behavior.\nATTACK VECTOR: Submit or trigger repeated transfers from the configured pool, each with an amount at or below the configured threshold, until the desired aggregate amount has been transferred.\nAFFECTED NODES: contract_pool_transfer_verification, contract_transfer_service, contract_malt\nAFFECTED CODE: PoolTransferVerification pool outflow verification, TransferService transfer verification dispatch, Malt transfer hook\nSEVERITY: medium\nREASONING: The architecture explicitly documents pool outflow gating and an admin-set threshold, but does not indicate any cumulative accounting. A stateless amount check is insufficient for an aggregate pool-drain limit. The exact intended semantics of the threshold should be confirmed against the implementation and tests.\nSUGGESTED MITIGATION: If the threshold is intended to limit aggregate outflow, track cumulative pool outflow using an explicit time window or epoch and enforce the limit across all transfers. If it is intended only as a per-transfer limit, document that property and ensure all privileged or automated pool-transfer paths enforce an independent aggregate cap. Review whitelist entries and prevent untrusted recipients from being added.",
+      "vulnerability_type": "logic_error",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_pool_transfer_verification",
+        "contract_transfer_service",
+        "contract_malt"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly documents pool outflow gating and an admin-set threshold, but does not indicate any cumulative accounting. A stateless amount check is insufficient for an aggregate pool-drain limit. The exact intended semantics of the threshold should be confirmed against the implementation and tests.",
+      "mitigation": "If the threshold is intended to limit aggregate outflow, track cumulative pool outflow using an explicit time window or epoch and enforce the limit across all transfers. If it is intended only as a per-transfer limit, document that property and ensure all privileged or automated pool-transfer paths enforce an independent aggregate cap. Review whitelist entries and prevent untrusted recipients from being added.",
+      "finding_description": "PoolTransferVerification appears to enforce the configured threshold independently on each transfer from the configured pool, without tracking cumulative outflow over a block, epoch, or other period. An attacker able to initiate or induce multiple pool transfers can split a transfer exceeding the threshold into many smaller transfers, each individually passing verification. The whitelist path further bypasses the threshold entirely for configured recipients.",
+      "impact": "The intended pool outflow or anti-drain limit can be evaded, allowing a recipient to receive an unrestricted aggregate amount of Malt in multiple transactions and potentially accelerating depletion of pool-held tokens.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/PoolTransferVerification.sol",
+          "src/contracts/TransferService.sol",
+          "src/contracts/Malt.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:40:52.462796",
+      "id": "hyp_51f785b9d67b",
+      "qa_comment": "Upon reviewing the alleged per-transfer pool outflow threshold bypass in PoolTransferVerification.verifyTransfer, TransferService.verifyTransfer, and Malt._beforeTokenTransfer, I determined this is a false positive. The thresholdBps value is not an amount limit: verifyTransfer uses it solely to calculate a price condition, requiring maltDataLab.maltPriceAverage(priceLookback) to exceed priceTarget multiplied by (10000 - thresholdBps) / 10000. The amount parameter is accepted and forwarded through TransferService, but is never read by PoolTransferVerification, so there is no per-transfer amount threshold that can be bypassed by splitting transfers. Transfers from the configured pool are checked on every token operation through Malt._beforeTokenTransfer, unless the recipient is whitelisted. Although the implementation has no cumulative outflow accounting, that omission does not establish the claimed vulnerability because the configured threshold governs price deviation rather than aggregate or individual transfer volume. A separate aggregate pool-drain concern would require evidence that thresholdBps was intended to limit transfer amounts, which is not supported by this source code."
+    },
+    "hyp_b98834e69e73": {
+      "title": "Zero Sample Length Can Permanently Revert Moving-Average Updates",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Missing lower-bound validation for administrator-configured sample length and insufficient defensive handling of zero-length buffers.\nATTACK VECTOR: A compromised or misconfigured administrator sets the moving-average sample length to zero; subsequent MaltDataLab sample writes or average reads revert.\nAFFECTED NODES: contract_moving_average, contract_malt_data_lab, interface_i_moving_average\nAFFECTED CODE: MovingAverage: administrator-controlled sample parameter configuration, MovingAverage: circular-buffer update and average calculation, MaltDataLab: moving-average sample writes\nSEVERITY: medium\nREASONING: The architecture explicitly records administrator-set sample parameters and the MovingAverage integration. A zero sample length is unsafe for the standard circular-buffer modulo and average-division operations unless explicitly rejected; exact source locations were not available in the loaded context.\nSUGGESTED MITIGATION: Require sampleLength > 0 and enforce a sane maximum in every configuration setter; reject invalid values before storing them. Add defensive checks in update and average functions so invalid configuration cannot cause protocol-wide reverts, and use a timelocked governance change for parameter updates.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_moving_average",
+        "contract_malt_data_lab",
+        "interface_i_moving_average"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records administrator-set sample parameters and the MovingAverage integration. A zero sample length is unsafe for the standard circular-buffer modulo and average-division operations unless explicitly rejected; exact source locations were not available in the loaded context.",
+      "mitigation": "Require sampleLength > 0 and enforce a sane maximum in every configuration setter; reject invalid values before storing them. Add defensive checks in update and average functions so invalid configuration cannot cause protocol-wide reverts, and use a timelocked governance change for parameter updates.",
+      "finding_description": "MovingAverage exposes administrator-controlled sample parameters, but the available implementation facts do not indicate validation that sampleLength is nonzero. Setting the length to zero can make circular-buffer indexing or average calculation divide/modulo by zero, causing update and read operations to revert. Since MaltDataLab depends on MovingAverage for price samples, downstream oracle consumers may receive stale data or stabilization operations may halt.",
+      "impact": "Moving-average updates can stop and downstream pricing, auction, liquidity, or stabilization logic can operate on stale data or become unavailable, potentially preventing protocol recovery actions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/MaltDataLab.sol",
+          "src/contracts/interfaces/IMovingAverage.sol",
+          "src/contracts/MovingAverage.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:41:30.248336",
+      "id": "hyp_b98834e69e73",
+      "qa_comment": "Upon reviewing the MovingAverage initializer, configuration methods, and arithmetic paths, I confirmed that zero sample length can put the contract into a denial-of-service state when supplied during initialization. initialize() validates _sampleMemory but does not validate _sampleLength before storing it, whereas setSampleLength() later correctly requires _sampleLength > 0. With sampleLength equal to zero, getValueWithLookback() immediately executes modulo sampleLength and reverts. Subsequent update() calls also encounter invalid zero-length arithmetic, including (sampleLength - 1) under SafeMath and divisions by sampleLength in _createNewSample(); updateCumulative() similarly reaches division by sampleLength or other zero-length logic. MaltDataLab forwards tracking operations directly to these update functions, so affected oracle updates can revert, and its smoothed-read methods can revert through getValueWithLookback(). The issue is limited to an administrator or deployment process supplying zero during initialize(), since the normal setSampleLength() setter rejects zero, and it is recoverable by setting a positive value. Nevertheless, the missing initialization guard provides a clear misconfiguration or compromised-administrator DoS path."
+    },
+    "hyp_d6835301f907": {
+      "title": "Registered Reward Mine Revert Can Denial-of-Service Bonding Operations",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Synchronous external callbacks to all registered reward mines without failure isolation, circuit breaking, or bounded execution.\nATTACK VECTOR: A compromised administrator, faulty reward-mine implementation, or state transition that makes a registered mine revert causes a MiningService callback to fail whenever Bonding invokes it.\nAFFECTED NODES: contract_mining_service, contract_bonding, interface_ireward_mine\nAFFECTED CODE: MiningService reward-mine callback dispatch, Bonding callbacks into MiningService\nSEVERITY: medium\nREASONING: The architecture explicitly shows Bonding calling MiningService and MiningService calling IRewardMine implementations, while the mine set is administrator-managed. Unless callbacks are individually contained, a single reverting mine propagates failure through the whole operation.\nSUGGESTED MITIGATION: Use bounded callback dispatch with per-mine failure isolation where safe, provide an emergency pause/removal mechanism, validate mine contracts before registration, and ensure Bonding operations cannot be permanently blocked by one reward mine.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_mining_service",
+        "contract_bonding",
+        "interface_ireward_mine"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly shows Bonding calling MiningService and MiningService calling IRewardMine implementations, while the mine set is administrator-managed. Unless callbacks are individually contained, a single reverting mine propagates failure through the whole operation.",
+      "mitigation": "Use bounded callback dispatch with per-mine failure isolation where safe, provide an emergency pause/removal mechanism, validate mine contracts before registration, and ensure Bonding operations cannot be permanently blocked by one reward mine.",
+      "finding_description": "MiningService forwards Bonding callbacks to every configured reward mine. Because the mine list is administrator-managed and callback failures are not shown to be isolated, any configured mine that reverts can cause the entire MiningService callback to revert, propagating into Bonding operations such as stake, unstake, or balance updates.",
+      "impact": "Users may be unable to bond, unbond, or update staking balances, potentially freezing staking and reward-accounting operations until the faulty mine is removed or configuration is repaired.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/interfaces/IRewardMine.sol",
+          "src/contracts/TransferService.sol",
+          "src/contracts/Bonding.sol",
+          "src/contracts/MiningService.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:43:05.593796",
+      "id": "hyp_d6835301f907",
+      "qa_comment": "Upon reviewing MiningService.onBond and onUnbond and Bonding.bondToAccount, unbond, and unbondAndBreak, I confirmed the denial-of-service condition exists. MiningService iterates over every address in mines and synchronously invokes IRewardMine(mine).onBond or onUnbond without checking mineActive, using try/catch, imposing gas bounds, or isolating failures. Any revert from one registered mine therefore reverts the entire MiningService call. Bonding invokes these callbacks before updating user balances or transferring tokens, so a reverting mine prevents all bonding and unbonding operations that depend on the affected MiningService. addRewardMine accepts an arbitrary address and performs no interface or behavioral validation, making faulty or malicious implementations registrable by an administrator. Although removeRewardMine provides an administrative recovery mechanism, it does not prevent the disruption and may be unavailable during an administrative compromise or operational failure. The hypothesis is therefore technically valid, with exploitability depending on a mine being registered and made to revert; this is not a permissionless attack against the current code unless administrative control or a faulty registered mine is involved."
+    },
+    "hyp_63dba03c4ea4": {
+      "title": "Unbounded SwingTrader Profit Cut Can Halt Profit Distribution",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: The profit-cut configuration is administrator-controlled and appears to lack an enforced upper-bound invariant before it is used in distribution arithmetic.\nATTACK VECTOR: An administrator or compromised configuration authority sets profitCut above the supported percentage range; a stabilizer or profit-distribution call then reaches invalid arithmetic and reverts.\nAFFECTED NODES: contract_swing_trader, contract_stabilizer_node, interface_iswing_trader\nAFFECTED CODE: SwingTrader profit-cut setter and profit distribution logic, StabilizerNode calls into ISwingTrader profit operations\nSEVERITY: medium\nREASONING: The architecture explicitly identifies an admin-set SwingTrader profit cut and the prior analysis requested verification of zero, 100%, and above-100% behavior. No source lines or evidence of a range check are available in the loaded graph, so this is a configuration-dependent hypothesis rather than a confirmed defect.\nSUGGESTED MITIGATION: Validate the profit-cut parameter at configuration time against the exact percentage denominator used by the implementation, reject values above 100%, and use checked arithmetic with explicit handling for boundary values of 0% and 100%.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_swing_trader",
+        "contract_stabilizer_node",
+        "interface_iswing_trader"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies an admin-set SwingTrader profit cut and the prior analysis requested verification of zero, 100%, and above-100% behavior. No source lines or evidence of a range check are available in the loaded graph, so this is a configuration-dependent hypothesis rather than a confirmed defect.",
+      "mitigation": "Validate the profit-cut parameter at configuration time against the exact percentage denominator used by the implementation, reject values above 100%, and use checked arithmetic with explicit handling for boundary values of 0% and 100%.",
+      "finding_description": "SwingTrader exposes an administrator-configured profit cut, but the loaded component metadata does not indicate a range check restricting it to the valid percentage domain. If the configured cut exceeds the denominator used by profit distribution, arithmetic involving the retained/profit share can underflow or produce invalid accounting, causing stabilization calls that distribute or withdraw SwingTrader profits to revert.",
+      "impact": "A malformed or compromised administrator configuration can freeze SwingTrader profit extraction and dependent stabilization flows, leaving funds stranded and preventing the stabilizer from completing operations.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/StabilizerNode.sol",
+          "src/contracts/interfaces/ISwingTrader.sol",
+          "src/contracts/SwingTrader.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:48:59.500972",
+      "id": "hyp_63dba03c4ea4",
+      "qa_comment": "Upon reviewing the alleged denial-of-service vulnerability in SwingTrader.setLpProfitCut and SwingTrader.sellMalt, I determined this is a false positive. The administrator-controlled lpProfitCut is explicitly constrained by require(_profitCut >= 0 && _profitCut <= 1000, \"Must be between 0 and 100%\"); at the setter, where 1000 is the denominator used by profit.mul(lpProfitCut).div(1000). Because uint256 values are nonnegative, the lower-bound check is redundant, but the upper-bound check prevents values above 100%. In sellMalt, a 0% cut results in a zero transfer, while a 100% cut transfers the calculated profit to rewardThrottle; neither boundary inherently reverts. The distribution arithmetic therefore cannot be forced to underflow through an excessive configured profit cut. Although SafeMath multiplication could theoretically overflow for an extraordinarily large profit amount, that is unrelated to an unbounded administrator parameter and is constrained by available token balances. No clear configuration-based path exists whereby setting lpProfitCut causes StabilizerNode stabilization or profit distribution to revert. The hypothesis is consequently not supported by the provided implementation."
+    },
+    "hyp_7f8ee2a76322": {
+      "title": "RewardReinvestor Can Attribute Pre-existing Reward Balance to an Arbitrary Account",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: The reinvestment amount is not isolated to the rewards withdrawn for the target account, and the caller-controlled account is used as the final staking beneficiary.\nATTACK VECTOR: Leave or transfer reward tokens to RewardReinvestor, then call reinvest with an attacker-controlled account so the aggregate balance is swapped and staked for the attacker.\nAFFECTED NODES: contract_reward_reinvestor, interface_imining_service, interface_idex_handler, interface_ibonding\nAFFECTED CODE: RewardReinvestor.reinvest: withdraw rewards, determine reward amount, swap reward for Malt, and stake for account\nSEVERITY: high\nREASONING: RewardReinvestor is explicitly connected to MiningService for reward withdrawal, DexHandler for conversion, and Bonding for beneficiary staking. The critical review point is whether the implementation uses balanceOf(this) after withdrawal instead of the withdrawal delta; that pattern permits caller-selected attribution of residual funds.\nSUGGESTED MITIGATION: Record the reward-token balance before withdrawal, calculate the post-withdrawal delta, and swap only that delta. Ensure the staking beneficiary is bound to the account whose rewards were withdrawn, and separately handle or explicitly sweep residual tokens under a restricted administrative process.",
+      "vulnerability_type": "accounting_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_reward_reinvestor",
+        "interface_imining_service",
+        "interface_idex_handler",
+        "interface_ibonding"
+      ],
+      "evidence": [],
+      "reasoning": "RewardReinvestor is explicitly connected to MiningService for reward withdrawal, DexHandler for conversion, and Bonding for beneficiary staking. The critical review point is whether the implementation uses balanceOf(this) after withdrawal instead of the withdrawal delta; that pattern permits caller-selected attribution of residual funds.",
+      "mitigation": "Record the reward-token balance before withdrawal, calculate the post-withdrawal delta, and swap only that delta. Ensure the staking beneficiary is bound to the account whose rewards were withdrawn, and separately handle or explicitly sweep residual tokens under a restricted administrative process.",
+      "finding_description": "The reinvestment flow withdraws rewards into RewardReinvestor and then performs the reward-to-Malt conversion before staking the result for a supplied account. If the swap amount is derived from the contract-wide reward-token balance rather than the balance delta produced by that withdrawal, any residual or unsolicited reward tokens held by the contract are included and credited to the account selected by the caller. A caller can invoke reinvest for their own account and capture rewards left over from a prior operation or transferred to the contract.",
+      "impact": "Reward tokens belonging to other users or accidentally retained by the contract can be converted and credited to an attacker, causing direct loss of rewards and incorrect account balances.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/contracts/interfaces/IMiningService.sol",
+          "src/contracts/interfaces/IBonding.sol",
+          "src/contracts/interfaces/IDexHandler.sol",
+          "src/contracts/RewardReinvestor.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203110",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:49:42.273859",
+      "id": "hyp_7f8ee2a76322",
+      "qa_comment": "Upon reviewing the RewardReinvestor functions provideReinvest, splitReinvest, _retrieveReward, and _bondAccount, I confirmed the accounting error is exploitable. Both public reinvestment paths withdraw rewards for msg.sender, but then calculate or transfer the contract\u2019s entire rewardToken balance rather than the amount received during that call. In provideReinvest, rewardBalance is set directly to rewardToken.balanceOf(address(this)); in splitReinvest, half of the entire balance is sent to dexHandler and _bondAccount subsequently transfers the remaining entire balance. _bondAccount supplies all contract-held assets to dexHandler and bonds the resulting liquidity using bonding.bondToAccount(account), where account is msg.sender. Therefore, an attacker can ensure reward tokens are already held by RewardReinvestor, call either function with a positive rewardLiquidity corresponding to their own rewards, and receive credit for liquidity generated from both their withdrawal and the pre-existing balance. The only guard rejects zero withdrawals and does not isolate the withdrawal delta. Any residual assets are swept to treasury only after they have been included in the attacker\u2019s bond."
+    }
+  },
+  "metadata": {
+    "total": 17,
+    "confirmed": 9,
+    "last_modified": "2026-10-12T20:49:42.274688"
+  }
+}

@@ -1,0 +1,306 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_15809e494e23": {
+      "frame_id": "frame_15809e494e23",
+      "session_id": "sess_agent_20261012_210023",
+      "question": "Vulnerability analysis of BLVaultManagerLido",
+      "artifact_refs": [
+        "Oracle-based OHM and wstETH pricing used for vault deposits and withdrawals",
+        "Chainlink latestRoundData validation, staleness, decimals, and answer bounds",
+        "Admin-configurable oracle feeds and thresholds that could enable manipulated minting or redemption prices",
+        "Price conversion consistency between manager calculations, vault accounting, and Balancer pool operations"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T21:00:30.322134",
+      "updated_at": "2026-10-12T21:01:05.563472",
+      "history": [
+        {
+          "timestamp": "2026-10-12T21:00:30.322347",
+          "status": "planned",
+          "rationale": "WHY NOW: This unvisited manager is the central pricing authority for the boosted-liquidity vault flow and combines externally sourced Chainlink values with admin-controlled configuration, making it the highest-priority component for identifying price manipulation that could cause excess OHM minting or underpriced withdrawals. EXIT CRITERIA: Trace every manager price-read path into vault deposit/withdrawal amounts, document feed validation and normalization, verify stale/invalid/negative/extreme answer handling and configuration bounds, and determine whether any caller or market condition can obtain materially manipulated execution prices; conclude with no finding only if all paths enforce reliable, bounded, timely prices.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T21:00:30.331635",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T21:01:05.563593",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9705348b9526": {
+      "frame_id": "frame_9705348b9526",
+      "session_id": "sess_agent_20261012_210023",
+      "question": "Vulnerability analysis of BLVaultLido clone implementation",
+      "artifact_refs": [
+        "Oracle-priced OHM minting during deposit",
+        "Use of Chainlink and wstETH pricing inputs and validation",
+        "Balancer join parameters, LP minimums, and exchange-rate manipulation",
+        "Consistency between minted OHM, deposited assets, and received LP tokens"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T21:01:13.585285",
+      "updated_at": "2026-10-12T21:01:50.983257",
+      "history": [
+        {
+          "timestamp": "2026-10-12T21:01:13.585798",
+          "status": "planned",
+          "rationale": "WHY NOW: This unvisited vault is the critical execution point where oracle-derived prices determine OHM minting and user-controlled deposits are converted into Balancer LP tokens, creating direct exposure to stale, manipulated, or inconsistently bounded pricing. The manager has already been analyzed, so examining the clone implementation provides new coverage of the downstream price-sensitive flow. EXIT CRITERIA: Trace every deposit pricing input from oracle reads through OHM mint amount and Balancer join limits; verify freshness, round validity, decimal handling, price direction, and resistance to same-block or pool-state manipulation; reconcile minted OHM with assets and LP received; record any exploitable price manipulation path or conclude no such path exists with the relevant invariants documented.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T21:01:13.602120",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T21:01:50.983404",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9bcde393fd1b": {
+      "frame_id": "frame_9bcde393fd1b",
+      "session_id": "sess_agent_20261012_210023",
+      "question": "Vulnerability analysis of OlympusMinter / MINTR",
+      "artifact_refs": [
+        "Determine whether permissioned mint and burn paths can be invoked with stale, manipulated, or unvalidated valuation inputs",
+        "Trace how mint and burn approvals, amounts, and active-module checks affect OHM supply and downstream vault pricing",
+        "Assess whether arbitrary authorized callers or sequencing can create supply changes that enable price manipulation"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T21:01:59.967821",
+      "updated_at": "2026-10-12T21:03:19.139941",
+      "history": [
+        {
+          "timestamp": "2026-10-12T21:01:59.968220",
+          "status": "planned",
+          "rationale": "WHY NOW: MINTR is an unvisited critical supply-control module, and OHM mint/burn directly changes the denomination and economic impact of oracle-priced vault operations. Analyze it now to cover a high-impact state component without repeating the completed BLVaultManagerLido or BLVaultLido investigations. EXIT CRITERIA: Trace every externally reachable mint/burn path and its callers, identify all authorization and amount-validation assumptions, and determine whether any path permits supply changes that can manipulate OHM or vault pricing; conclude with either a concrete price-manipulation finding or documented evidence that these paths cannot affect pricing beyond intended controls.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T21:01:59.983927",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T21:03:19.140110",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_08670adcfecc": {
+      "frame_id": "frame_08670adcfecc",
+      "session_id": "sess_agent_20261012_210023",
+      "question": "Vulnerability analysis of Kernel",
+      "artifact_refs": [
+        "Module and policy installation, activation, and upgrade permissions affecting oracle-based pricing components",
+        "Selector-scoped permission changes that could redirect or bypass price reads, mint valuation, or oracle configuration",
+        "Lifecycle ordering and reconfiguration paths that may leave stale or unintended price authority active"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T21:03:28.439113",
+      "updated_at": "2026-10-12T21:03:54.104931",
+      "history": [
+        {
+          "timestamp": "2026-10-12T21:03:28.439671",
+          "status": "planned",
+          "rationale": "WHY NOW: Kernel is an unvisited central authority governing module lifecycle and selector-scoped permissions, while the system\u2019s OHM valuation and minting depend on permissioned oracle and manager paths. A lifecycle or permission transition could enable price manipulation indirectly by activating malicious pricing logic, retaining obsolete authority, or changing which component controls oracle-derived valuations. EXIT CRITERIA: Trace all install, activate, upgrade, and permission-reconfiguration paths; identify every reachable change to price-reading or oracle-configuration authority; verify executor/admin authorization, ordering, and cleanup of old permissions; conclude whether any unauthorized or stale authority can influence asset prices or mint valuation, or document why such influence is impossible.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T21:03:28.458027",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T21:03:54.105062",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_1d98e11135cd": {
+      "frame_id": "frame_1d98e11135cd",
+      "session_id": "sess_agent_20261012_210023",
+      "question": "Vulnerability analysis of OlympusTreasury / TRSRY",
+      "artifact_refs": [
+        "Trace reserve withdrawal, debt incurrence, and repayment flows for any asset valuation or exchange-rate assumptions",
+        "Determine whether treasury accounting relies on spot prices, AMM state, oracle values, or caller-supplied amounts that can be manipulated",
+        "Assess whether price manipulation can inflate borrowable reserves, understate repayment obligations, or enable excess asset extraction"
+      ],
+      "priority": 6,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T21:04:04.073371",
+      "updated_at": "2026-10-12T21:04:08.511103",
+      "history": [
+        {
+          "timestamp": "2026-10-12T21:04:04.073948",
+          "status": "planned",
+          "rationale": "WHY NOW: TRSRY is an unanalyzed critical state-holder that supplies and accounts for reserve assets used by the broader system. Although its documented flows are amount-based, treasury accounting can become price-sensitive if any downstream or token-specific logic converts balances into values using manipulable market data. EXIT CRITERIA: Review all treasury state transitions and callers, identify every valuation or exchange-rate dependency, and either establish that no price-manipulable input affects withdrawals/debt accounting or document a concrete exploitable manipulation path with affected assets and impact.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T21:04:04.093016",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T21:04:08.511281",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_bd7ccc536f97": {
+      "frame_id": "frame_bd7ccc536f97",
+      "session_id": "sess_agent_20261012_210023",
+      "question": "Vulnerability analysis of BL manager oracle-based token pricing",
+      "artifact_refs": [
+        "Chainlink round completeness, freshness, and answeredInRound validation",
+        "Feed decimal normalization and OHM/ETH versus stETH/ETH conversion",
+        "Oracle threshold and deviation checks that determine mint valuation",
+        "Handling of zero, negative, stale, or manipulated feed answers",
+        "Price calculation consistency between deposit valuation and vault accounting"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T21:04:22.611569",
+      "updated_at": "2026-10-12T21:04:26.313800",
+      "history": [
+        {
+          "timestamp": "2026-10-12T21:04:22.612047",
+          "status": "planned",
+          "rationale": "WHY NOW: This is the remaining price-critical component in the architecture and directly determines how much OHM can be minted against deposited assets. Even though the broader BLVaultManagerLido component was previously reviewed, this oracle-pricing subcomponent warrants focused coverage because feed validation and conversion edge cases can enable price manipulation without requiring a compromise of the oracle itself. EXIT CRITERIA: Trace every caller and downstream use of the computed prices; verify round/freshness, sign, decimal, and cross-feed consistency checks; confirm configurable thresholds cannot accept manipulated or economically invalid values; and establish that extreme or inconsistent oracle outputs cannot over-mint OHM or distort vault accounting.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T21:04:22.631037",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T21:04:26.313972",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_28cc4dee41cf": {
+      "frame_id": "frame_28cc4dee41cf",
+      "session_id": "sess_agent_20261012_210023",
+      "question": "Vulnerability analysis of OlympusBoostedLiquidityRegistry / BLREG",
+      "artifact_refs": [
+        "Whether unauthorized or improperly validated vault activation can introduce a price-sensitive vault into trusted liquidity operations",
+        "Whether registry state changes can redirect deposits, withdrawals, or OHM valuation flows toward manipulable liquidity venues",
+        "Whether deactivation and selector permissions leave stale or conflicting registry entries that enable price manipulation"
+      ],
+      "priority": 6,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T21:04:40.544784",
+      "updated_at": "2026-10-12T21:05:23.706927",
+      "history": [
+        {
+          "timestamp": "2026-10-12T21:04:40.545611",
+          "status": "planned",
+          "rationale": "WHY NOW: BLREG is an unanalyzed stateful permission module that controls the set of active boosted-liquidity vaults, creating an indirect trust boundary for price-sensitive minting and withdrawal operations. EXIT CRITERIA: Trace activation, deactivation, manager updates, and selector authorization end to end; verify that only intended vaults and managers can alter the active registry, that stale entries cannot remain usable, and that no registry state can cause operations to rely on an attacker-controlled or manipulable price source. Record a price-manipulation hypothesis only if an exploitable registry transition is found; otherwise close with no finding.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T21:04:40.564921",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T21:05:23.707108",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_8148118a2897": {
+      "frame_id": "frame_8148118a2897",
+      "session_id": "sess_agent_20261012_210023",
+      "question": "Vulnerability analysis of BL manager oracle feed configuration",
+      "artifact_refs": [
+        "Liquidity-admin authorization for changing OHM-ETH and stETH-ETH feeds",
+        "Validation of feed addresses, decimals, heartbeat, round freshness, and answer bounds",
+        "Whether threshold configuration permits stale, manipulated, or economically unsafe prices",
+        "Propagation of configuration changes into vault mint and withdrawal valuation"
+      ],
+      "priority": 9,
+      "status": "planned",
+      "rationale": "WHY NOW: This uncompleted component controls the Chainlink sources and configurable thresholds that determine vault asset valuation, making it a direct price-manipulation surface. Configuration errors or insufficient validation could let an authorized or compromised administrator route valuation through stale, invalid, or economically manipulable feeds. EXIT CRITERIA: Trace every setter and its permission checks; verify feed replacement and threshold validation; establish how decimals, round freshness, answer sign, and deviation limits are enforced; and confirm all downstream pricing paths consistently use the validated configuration. Report a finding only if a concrete configuration path enables materially incorrect mint or withdrawal pricing.",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T21:05:30.391222",
+      "updated_at": "2026-10-12T21:05:30.391516",
+      "history": [
+        {
+          "timestamp": "2026-10-12T21:05:30.391747",
+          "status": "planned",
+          "rationale": "WHY NOW: This uncompleted component controls the Chainlink sources and configurable thresholds that determine vault asset valuation, making it a direct price-manipulation surface. Configuration errors or insufficient validation could let an authorized or compromised administrator route valuation through stale, invalid, or economically manipulable feeds. EXIT CRITERIA: Trace every setter and its permission checks; verify feed replacement and threshold validation; establish how decimals, round freshness, answer sign, and deviation limits are enforced; and confirm all downstream pricing paths consistently use the validated configuration. Report a finding only if a concrete configuration path enables materially incorrect mint or withdrawal pricing.",
+          "created_by": "strategist"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 8,
+    "last_modified": "2026-10-12T21:05:30.391947"
+  }
+}

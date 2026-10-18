@@ -1,0 +1,29 @@
+{
+  "repo_id": "2023-06-lybra",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_20e19434ee95",
+      "title": "Unvalidated LBR Oracle Enables Underpriced EUSD Buyouts",
+      "description": "purchaseOtherEarnings converts the LBR-denominated bidding fee into EUSD using lbrPriceFeed.latestRoundData() and unconditionally casts the returned answer to uint256. The contract does not validate that the round is complete, the answer is positive, the data is fresh, or that the feed uses the assumed 8 decimals. Because the feed address is independently configurable, a stale, manipulated, invalid, or incorrectly scaled feed can substantially reduce the EUSD fee required to acquire another user's esLBR reward.",
+      "impact": "The attacker can acquire esLBR rewards for materially less than their intended LBR value, reducing protocol buyout revenue and potentially extracting the value of rewards that should have required a substantially larger EUSD payment. Invalid negative answers can also make the buyout path revert and prevent purchases.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/lybra/miner/EUSDMiningIncentives.sol",
+          "contract": "EUSDMiningIncentives",
+          "function": "purchaseOtherEarnings(address,bool)"
+        },
+        {
+          "file": "contracts/lybra/miner/EUSDMiningIncentives.sol",
+          "contract": "EUSDMiningIncentives",
+          "function": "setLBROracle(address)"
+        }
+      ],
+      "mitigation": "Validate answer > 0, roundId and answeredInRound consistency, updatedAt freshness, and feed decimals before use; normalize using the feed's declared decimals rather than hardcoding 1e8. Add a maximum deviation bound against a trusted secondary source or TWAP and pause EUSD buyouts when the feed is stale or outside bounds. Restrict oracle changes behind timelocked governance and apply a delay before a newly configured feed is used.",
+      "severity": "high"
+    }
+  ]
+}

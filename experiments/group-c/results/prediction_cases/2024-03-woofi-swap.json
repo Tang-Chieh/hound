@@ -1,0 +1,54 @@
+{
+  "repo_id": "2024-03-woofi-swap",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_a3f2d0945e66",
+      "title": "Global oracle timestamp allows stale asset prices to remain feasible",
+      "description": "WooracleV2 stores one global timestamp and isWoFeasible(base) checks that timestamp for every asset. Any authorized update to one asset refreshes feasibility for all assets, including assets whose prices have not been updated. Consequently, WooPPV2 can continue pricing swaps with stale prices for otherwise inactive tokens.",
+      "impact": "Users or liquidity providers can suffer losses from swaps executed at stale prices, potentially draining the pool's reserves of an affected token.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/wooracle/WooracleV2.sol",
+          "contract": "WooracleV2",
+          "function": "isWoFeasible"
+        }
+      ],
+      "mitigation": "Store a last-update timestamp per base token and validate that timestamp in isWoFeasible. Ensure every price, spread, and coefficient update updates only the relevant token timestamp, and use the per-token timestamp in all pool feasibility checks.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_d1b45860dccf",
+      "title": "WooRouterV3 retains excess native currency as stranded WETH",
+      "description": "The native-input branch only requires fromAmount <= msg.value, but wraps the entire msg.value and transfers only fromAmount to WooPP. Any excess value is left as WETH in WooRouterV3 rather than refunded to the caller, allowing accidental overpayment to become stranded and potentially recoverable only through privileged recovery functionality.",
+      "impact": "Users can permanently lose the excess native currency sent with a swap; accumulated surplus WETH may remain inaccessible or depend on an administrative recovery path.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/WooPPV3/WooRouterV3.sol",
+          "contract": "WooRouterV3",
+          "function": "swap"
+        }
+      ],
+      "mitigation": "Wrap and transfer exactly fromAmount, or explicitly refund msg.value - fromAmount to the caller after the swap while safely handling failed ETH transfers.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_b8871f804dc1",
+      "title": "Unvalidated external dependency addresses can permanently disable or corrupt fee quoting",
+      "description": "The WooCrossFee constructor assigns _wooracle, _wooPP, and _helper directly without rejecting zero addresses or verifying that the configured contracts implement the expected behavior. A deployment with an invalid or malicious dependency can make currentBalance or fee calculations revert, return attacker-controlled values, or otherwise produce incorrect cross-chain fees. Because these references are initialized only in the constructor, recovery may require redeployment if no trusted setter exists.",
+      "impact": "Cross-chain transfers can be blocked by repeated quote reverts, or users can be charged incorrect fees and protocol accounting can be distorted by attacker-controlled balance or oracle responses.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/CrossChain/WooCrossFee.sol",
+          "contract": "WooCrossFee",
+          "function": "constructor"
+        }
+      ],
+      "mitigation": "Reject zero addresses during construction and validate that each dependency supports the expected interface and trusted implementation. Use controlled setters with event emission, access control, and validation if dependency replacement is required; otherwise make the references immutable after verified initialization.",
+      "severity": "medium"
+    }
+  ]
+}

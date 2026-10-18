@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Knowledge Graphs Visualization</title>
+    <meta charset="utf-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e6edf3;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #1c2128 0%, #2d333b 100%);
+            color: #e6edf3;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border-bottom: 1px solid #30a14e33;
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #30a14e;
+        }
+        
+        #controls {
+            background: #161b22;
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .control-group label {
+            font-size: 11px;
+            color: #7d8590;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        select, button {
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        select:hover, button:hover {
+            background: #30363d;
+            border-color: #30a14e;
+        }
+        
+        select:focus, button:focus {
+            outline: none;
+            border-color: #30a14e;
+            box-shadow: 0 0 0 2px #30a14e22;
+        }
+        
+        #main-container {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+        
+        #graph-container {
+            flex: 1;
+            background: #0d1117;
+            position: relative;
+        }
+        
+        #sidebar {
+            width: 380px;
+            background: #161b22;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #30363d;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-section h3 {
+            color: #e6edf3;
+            margin-bottom: 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        #node-info {
+            background: #21262d;
+            padding: 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #30363d;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .observation {
+            background: #21262d;
+            padding: 10px;
+            border-left: 3px solid #30a14e;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #30363d;
+            font-size: 13px;
+        }
+        
+        .stat-value {
+            color: #30a14e;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #tooltip {
+            position: absolute;
+            padding: 12px;
+            background: rgba(22, 27, 34, 0.95);
+            color: #e6edf3;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            font-size: 12px;
+            max-width: 300px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle {
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+        
+        .node:hover circle {
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+        
+        .link {
+            stroke-opacity: 0.4;
+            transition: stroke-opacity 0.3s;
+        }
+        
+        .link:hover {
+            stroke-opacity: 0.8;
+        }
+        
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 27, 34, 0.95);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            max-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        #legend h4 {
+            margin: 0 0 12px 0;
+            color: #e6edf3;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        .legend-section {
+            margin-bottom: 15px;
+        }
+        
+        .legend-section-title {
+            color: #7d8590;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .legend-item {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #8b949e;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .legend-line {
+            width: 18px;
+            height: 2px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔍 Hound3 Knowledge Graph</h1>
+        <div style="margin-top: 8px; opacity: 0.8; font-size: 13px; color: #8b949e;">
+            Dynamic Security Analysis Visualization
+        </div>
+    </div>
+    
+    <div id="controls">
+        <div class="control-group">
+            <label>Graph</label>
+            <select id="graph-selector">
+                <option value="SystemArchitecture">SystemArchitecture</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Node Type Filter</label>
+            <select id="type-filter">
+                <option value="all">All Types</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Layout</label>
+            <select id="layout-selector">
+                <option value="force">Force Directed</option>
+                <option value="hierarchical">Hierarchical</option>
+                <option value="circular">Circular</option>
+            </select>
+        </div>
+        
+        <button id="reset-view">Reset View</button>
+    </div>
+    
+    <div id="main-container">
+        <div id="graph-container">
+            <div id="legend"></div>
+        </div>
+        
+        <div id="sidebar">
+            <div class="sidebar-section">
+                <h3>Graph Statistics</h3>
+                <div id="stats"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Selected Node</h3>
+                <div id="node-info">
+                    <em style="color: #888;">Click a node to see details</em>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Source Cards</h3>
+                <div id="card-viewer" style="display: none;">
+                    <div style="margin-bottom: 10px;">
+                        <select id="card-selector" style="width: 100%;">
+                            <option value="">Select a card to view code</option>
+                        </select>
+                    </div>
+                    <div id="card-content" style="background: #0f3460; padding: 10px; border-radius: 6px; max-height: 300px; overflow-y: auto; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; white-space: pre-wrap;">
+                        <em style="color: #888;">Select a card above to view its content</em>
+                    </div>
+                </div>
+                <div id="no-cards" style="color: #888; font-style: italic;">
+                    No source cards for this node
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Agent Observations</h3>
+                <div id="observations"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tooltip"></div>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // All graph data
+        const allGraphs = {"SystemArchitecture": {"name": "SystemArchitecture", "internal_name": "SystemArchitecture", "focus": "High-level components, contracts, interfaces, and trust boundaries across the vault, strategy, factory, and external protocols. Show user deposit/withdraw and yield flows through Vault, Depositors and Claimers; Vault-to-Strategy investment and redemption control flow; strategy interactions with ERC20 tokens, EthAnchor router, exchange-rate feeder, and Curve for non-UST assets; Integration callbacks; and factory deployment by trusted callers.", "nodes": [{"id": "contract_sandclock_factory", "type": "factory", "label": "SandclockFactory", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d8133768c9e4", "card_48c3652a5e88"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "factory_deploy_vault", "type": "contract", "label": "SandclockFactory.deployVault", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d8133768c9e4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "factory_deploy_dca", "type": "contract", "label": "SandclockFactory.deployDCA", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d8133768c9e4"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "factory_deploy", "type": "contract", "label": "SandclockFactory.deploy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d8133768c9e4", "card_48c3652a5e88"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_vault", "type": "contract", "label": "Vault", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d7b5630de166", "card_2518a4d9e21f", "card_b3299cc1a03d"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_ivault", "type": "interface", "label": "IVault", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a60e1dde1beb", "card_ed7d5d80d6de", "card_815458129e72", "card_5541fc55948e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_ivault_sponsoring", "type": "interface", "label": "IVaultSponsoring", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d7825eccf6b0", "card_d86556867d74"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_deposit", "type": "contract", "label": "Vault.deposit", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_17bfe894a72b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_claim_yield", "type": "contract", "label": "Vault.claimYield", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_17bfe894a72b", "card_80cac6d13715"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_withdraw", "type": "contract", "label": "Vault.withdraw / forceWithdraw / _withdraw", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_80cac6d13715", "card_2746ce37a21e", "card_59b82e7d9bab"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_create_deposit", "type": "contract", "label": "Vault._createDeposit / _createClaim", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_58a5c6117140", "card_f3868093adab", "card_cbfe116e1f01"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_withdraw_deposit", "type": "contract", "label": "Vault._withdrawDeposit", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_cbfe116e1f01", "card_9665cd826b72", "card_3626faf902d6"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_update_invested", "type": "contract", "label": "Vault.updateInvested", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a2ea92be6aa8"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_set_strategy", "type": "contract", "label": "Vault.setStrategy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b3299cc1a03d"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "vault_sponsor", "type": "contract", "label": "Vault.sponsor / unsponsor", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_761dc21b8942", "card_59b82e7d9bab", "card_58a5c6117140"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_depositors", "type": "contract", "label": "Depositors", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_cf865e2b276a", "card_82fbbc4765c2"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_claimers", "type": "contract", "label": "Claimers", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_8523c05c843d", "card_5ca0b34fd4df", "card_68f30c4c4be1", "card_b28b7a72bd6c"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_iclaimers", "type": "interface", "label": "IClaimers", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d7c2669ad7ce"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_integration", "type": "interface", "label": "IIntegration", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d484f91c5029"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "integration_detection", "type": "library", "label": "ERC165Query", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_d496e6100d13", "card_bb6a2b51e51b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_base_strategy", "type": "contract", "label": "BaseStrategy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_a83486e1597c", "card_b3673f7cb208", "card_21f399091876"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_istrategy", "type": "interface", "label": "IStrategy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_3288985c7d00", "card_5873be626997"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "strategy_do_hard_work", "type": "contract", "label": "BaseStrategy.doHardWork / _initDepositStable", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_655fd52f773a"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "strategy_finish_deposit", "type": "contract", "label": "BaseStrategy.finishDepositStable", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_655fd52f773a", "card_644669cbe9ed"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "strategy_init_redeem", "type": "contract", "label": "BaseStrategy.initRedeemStable", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_644669cbe9ed"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "strategy_finish_redeem", "type": "contract", "label": "BaseStrategy.finishRedeemStable", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_644669cbe9ed", "card_7f1f4e146312"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "strategy_withdraw_vault", "type": "contract", "label": "BaseStrategy.withdrawAllToVault / withdrawToVault", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7f1f4e146312", "card_ff8eaa7c3e2f"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "strategy_invested_assets", "type": "contract", "label": "BaseStrategy.investedAssets", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_ff8eaa7c3e2f", "card_e70493bb33d6"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_nonust_strategy", "type": "contract", "label": "NonUSTStrategy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_8befee93f87e"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "contract_ust_strategy", "type": "contract", "label": "USTStrategy", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_1c4611ac2f02"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_ethanchor_router", "type": "interface", "label": "IEthAnchorRouter", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_7e799cbda8fa"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_exchange_rate_feeder", "type": "interface", "label": "IExchangeRateFeeder", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_bbb69140ec19"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "interface_curve", "type": "interface", "label": "ICurve", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_90a7a4363cfd"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "nonust_do_hard_work", "type": "contract", "label": "NonUSTStrategy.doHardWork / _swapUnderlyingToUst", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_b1e7187c527b"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "nonust_swap_back", "type": "contract", "label": "NonUSTStrategy._swapUstToUnderlying / finishRedeemStable", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e9f2c692bd28"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "nonust_invested_assets", "type": "contract", "label": "NonUSTStrategy.investedAssets", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_e9f2c692bd28", "card_d02f105eb340"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}, {"id": "library_percent_math", "type": "library", "label": "PercentMath", "properties": {}, "metadata": {}, "description": null, "confidence": 1.0, "source_refs": ["card_f6c7e6436288", "card_8e5e5918bee3"], "created_by": "iteration_0", "iteration": 0, "observations": [], "assumptions": []}], "edges": [{"id": "edge_68a94870", "type": "implements", "source_id": "contract_vault", "target_id": "interface_ivault", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_d7b5630de166"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8bf641c1", "type": "implements", "source_id": "contract_vault", "target_id": "interface_ivault_sponsoring", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_d7b5630de166"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5ae03b87", "type": "implements", "source_id": "contract_base_strategy", "target_id": "interface_istrategy", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_a83486e1597c"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_1f70d5e6", "type": "implements", "source_id": "contract_ust_strategy", "target_id": "contract_base_strategy", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_1c4611ac2f02"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_cf75cb55", "type": "implements", "source_id": "contract_nonust_strategy", "target_id": "contract_base_strategy", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_8befee93f87e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_fd0c787d", "type": "implements", "source_id": "contract_claimers", "target_id": "interface_iclaimers", "properties": {}, "label": "implements", "confidence": 1.0, "evidence": ["card_8523c05c843d"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_eb879b70", "type": "deploys", "source_id": "factory_deploy_vault", "target_id": "factory_deploy", "properties": {}, "label": "deploys", "confidence": 1.0, "evidence": ["card_d8133768c9e4", "card_48c3652a5e88"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_323862fe", "type": "deploys", "source_id": "factory_deploy_dca", "target_id": "factory_deploy", "properties": {}, "label": "deploys", "confidence": 1.0, "evidence": ["card_d8133768c9e4", "card_48c3652a5e88"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_e8a39b00", "type": "calls", "source_id": "factory_deploy_vault", "target_id": "contract_sandclock_factory", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_d8133768c9e4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9fc402ec", "type": "calls", "source_id": "factory_deploy_dca", "target_id": "contract_sandclock_factory", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_d8133768c9e4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_66585b47", "type": "authorizes", "source_id": "contract_sandclock_factory", "target_id": "factory_deploy_vault", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_d8133768c9e4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b7a24e63", "type": "authorizes", "source_id": "contract_sandclock_factory", "target_id": "factory_deploy_dca", "properties": {}, "label": "authorizes", "confidence": 1.0, "evidence": ["card_d8133768c9e4"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_268aaa02", "type": "calls", "source_id": "vault_deposit", "target_id": "vault_create_deposit", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_17bfe894a72b", "card_58a5c6117140"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_2c868923", "type": "transfers", "source_id": "vault_deposit", "target_id": "contract_vault", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_17bfe894a72b", "card_3626faf902d6"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7603d6c0", "type": "calls", "source_id": "vault_create_deposit", "target_id": "contract_claimers", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_f3868093adab", "card_cbfe116e1f01"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_1b30de2f", "type": "calls", "source_id": "vault_create_deposit", "target_id": "contract_depositors", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_cbfe116e1f01"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_bc5875e8", "type": "callbacks_to", "source_id": "vault_create_deposit", "target_id": "interface_integration", "properties": {}, "label": "callbacks_to", "confidence": 1.0, "evidence": ["card_cbfe116e1f01", "card_d484f91c5029"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_eb181066", "type": "calls", "source_id": "vault_claim_yield", "target_id": "contract_claimers", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_17bfe894a72b", "card_80cac6d13715"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_8b0f3bf0", "type": "transfers", "source_id": "vault_claim_yield", "target_id": "contract_vault", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_80cac6d13715"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0de73cfa", "type": "calls", "source_id": "vault_withdraw", "target_id": "vault_withdraw_deposit", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_2746ce37a21e", "card_59b82e7d9bab"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d4776d57", "type": "calls", "source_id": "vault_withdraw_deposit", "target_id": "contract_depositors", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_cbfe116e1f01", "card_9665cd826b72"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3777f18b", "type": "calls", "source_id": "vault_withdraw_deposit", "target_id": "contract_claimers", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_9665cd826b72"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_064b8824", "type": "callbacks_to", "source_id": "vault_withdraw_deposit", "target_id": "interface_integration", "properties": {}, "label": "callbacks_to", "confidence": 1.0, "evidence": ["card_9665cd826b72", "card_3626faf902d6"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_785956e8", "type": "transfers", "source_id": "vault_withdraw", "target_id": "contract_vault", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_59b82e7d9bab"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_71cb1ccb", "type": "calls", "source_id": "vault_sponsor", "target_id": "contract_depositors", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_761dc21b8942", "card_58a5c6117140"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_7454363a", "type": "transfers", "source_id": "vault_sponsor", "target_id": "contract_vault", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_761dc21b8942"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_71502d80", "type": "calls", "source_id": "vault_set_strategy", "target_id": "interface_istrategy", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_b3299cc1a03d"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9ce5064f", "type": "calls", "source_id": "vault_update_invested", "target_id": "contract_base_strategy", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_a2ea92be6aa8"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_fd6b3a24", "type": "transfers", "source_id": "vault_update_invested", "target_id": "contract_base_strategy", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_a2ea92be6aa8"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_82a3d6bf", "type": "calls", "source_id": "vault_update_invested", "target_id": "strategy_do_hard_work", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_a2ea92be6aa8", "card_655fd52f773a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_656b3915", "type": "calls", "source_id": "contract_vault", "target_id": "contract_claimers", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_b3299cc1a03d", "card_17bfe894a72b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4a6b0d65", "type": "calls", "source_id": "contract_vault", "target_id": "contract_depositors", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_2518a4d9e21f", "card_cbfe116e1f01"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_5bd23b41", "type": "calls", "source_id": "strategy_do_hard_work", "target_id": "interface_ethanchor_router", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_655fd52f773a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b03ff7b1", "type": "asynchronous_flow", "source_id": "strategy_do_hard_work", "target_id": "strategy_finish_deposit", "properties": {}, "label": "asynchronous_flow", "confidence": 1.0, "evidence": ["card_655fd52f773a", "card_644669cbe9ed"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_44c0af69", "type": "calls", "source_id": "strategy_finish_deposit", "target_id": "interface_ethanchor_router", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_655fd52f773a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_74237e2c", "type": "calls", "source_id": "strategy_init_redeem", "target_id": "interface_ethanchor_router", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_644669cbe9ed"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d21b6d4b", "type": "asynchronous_flow", "source_id": "strategy_init_redeem", "target_id": "strategy_finish_redeem", "properties": {}, "label": "asynchronous_flow", "confidence": 1.0, "evidence": ["card_644669cbe9ed", "card_7f1f4e146312"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_f2ea2462", "type": "calls", "source_id": "strategy_finish_redeem", "target_id": "interface_ethanchor_router", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_7f1f4e146312"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_a225c581", "type": "reads_from", "source_id": "strategy_invested_assets", "target_id": "interface_exchange_rate_feeder", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_ff8eaa7c3e2f", "card_e70493bb33d6"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_845dc28d", "type": "transfers", "source_id": "strategy_finish_redeem", "target_id": "contract_base_strategy", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_7f1f4e146312"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_4a7e6577", "type": "transfers", "source_id": "strategy_withdraw_vault", "target_id": "contract_vault", "properties": {}, "label": "transfers", "confidence": 1.0, "evidence": ["card_7f1f4e146312", "card_ff8eaa7c3e2f"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_79fd21b8", "type": "calls", "source_id": "strategy_withdraw_vault", "target_id": "strategy_init_redeem", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_7f1f4e146312"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b3d56248", "type": "calls", "source_id": "nonust_do_hard_work", "target_id": "interface_curve", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_b1e7187c527b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_9e0958d1", "type": "calls", "source_id": "nonust_do_hard_work", "target_id": "strategy_do_hard_work", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_b1e7187c527b", "card_655fd52f773a"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_94fe461e", "type": "converts", "source_id": "nonust_do_hard_work", "target_id": "contract_base_strategy", "properties": {}, "label": "converts", "confidence": 1.0, "evidence": ["card_b1e7187c527b"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_681bd2d6", "type": "calls", "source_id": "nonust_swap_back", "target_id": "interface_curve", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_e9f2c692bd28"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_b16c2f1f", "type": "calls", "source_id": "nonust_swap_back", "target_id": "strategy_finish_redeem", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_e9f2c692bd28", "card_7f1f4e146312"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_76e32c6b", "type": "converts", "source_id": "nonust_swap_back", "target_id": "contract_base_strategy", "properties": {}, "label": "converts", "confidence": 1.0, "evidence": ["card_e9f2c692bd28"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_d72f873b", "type": "reads_from", "source_id": "nonust_invested_assets", "target_id": "interface_exchange_rate_feeder", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_d02f105eb340"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_3e77b4fe", "type": "reads_from", "source_id": "nonust_invested_assets", "target_id": "interface_curve", "properties": {}, "label": "reads_from", "confidence": 1.0, "evidence": ["card_d02f105eb340"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_0fde508b", "type": "depends_on", "source_id": "contract_base_strategy", "target_id": "interface_ethanchor_router", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_a83486e1597c", "card_21f399091876"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_aaad3869", "type": "depends_on", "source_id": "contract_base_strategy", "target_id": "interface_exchange_rate_feeder", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_a83486e1597c", "card_21f399091876"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_73d42dbd", "type": "depends_on", "source_id": "contract_nonust_strategy", "target_id": "interface_curve", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_8befee93f87e"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_1ecd4867", "type": "depends_on", "source_id": "contract_vault", "target_id": "library_percent_math", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_d7b5630de166", "card_58a5c6117140"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_86afc764", "type": "depends_on", "source_id": "contract_vault", "target_id": "integration_detection", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_1ea0f36fe145", "card_d496e6100d13"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_746e58fd", "type": "calls", "source_id": "vault_create_deposit", "target_id": "integration_detection", "properties": {}, "label": "calls", "confidence": 1.0, "evidence": ["card_1ea0f36fe145", "card_cbfe116e1f01"], "created_by": "iteration_0", "iteration": 0}, {"id": "edge_90493ed7", "type": "depends_on", "source_id": "contract_sandclock_factory", "target_id": "factory_deploy", "properties": {}, "label": "depends_on", "confidence": 1.0, "evidence": ["card_d8133768c9e4", "card_48c3652a5e88"], "created_by": "iteration_0", "iteration": 0}], "metadata": {"created_at": 1791136478.3558311, "display_name": "SystemArchitecture"}, "stats": {"num_nodes": 37, "num_edges": 57, "node_types": ["contract", "interface", "library", "factory"], "edge_types": ["asynchronous_flow", "reads_from", "depends_on", "authorizes", "calls", "converts", "deploys", "transfers", "callbacks_to", "implements"]}}};
+        const observations = [];
+        const cardStore = {"card_2746ce37a21e": {"id": "card_2746ce37a21e", "relpath": "sandclock/contracts/Vault.sol", "char_start": 8609, "char_end": 9675, "peek_head": "    //\n    // ERC165\n    //\n\n    function supportsInterface(bytes4 interfaceId)\n        public\n     ", "peek_tail": "();\n        uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();\n        uint256 amount;\n\n", "shingle_hash": "246d08fee36b46ba", "top_tokens": ["the", "interfaceid", "ids", "param", "uint256", "deposits", "erc165", "function", "supportsinterface", "bool"], "content": "    //\n    // ERC165\n    //\n\n    function supportsInterface(bytes4 interfaceId)\n        public\n        view\n        virtual\n        override(ERC165)\n        returns (bool)\n    {\n        return\n            interfaceId == type(IVault).interfaceId ||\n            interfaceId == type(IVaultSponsoring).interfaceId ||\n            super.supportsInterface(interfaceId);\n    }\n\n    //\n    // Internal API\n    //\n\n    /**\n     * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.\n     *\n     * @notice the NFTs of the deposits will be burned.\n     *\n     * @param _to Address that will receive the funds.\n     * @param _ids Array with the ids of the deposits.\n     * @param _force Boolean to specify if the action should be perfomed when there's loss.\n     */\n    function _withdraw(\n        address _to,\n        uint256[] memory _ids,\n        bool _force\n    ) internal {\n        uint256 localTotalShares = totalShares();\n        uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();\n        uint256 amount;\n\n"}, "card_e9f2c692bd28": {"id": "card_e9f2c692bd28", "relpath": "sandclock/contracts/strategy/NonUSTStrategy.sol", "char_start": 2520, "char_end": 3965, "peek_head": "    /**\n     * Calls Curve to convert the existing UST back into the underlying token\n     */\n    fu", "peek_tail": "lance = _getUnderlyingBalance();\n        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;\n\n", "shingle_hash": "ebb658ebdff2ac7b", "top_tokens": ["the", "underlying", "uint256", "function", "ustbalance", "idx", "calls", "curve", "convert", "ust"], "content": "    /**\n     * Calls Curve to convert the existing UST back into the underlying token\n     */\n    function _swapUstToUnderlying() internal {\n        uint256 ustBalance = _getUstBalance();\n        if (ustBalance > 0) {\n            // slither-disable-next-line unused-return\n            curvePool.exchange_underlying(ustI, underlyingI, ustBalance, 0);\n        }\n    }\n\n    /**\n     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.\n     * Once UST is retrieved, convert it back to underlying via Curve\n     *\n     * @notice Must be called some time after `initRedeemStable()`. Will only work if\n     * the EthAnchor bridge has finished processing the deposit.\n     *\n     * @param idx Id of the pending redeem operation\n     */\n    function finishRedeemStable(uint256 idx) public override(BaseStrategy) {\n        super.finishRedeemStable(idx);\n        _swapUstToUnderlying();\n    }\n\n    /**\n     * Amount, expressed in the underlying currency, currently in the strategy\n     *\n     * @notice both held and invested amounts are included here, using the\n     * latest known exchange rates to the underlying currency\n     *\n     * @return The total amount of underlying\n     */\n    function investedAssets()\n        external\n        view\n        override(BaseStrategy)\n        returns (uint256)\n    {\n        uint256 underlyingBalance = _getUnderlyingBalance();\n        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;\n\n"}, "card_58a5c6117140": {"id": "card_58a5c6117140", "relpath": "sandclock/contracts/Vault.sol", "char_start": 10793, "char_end": 12749, "peek_head": "            (\n                uint256 depositAmount,\n                uint256 claimerId,\n            ", "peek_tail": ">= block.timestamp + minLockPeriod,\n                \"Vault: lock time is too small\"\n            );\n\n", "shingle_hash": "7ac0d9f6d542fbb2", "top_tokens": ["lockeduntil", "uint256", "amount", "the", "underlying", "param", "require", "timestamp", "vault", "sponsoramount"], "content": "            (\n                uint256 depositAmount,\n                uint256 claimerId,\n                uint256 lockedUntil\n            ) = depositors.deposits(tokenId);\n            require(lockedUntil <= block.timestamp, \"Vault: amount is locked\");\n\n            require(claimerId == 0, \"Vault: token id is not a sponsor\");\n\n            depositors.burn(tokenId);\n\n            emit Unsponsored(tokenId);\n\n            sponsorAmount += depositAmount;\n        }\n\n        uint256 sponsorToTransfer = sponsorAmount;\n\n        if (_force && sponsorAmount > totalUnderlying()) {\n            sponsorToTransfer = totalUnderlying();\n        } else if (!_force) {\n            require(\n                sponsorToTransfer <= totalUnderlying(),\n                \"Vault: not enough funds to unsponsor\"\n            );\n        }\n\n        totalSponsored -= sponsorAmount;\n\n        underlying.safeTransfer(_to, sponsorToTransfer);\n    }\n\n    /**\n     * Creates a deposit with the given amount of underlying and claim\n     * structure. The deposit is locked until the timestamp specified in @param _lockedUntil.\n     * @notice This function assumes underlying will be transfered elsewhere in\n     * the transaction.\n     *\n     * @notice Underlying must be transfered *after* this function, in order to\n     * correctly calculate shares.\n     *\n     * @notice claims must add up to 100%.\n     *\n     * @param _amount Amount of underlying to consider @param claims claim\n     * @param _lockedUntil When the depositor can unsponsor the amount.\n     * @param claims Claim params\n     * params.\n     */\n    function _createDeposit(\n        uint256 _amount,\n        uint256 _lockedUntil,\n        ClaimParams[] calldata claims\n    ) internal {\n        if (_lockedUntil == 0) _lockedUntil = block.timestamp + minLockPeriod;\n        else\n            require(\n                _lockedUntil >= block.timestamp + minLockPeriod,\n                \"Vault: lock time is too small\"\n            );\n\n"}, "card_5541fc55948e": {"id": "card_5541fc55948e", "relpath": "sandclock/contracts/vault/IVault.sol", "char_start": 3484, "char_end": 3663, "peek_head": "    /**\n     * Changes the strategy used by the vault.\n     *\n     * @param _strategy the new strate", "peek_tail": "rategy the new strategy's address.\n     */\n    function setStrategy(address _strategy) external;\n}\n\n", "shingle_hash": "97fa761b4813a219", "top_tokens": ["strategy", "the", "address", "changes", "used", "vault", "param", "new", "function", "setstrategy"], "content": "    /**\n     * Changes the strategy used by the vault.\n     *\n     * @param _strategy the new strategy's address.\n     */\n    function setStrategy(address _strategy) external;\n}\n"}, "card_644669cbe9ed": {"id": "card_644669cbe9ed", "relpath": "sandclock/contracts/strategy/BaseStrategy.sol", "char_start": 4700, "char_end": 6387, "peek_head": "        pendingDeposits -= operation.amount;\n        convertedUst += operation.amount;\n\n        oper", "peek_tail": "nvertedUst * operation.amount) / aUstBalance;\n        uint256 ustBalanceBefore = _getUstBalance();\n\n", "shingle_hash": "668996366f380386", "top_tokens": ["amount", "operation", "uint256", "operator", "depositoperations", "ethanchor", "the", "redeem", "austbalance", "idx"], "content": "        pendingDeposits -= operation.amount;\n        convertedUst += operation.amount;\n\n        operation.operator = depositOperations[depositOperations.length - 1]\n            .operator;\n        operation.amount = depositOperations[depositOperations.length - 1]\n            .amount;\n        depositOperations.pop();\n    }\n\n    /**\n     * Initiates a withdrawal of UST from EthAnchor\n     *\n     * @notice since EthAnchor uses an asynchronous model, this function\n     * only starts the redeem process, but does not finish it.\n     *\n     * @param amount Amount of aUST to redeem\n     */\n    function initRedeemStable(uint256 amount) public restricted {\n        uint256 aUstBalance = _getAUstBalance();\n        require(amount > 0, \"amount 0\");\n        require(aUstBalance >= amount, \"insufficient\");\n        pendingRedeems += amount;\n        address _operator = ethAnchorRouter.initRedeemStable(amount);\n        redeemOperations.push(Operation({operator: _operator, amount: amount}));\n    }\n\n    /**\n     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.\n     *\n     * @notice Must be called some time after `initRedeemStable()`. Will only work if\n     * the EthAnchor bridge has finished processing the deposit.\n     *\n     * @param idx Id of the pending redeem operation\n     */\n    function finishRedeemStable(uint256 idx) public virtual {\n        require(redeemOperations.length > idx, \"not running\");\n        Operation storage operation = redeemOperations[idx];\n        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;\n        uint256 originalUst = (convertedUst * operation.amount) / aUstBalance;\n        uint256 ustBalanceBefore = _getUstBalance();\n\n"}, "card_e70493bb33d6": {"id": "card_e70493bb33d6", "relpath": "sandclock/contracts/strategy/BaseStrategy.sol", "char_start": 9245, "char_end": 10254, "peek_head": "        return\n            underlyingBalance +\n            ((exchangeRateFeeder.exchangeRateOf(addre", "peek_tail": "perationLength() external view returns (uint256) {\n        return redeemOperations.length;\n    }\n}\n\n", "shingle_hash": "274ac42e1aaaeb00", "top_tokens": ["return", "amount", "function", "view", "returns", "uint256", "address", "tokens", "the", "strategy"], "content": "        return\n            underlyingBalance +\n            ((exchangeRateFeeder.exchangeRateOf(address(aUstToken), true) *\n                aUstBalance) / 1e18);\n    }\n\n    // Amount of underlying tokens in the strategy\n    function _getUnderlyingBalance() internal view returns (uint256) {\n        return underlying.balanceOf(address(this));\n    }\n\n    // Amount of UST tokens in the strategy\n    function _getUstBalance() internal view returns (uint256) {\n        return ustToken.balanceOf(address(this));\n    }\n\n    // Amount of aUST tokens in the strategy\n    function _getAUstBalance() internal view returns (uint256) {\n        return aUstToken.balanceOf(address(this));\n    }\n\n    // Amount of pending deposit operations\n    function depositOperationLength() external view returns (uint256) {\n        return depositOperations.length;\n    }\n\n    // Amount of pending redeem operations\n    function redeemOperationLength() external view returns (uint256) {\n        return redeemOperations.length;\n    }\n}\n"}, "card_d8133768c9e4": {"id": "card_d8133768c9e4", "relpath": "sandclock/contracts/SandclockFactory.sol", "char_start": 0, "char_end": 1185, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {Context} from \"@openzeppeli", "peek_tail": "t)\n            if iszero(extcodesize(addr)) {\n                revert(0, 0)\n            }\n        }\n\n", "shingle_hash": "fc4878a6ae9b070b", "top_tokens": ["salt", "code", "addr", "address", "uint256", "trust", "context", "function", "bytes", "memory"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {Context} from \"@openzeppelin/contracts/utils/Context.sol\";\n\nimport {Trust} from \"@rari-capital/solmate/src/auth/Trust.sol\";\n\ncontract SandclockFactory is Context, Trust {\n    //\n    // Events\n    //\n\n    event NewVault(address indexed vault, uint256 salt);\n    event NewDCA(address indexed dca, uint256 salt);\n\n    //\n    // Constructor\n    //\n\n    constructor() Trust(_msgSender()) {}\n\n    //\n    // Public API\n    //\n\n    function deployVault(bytes memory code, uint256 salt)\n        external\n        requiresTrust\n    {\n        address addr = deploy(code, salt);\n\n        emit NewVault(addr, salt);\n    }\n\n    function deployDCA(bytes memory code, uint256 salt) external requiresTrust {\n        address addr = deploy(code, salt);\n\n        emit NewDCA(addr, salt);\n    }\n\n    //\n    // Internal\n    //\n\n    function deploy(bytes memory code, uint256 salt)\n        internal\n        returns (address)\n    {\n        address addr;\n        assembly {\n            addr := create2(0, add(code, 0x20), mload(code), salt)\n            if iszero(extcodesize(addr)) {\n                revert(0, 0)\n            }\n        }\n\n"}, "card_cf865e2b276a": {"id": "card_cf865e2b276a", "relpath": "sandclock/contracts/vault/Depositors.sol", "char_start": 0, "char_end": 1308, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity =0.8.10;\n\nimport {ERC721} from \"@openzeppelin", "peek_tail": "rns (uint256) {\n        uint256 localTokenId = _tokenIds.current();\n        _tokenIds.increment();\n\n", "shingle_hash": "8d69894f8e4f50cf", "top_tokens": ["uint256", "vault", "the", "erc721", "counters", "deposit", "import", "sol", "tokenids", "address"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity =0.8.10;\n\nimport {ERC721} from \"@openzeppelin/contracts/token/ERC721/ERC721.sol\";\nimport {Counters} from \"@openzeppelin/contracts/utils/Counters.sol\";\n\nimport \"hardhat/console.sol\";\n\ncontract Depositors is ERC721 {\n    using Counters for Counters.Counter;\n\n    Counters.Counter private _tokenIds;\n    address public vault;\n\n    struct Deposit {\n        /// amount of the deposit\n        uint256 amount;\n        /// wallet of the claimer\n        uint256 claimerId;\n        /// when can the deposit be withdrawn\n        uint256 lockedUntil;\n    }\n\n    mapping(uint256 => Deposit) public deposits;\n\n    /// ID of the next NFT to mint\n    uint256 nextId;\n\n    modifier onlyVault() {\n        require(msg.sender == vault, \"Claimers: not authorized\");\n        _;\n    }\n\n    constructor(\n        address _vault,\n        string memory _name,\n        string memory _symbol\n    ) ERC721(_name, _symbol) {\n        vault = _vault;\n    }\n\n    // should only be callable by the vault\n    // TODO: emit the groupId\n    function mint(\n        address _owner,\n        uint256 _amount,\n        uint256 _claimerId,\n        uint256 _lockedUntil\n    ) external onlyVault returns (uint256) {\n        uint256 localTokenId = _tokenIds.current();\n        _tokenIds.increment();\n\n"}, "card_a60e1dde1beb": {"id": "card_a60e1dde1beb", "relpath": "sandclock/contracts/vault/IVault.sol", "char_start": 0, "char_end": 1163, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin", "peek_tail": "urn the investable amount\n     */\n    function investableAmount() external view returns (uint256);\n\n", "shingle_hash": "3026747127db062f", "top_tokens": ["uint256", "amount", "indexed", "address", "event", "ierc20", "struct", "claimparams", "lockeduntil", "shares"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ninterface IVault {\n    //\n    // Structs\n    //\n    struct ClaimParams {\n        uint16 pct;\n        address beneficiary;\n        bytes data;\n    }\n\n    struct DepositParams {\n        uint256 amount;\n        ClaimParams[] claims;\n        uint256 lockedUntil;\n    }\n\n    //\n    // Events\n    //\n\n    event DepositMinted(\n        uint256 indexed id,\n        uint256 groupId,\n        uint256 amount,\n        uint256 shares,\n        address indexed depositor,\n        address indexed claimer,\n        uint256 claimerId,\n        uint256 lockedUntil\n    );\n\n    event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);\n\n    event InvestPercentageUpdated(uint256 percentage);\n\n    event Invested(uint256 amount);\n\n    //\n    // Public API\n    //\n\n    /**\n     * Update the invested amount;\n     */\n    function updateInvested() external;\n\n    /**\n     * Calculates underlying investable amount.\n     *\n     * @return the investable amount\n     */\n    function investableAmount() external view returns (uint256);\n\n"}, "card_d7c2669ad7ce": {"id": "card_d7c2669ad7ce", "relpath": "sandclock/contracts/vault/IClaimers.sol", "char_start": 0, "char_end": 344, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC721} from \"@openzeppeli", "peek_tail": "aimerId,\n        address indexed to,\n        uint256 amount,\n        uint256 burnedShares\n    );\n}\n\n", "shingle_hash": "eee839c102b1a76d", "top_tokens": ["ierc721", "uint256", "spdx", "license", "identifier", "unlicensed", "pragma", "solidity", "import", "from"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC721} from \"@openzeppelin/contracts/token/ERC721/IERC721.sol\";\n\ninterface IClaimers is IERC721 {\n    //\n    // Events\n    //\n\n    event YieldClaimed(\n        uint256 claimerId,\n        address indexed to,\n        uint256 amount,\n        uint256 burnedShares\n    );\n}\n"}, "card_ff8eaa7c3e2f": {"id": "card_ff8eaa7c3e2f", "relpath": "sandclock/contracts/strategy/BaseStrategy.sol", "char_start": 7822, "char_end": 9245, "peek_head": "    /**\n     * Withdraws a specified amount back to the vault\n     *\n     * @notice Unlike `withdraw", "peek_tail": "yingBalance() + pendingDeposits;\n        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;\n\n", "shingle_hash": "e5abe2d5591bb11d", "top_tokens": ["the", "amount", "perffeepct", "function", "uint256", "underlying", "notice", "only", "currently", "external"], "content": "    /**\n     * Withdraws a specified amount back to the vault\n     *\n     * @notice Unlike `withdrawToVault`, this function only considers the\n     * amount currently not invested, but only what is currently held by the\n     * strategy\n     *\n     * @param amount Amount to withdraw\n     */\n    function withdrawToVault(uint256 amount)\n        external\n        override(IStrategy)\n        restricted\n    {\n        underlying.safeTransfer(vault, amount);\n    }\n\n    /**\n     * Updates the performance fee\n     *\n     * @notice Can only be called by governance\n     *\n     * @param _perfFeePct The new performance fee %\n     */\n    function setPerfFeePct(uint16 _perfFeePct) external restricted {\n        require(PercentMath.validPerc(_perfFeePct), \"invalid pct\");\n        perfFeePct = _perfFeePct;\n        emit PerfFeePctUpdated(_perfFeePct);\n    }\n\n    /**\n     * Amount, expressed in the underlying currency, currently in the strategy\n     *\n     * @notice both held and invested amounts are included here, using the\n     * latest known exchange rates to the underlying currency\n     *\n     * @return The total amount of underlying\n     */\n    function investedAssets()\n        external\n        view\n        virtual\n        override(IStrategy)\n        returns (uint256)\n    {\n        uint256 underlyingBalance = _getUnderlyingBalance() + pendingDeposits;\n        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;\n\n"}, "card_d02f105eb340": {"id": "card_d02f105eb340", "relpath": "sandclock/contracts/strategy/NonUSTStrategy.sol", "char_start": 3965, "char_end": 4258, "peek_head": "        uint256 ustAssets = ((exchangeRateFeeder.exchangeRateOf(\n            address(aUstToken),\n   ", "peek_tail": "underlyingBalance +\n            curvePool.get_dy_underlying(ustI, underlyingI, ustAssets);\n    }\n}\n\n", "shingle_hash": "6ed2c82eb955d778", "top_tokens": ["ustassets", "uint256", "exchangeratefeeder", "exchangerateof", "address", "austtoken", "true", "austbalance", "1e18", "pendingdeposits"], "content": "        uint256 ustAssets = ((exchangeRateFeeder.exchangeRateOf(\n            address(aUstToken),\n            true\n        ) * aUstBalance) / 1e18) + pendingDeposits;\n        return\n            underlyingBalance +\n            curvePool.get_dy_underlying(ustI, underlyingI, ustAssets);\n    }\n}\n"}, "card_1ea0f36fe145": {"id": "card_1ea0f36fe145", "relpath": "sandclock/contracts/Vault.sol", "char_start": 19273, "char_end": 19636, "peek_head": "    /**\n     * Checks if the given address is a contract implementing IIntegration\n     *\n     * @pa", "peek_tail": "   return\n            addr.doesContractImplementInterface(type(IIntegration).interfaceId);\n    }\n}\n\n", "shingle_hash": "6881702f8dfb24bf", "top_tokens": ["address", "addr", "contract", "iintegration", "return", "checks", "the", "given", "implementing", "param"], "content": "    /**\n     * Checks if the given address is a contract implementing IIntegration\n     *\n     * @param addr Address to check\n     * @return true if contract is an IIntegraiont\n     */\n    function _isIntegration(address addr) internal view returns (bool) {\n        return\n            addr.doesContractImplementInterface(type(IIntegration).interfaceId);\n    }\n}\n"}, "card_655fd52f773a": {"id": "card_655fd52f773a", "relpath": "sandclock/contracts/strategy/BaseStrategy.sol", "char_start": 3222, "char_end": 4700, "peek_head": "        // pre-approve EthAnchor router to transact all UST and aUST\n        ustToken.safeApprove(_e", "peek_tail": "eration = depositOperations[idx];\n        ethAnchorRouter.finishDepositStable(operation.operator);\n\n", "shingle_hash": "26c465da29e13178", "top_tokens": ["ethanchor", "deposit", "the", "ustbalance", "operation", "ethanchorrouter", "uint256", "function", "operator", "idx"], "content": "        // pre-approve EthAnchor router to transact all UST and aUST\n        ustToken.safeApprove(_ethAnchorRouter, type(uint256).max);\n        aUstToken.safeApprove(_ethAnchorRouter, type(uint256).max);\n    }\n\n    /**\n     * Initiates a deposit of all the currently held UST into EthAnchor\n     *\n     * @notice since EthAnchor uses an asynchronous model, this function\n     * only starts the deposit process, but does not finish it.\n     */\n    function doHardWork() external virtual override(IStrategy) restricted {\n        _initDepositStable();\n    }\n\n    function _initDepositStable() internal {\n        uint256 ustBalance = _getUstBalance();\n        require(ustBalance > 0, \"balance 0\");\n        pendingDeposits += ustBalance;\n        address _operator = ethAnchorRouter.initDepositStable(ustBalance);\n        depositOperations.push(\n            Operation({operator: _operator, amount: ustBalance})\n        );\n    }\n\n    /**\n     * Calls EthAnchor with a pending deposit ID, and attempts to finish it.\n     *\n     * @notice Must be called some time after `doHardWork()`. Will only work if\n     * the EthAnchor bridge has finished processing the deposit.\n     *\n     * @param idx Id of the pending deposit operation\n     */\n    function finishDepositStable(uint256 idx) external {\n        require(depositOperations.length > idx, \"not running\");\n        Operation storage operation = depositOperations[idx];\n        ethAnchorRouter.finishDepositStable(operation.operator);\n\n"}, "card_7f1f4e146312": {"id": "card_7f1f4e146312", "relpath": "sandclock/contracts/strategy/BaseStrategy.sol", "char_start": 6387, "char_end": 7822, "peek_head": "        ethAnchorRouter.finishRedeemStable(operation.operator);\n\n        uint256 redeemedAmount = _g", "peek_tail": "lyingBalance > 0) {\n            underlying.safeTransfer(vault, underlyingBalance);\n        }\n    }\n\n", "shingle_hash": "3407b56ccaa91f4c", "top_tokens": ["amount", "redeemoperations", "operation", "uint256", "perffee", "the", "operator", "redeemedamount", "originalust", "austbalance"], "content": "        ethAnchorRouter.finishRedeemStable(operation.operator);\n\n        uint256 redeemedAmount = _getUstBalance() - ustBalanceBefore;\n        uint256 perfFee = redeemedAmount > originalUst\n            ? (redeemedAmount - originalUst).percOf(perfFeePct)\n            : 0;\n        if (perfFee > 0) {\n            ustToken.safeTransfer(treasury, perfFee);\n            emit PerfFeeClaimed(perfFee);\n        }\n        convertedUst -= originalUst;\n        pendingRedeems -= operation.amount;\n\n        operation.operator = redeemOperations[redeemOperations.length - 1]\n            .operator;\n        operation.amount = redeemOperations[redeemOperations.length - 1].amount;\n        redeemOperations.pop();\n    }\n\n    /**\n     * Withdraws the entire amount back to the vault\n     *\n     * @notice since some of the amount may be deposited into EthAnchor, this\n     * call may not withdraw all the funds right away. It will start a redeem\n     * process on EthAnchor, but this function must be called again a second\n     * time once that is finished.\n     */\n    function withdrawAllToVault() external override(IStrategy) restricted {\n        uint256 aUstBalance = _getAUstBalance();\n        if (aUstBalance > 0) {\n            initRedeemStable(aUstBalance);\n        }\n        uint256 underlyingBalance = _getUnderlyingBalance();\n        if (underlyingBalance > 0) {\n            underlying.safeTransfer(vault, underlyingBalance);\n        }\n    }\n\n"}, "card_17bfe894a72b": {"id": "card_17bfe894a72b", "relpath": "sandclock/contracts/Vault.sol", "char_start": 4085, "char_end": 5107, "peek_head": "    /// See {IVault}\n    function yieldFor(address _to)\n        public\n        view\n        override", "peek_tail": "laimYield(address _to) external override(IVault) {\n        uint256 yield = yieldFor(_msgSender());\n\n", "shingle_hash": "1927da7c1da385d7", "top_tokens": ["uint256", "ivault", "params", "see", "function", "tokenid", "claimers", "claimerprincipal", "currentclaimerprincipal", "yieldfor"], "content": "    /// See {IVault}\n    function yieldFor(address _to)\n        public\n        view\n        override(IVault)\n        returns (uint256)\n    {\n        uint256 tokenId = claimers.addressToTokenID(_to);\n        uint256 claimerPrincipal = claimers.principalOf(tokenId);\n        uint256 claimerShares = claimers.sharesOf(tokenId);\n        uint256 currentClaimerPrincipal = _computeAmount(\n            claimerShares,\n            totalShares(),\n            totalUnderlyingMinusSponsored()\n        );\n\n        if (currentClaimerPrincipal <= claimerPrincipal) {\n            return 0;\n        }\n\n        return currentClaimerPrincipal - claimerPrincipal;\n    }\n\n    /// See {IVault}\n    function deposit(DepositParams calldata _params) external {\n        _createDeposit(_params.amount, _params.lockedUntil, _params.claims);\n        _transferAndCheckUnderlying(_msgSender(), _params.amount);\n    }\n\n    /// See {IVault}\n    function claimYield(address _to) external override(IVault) {\n        uint256 yield = yieldFor(_msgSender());\n\n"}, "card_f3868093adab": {"id": "card_f3868093adab", "relpath": "sandclock/contracts/Vault.sol", "char_start": 12749, "char_end": 13824, "peek_head": "        uint256 localTotalShares = totalShares();\n        uint256 localTotalUnderlying = totalUnderl", "peek_tail": "es(\n            amount,\n            _localTotalShares,\n            _localTotalPrincipal\n        );\n\n", "shingle_hash": "75f646b1287c3467", "top_tokens": ["uint256", "pct", "amount", "localtotalshares", "claims", "data", "localtotalunderlying", "claimparams", "memory", "createclaim"], "content": "        uint256 localTotalShares = totalShares();\n        uint256 localTotalUnderlying = totalUnderlyingMinusSponsored();\n        uint256 pct = 0;\n\n        for (uint256 i = 0; i < claims.length; ++i) {\n            ClaimParams memory data = claims[i];\n            _createClaim(\n                _depositGroupIds.current(),\n                _amount,\n                _lockedUntil,\n                data,\n                localTotalShares,\n                localTotalUnderlying\n            );\n            pct += data.pct;\n        }\n\n        _depositGroupIds.increment();\n\n        require(pct.is100Perc(), \"Vault: claims don't add up to 100%\");\n    }\n\n    function _createClaim(\n        uint256 _depositGroupId,\n        uint256 _amount,\n        uint256 _lockedUntil,\n        ClaimParams memory _claim,\n        uint256 _localTotalShares,\n        uint256 _localTotalPrincipal\n    ) internal {\n        uint256 amount = _amount.percOf(_claim.pct);\n\n        uint256 newShares = _computeShares(\n            amount,\n            _localTotalShares,\n            _localTotalPrincipal\n        );\n\n"}, "card_a2ea92be6aa8": {"id": "card_a2ea92be6aa8", "relpath": "sandclock/contracts/Vault.sol", "char_start": 6133, "char_end": 7423, "peek_head": "        investPerc = _investPerc;\n    }\n\n    /// See {IVault}\n    function investableAmount() public", "peek_tail": "estamp + MIN_SPONSOR_LOCK_DURATION,\n                \"Vault: lock time is too small\"\n            );\n\n", "shingle_hash": "4c68e7cc47ed7974", "top_tokens": ["uint256", "strategy", "investable", "lockeduntil", "investperc", "see", "function", "maxinvestableassets", "alreadyinvested", "address"], "content": "        investPerc = _investPerc;\n    }\n\n    /// See {IVault}\n    function investableAmount() public view returns (uint256) {\n        uint256 maxInvestableAssets = totalUnderlying().percOf(investPerc);\n\n        uint256 alreadyInvested = strategy.investedAssets();\n\n        if (alreadyInvested >= maxInvestableAssets) {\n            return 0;\n        } else {\n            return maxInvestableAssets - alreadyInvested;\n        }\n    }\n\n    /// See {IVault}\n    function updateInvested() external requiresTrust {\n        require(address(strategy) != address(0), \"Vault: strategy is not set\");\n\n        uint256 _investable = investableAmount();\n\n        if (_investable > 0) {\n            underlying.safeTransfer(address(strategy), _investable);\n\n            emit Invested(_investable);\n        }\n\n        strategy.doHardWork();\n    }\n\n    //\n    // IVaultSponsoring\n\n    /// See {IVaultSponsoring}\n    function sponsor(uint256 _amount, uint256 _lockedUntil)\n        external\n        override(IVaultSponsoring)\n    {\n        if (_lockedUntil == 0)\n            _lockedUntil = block.timestamp + MIN_SPONSOR_LOCK_DURATION;\n        else\n            require(\n                _lockedUntil >= block.timestamp + MIN_SPONSOR_LOCK_DURATION,\n                \"Vault: lock time is too small\"\n            );\n\n"}, "card_b28b7a72bd6c": {"id": "card_b28b7a72bd6c", "relpath": "sandclock/contracts/vault/Claimers.sol", "char_start": 3248, "char_end": 3354, "peek_head": "            addressToTokenID[_from] = 0;\n            addressToTokenID[_to] = _tokenId;\n        }\n   ", "peek_tail": "      addressToTokenID[_from] = 0;\n            addressToTokenID[_to] = _tokenId;\n        }\n    }\n}\n\n", "shingle_hash": "945d994e637ff79b", "top_tokens": ["addresstotokenid", "from", "tokenid"], "content": "            addressToTokenID[_from] = 0;\n            addressToTokenID[_to] = _tokenId;\n        }\n    }\n}\n"}, "card_d496e6100d13": {"id": "card_d496e6100d13", "relpath": "sandclock/contracts/lib/ERC165Query.sol", "char_start": 0, "char_end": 1020, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nlibrary ERC165Query {\n    bytes4 co", "peek_tail": "  view\n        returns (uint256 success, uint256 result)\n    {\n        bytes4 erc165ID = ERC165ID;\n\n", "shingle_hash": "96f6588074666bf0", "top_tokens": ["success", "result", "bytes4", "contract", "erc165id", "uint256", "nothrowcall", "return", "interfaceid", "false"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nlibrary ERC165Query {\n    bytes4 constant InvalidID = 0xffffffff;\n    bytes4 constant ERC165ID = 0x01ffc9a7;\n\n    function doesContractImplementInterface(\n        address _contract,\n        bytes4 _interfaceId\n    ) internal view returns (bool) {\n        uint256 success;\n        uint256 result;\n\n        (success, result) = noThrowCall(_contract, ERC165ID);\n        if ((success == 0) || (result == 0)) {\n            return false;\n        }\n\n        (success, result) = noThrowCall(_contract, InvalidID);\n        if ((success == 0) || (result != 0)) {\n            return false;\n        }\n\n        (success, result) = noThrowCall(_contract, _interfaceId);\n        if ((success == 1) && (result == 1)) {\n            return true;\n        }\n        return false;\n    }\n\n    function noThrowCall(address _contract, bytes4 _interfaceId)\n        internal\n        view\n        returns (uint256 success, uint256 result)\n    {\n        bytes4 erc165ID = ERC165ID;\n\n"}, "card_d7825eccf6b0": {"id": "card_d7825eccf6b0", "relpath": "sandclock/contracts/vault/IVaultSponsoring.sol", "char_start": 0, "char_end": 1102, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin", "peek_tail": "nsponsor the amount.\n     */\n    function sponsor(uint256 _amount, uint256 _lockedUntil) external;\n\n", "shingle_hash": "0bef7afe34b1df56", "top_tokens": ["amount", "uint256", "the", "sponsor", "sponsored", "lockeduntil", "param", "when", "indexed", "ierc20"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ninterface IVaultSponsoring {\n    /// Emitted when a new sponsor deposit is created\n    event Sponsored(\n        uint256 indexed id,\n        uint256 amount,\n        address indexed depositor,\n        uint256 lockedUntil\n    );\n\n    /// Emitted when an existing sponsor withdraws\n    event Unsponsored(uint256 indexed id);\n\n    /**\n     * Total amount currently sponsored\n     */\n    function totalSponsored() external view returns (uint256);\n\n    /**\n     * Creates a sponsored deposit with the amount provided in @param _amount.\n     * Sponsored amounts will be invested like deposits, but unlike deposits\n     * there are no claimers and the yield generated is donated to the vault.\n     * The amount is locked until the timestamp specified in @param _lockedUntil.\n     *\n     * @param _amount Amount to sponsor.\n     * @param _lockedUntil When the depositor can unsponsor the amount.\n     */\n    function sponsor(uint256 _amount, uint256 _lockedUntil) external;\n\n"}, "card_8523c05c843d": {"id": "card_8523c05c843d", "relpath": "sandclock/contracts/vault/Claimers.sol", "char_start": 0, "char_end": 1169, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {ERC721} from \"@openzeppelin", "peek_tail": "int256 _shares\n    ) external onlyVault {\n        uint256 localTokenId = addressToTokenID[_owner];\n\n", "shingle_hash": "8d592858ce46daae", "top_tokens": ["uint256", "address", "erc721", "counters", "vault", "import", "sol", "claimers", "public", "from"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {ERC721} from \"@openzeppelin/contracts/token/ERC721/ERC721.sol\";\nimport {Counters} from \"@openzeppelin/contracts/utils/Counters.sol\";\nimport \"hardhat/console.sol\";\n\nimport {IClaimers} from \"./IClaimers.sol\";\n\ncontract Claimers is ERC721, IClaimers {\n    using Counters for Counters.Counter;\n\n    Counters.Counter private _tokenIds;\n    address public vault = address(0);\n    // The total of shares\n    uint256 public totalShares;\n\n    struct Claimer {\n        uint256 totalPrincipal;\n        uint256 totalShares;\n        uint256 totalClaimed;\n    }\n\n    mapping(uint256 => Claimer) public claimers;\n    mapping(address => uint256) public addressToTokenID;\n\n    modifier onlyVault() {\n        require(msg.sender == vault, \"Claimers: not authorized\");\n        _;\n    }\n\n    // TODO Make names dynamic\n    constructor(address _vault) ERC721(\"Claimers\", \"SNDCLM\") {\n        vault = _vault;\n    }\n\n    function claimYield(\n        address _owner,\n        address _to,\n        uint256 _amount,\n        uint256 _shares\n    ) external onlyVault {\n        uint256 localTokenId = addressToTokenID[_owner];\n\n"}, "card_b3673f7cb208": {"id": "card_b3673f7cb208", "relpath": "sandclock/contracts/strategy/BaseStrategy.sol", "char_start": 1044, "char_end": 2190, "peek_head": "    // address of the treasury\n    address public treasury;\n\n    // address for the UST token\n    IE", "peek_tail": "difier restricted() {\n        require(msg.sender == vault || isTrusted[msg.sender], \"restricted\");\n\n", "shingle_hash": "57811f3fad585ff7", "top_tokens": ["public", "the", "address", "treasury", "for", "ust", "ethanchor", "amount", "uint256", "token"], "content": "    // address of the treasury\n    address public treasury;\n\n    // address for the UST token\n    IERC20 public ustToken;\n\n    // address for the aUST token (wrapped Anchor UST, received to accrue interest for an Anchor deposit)\n    IERC20 public aUstToken;\n\n    // performance fee taken by the treasury on profits\n    uint16 public perfFeePct;\n\n    // external contract to interact with EthAnchor\n    IEthAnchorRouter public ethAnchorRouter;\n\n    // external exchange rate provider\n    IExchangeRateFeeder public exchangeRateFeeder;\n\n    // amount currently pending in deposits to EthAnchor\n    uint256 public pendingDeposits;\n\n    // amount currently pending redeemption from EthAnchor\n    uint256 public pendingRedeems;\n\n    // deposit operations history\n    Operation[] public depositOperations;\n\n    // redeem operations history\n    Operation[] public redeemOperations;\n\n    // amount of UST converted (used to calculate yield)\n    uint256 public convertedUst;\n\n    // restructs a function to be called only by the vault or governance\n    modifier restricted() {\n        require(msg.sender == vault || isTrusted[msg.sender], \"restricted\");\n\n"}, "card_59b82e7d9bab": {"id": "card_59b82e7d9bab", "relpath": "sandclock/contracts/Vault.sol", "char_start": 9675, "char_end": 10793, "peek_head": "        for (uint8 i = 0; i < _ids.length; i++) {\n            amount += _withdrawDeposit(\n          ", "peek_tail": "kenId) == _msgSender(),\n                \"Vault: you are not the owner of a sponsor\"\n            );\n\n", "shingle_hash": "5d62bddea4c75805", "top_tokens": ["the", "ids", "param", "for", "amount", "force", "deposits", "uint256", "uint8", "length"], "content": "        for (uint8 i = 0; i < _ids.length; i++) {\n            amount += _withdrawDeposit(\n                _ids[i],\n                localTotalShares,\n                localTotalPrincipal,\n                _to,\n                _force\n            );\n        }\n\n        underlying.safeTransfer(_to, amount);\n    }\n\n    /**\n     * Withdraws the sponsored amount for the deposits with the ids provided\n     * in @param _ids and sends it to @param _to.\n     *\n     * @notice the NFTs of the deposits will be burned.\n     *\n     * @param _to Address that will receive the funds.\n     * @param _ids Array with the ids of the deposits.\n     * @param _force Boolean to specify if the action should be perfomed when there's loss.\n     */\n    function _unsponsor(\n        address _to,\n        uint256[] memory _ids,\n        bool _force\n    ) internal {\n        uint256 sponsorAmount;\n\n        for (uint8 i = 0; i < _ids.length; i++) {\n            uint256 tokenId = _ids[i];\n\n            require(\n                depositors.ownerOf(tokenId) == _msgSender(),\n                \"Vault: you are not the owner of a sponsor\"\n            );\n\n"}, "card_80cac6d13715": {"id": "card_80cac6d13715", "relpath": "sandclock/contracts/Vault.sol", "char_start": 5107, "char_end": 6133, "peek_head": "        if (yield == 0) return;\n\n        uint256 shares = _computeShares(\n            yield,\n       ", "peek_tail": "        \"Vault: invalid investPerc\"\n        );\n\n        emit InvestPercentageUpdated(_investPerc);\n\n", "shingle_hash": "93a59585e4d149dd", "top_tokens": ["uint256", "ivault", "ids", "investperc", "shares", "sharesamount", "see", "function", "withdraw", "external"], "content": "        if (yield == 0) return;\n\n        uint256 shares = _computeShares(\n            yield,\n            totalShares(),\n            totalUnderlyingMinusSponsored()\n        );\n        uint256 sharesAmount = _computeAmount(\n            shares,\n            totalShares(),\n            totalUnderlyingMinusSponsored()\n        );\n\n        claimers.claimYield(_msgSender(), _to, sharesAmount, shares);\n\n        underlying.safeTransfer(_to, sharesAmount);\n    }\n\n    /// See {IVault}\n    function withdraw(address _to, uint256[] memory _ids)\n        external\n        override(IVault)\n    {\n        _withdraw(_to, _ids, false);\n    }\n\n    /// See {IVault}\n    function forceWithdraw(address _to, uint256[] memory _ids) external {\n        _withdraw(_to, _ids, true);\n    }\n\n    /// See {IVault}\n    function setInvestPerc(uint16 _investPerc) external requiresTrust {\n        require(\n            PercentMath.validPerc(_investPerc),\n            \"Vault: invalid investPerc\"\n        );\n\n        emit InvestPercentageUpdated(_investPerc);\n\n"}, "card_2518a4d9e21f": {"id": "card_2518a4d9e21f", "relpath": "sandclock/contracts/Vault.sol", "char_start": 2073, "char_end": 3078, "peek_head": "    /// Depositors, represented as an NFT per deposit\n    Depositors public depositors;\n\n    /// Yie", "peek_tail": "ositors\", \"p\");\n        claimers = new Claimers(address(this));\n    }\n\n    //\n    // IVault\n    //\n\n", "shingle_hash": "0468ec1522da843a", "top_tokens": ["underlying", "depositors", "investperc", "address", "claimers", "minlockperiod", "public", "uint256", "owner", "require"], "content": "    /// Depositors, represented as an NFT per deposit\n    Depositors public depositors;\n\n    /// Yield allocation\n    Claimers public claimers;\n\n    /// Unique IDs to correlate donations that belong to the same foundation\n    Counters.Counter private _depositGroupIds;\n\n    /**\n     * @param _underlying Underlying ERC20 token to use.\n     */\n    constructor(\n        IERC20 _underlying,\n        uint256 _minLockPeriod,\n        uint256 _investPerc,\n        address _owner\n    ) Trust(_owner) {\n        require(\n            PercentMath.validPerc(_investPerc),\n            \"Vault: invalid investPerc\"\n        );\n        require(\n            address(_underlying) != address(0x0),\n            \"VaultContext: underlying cannot be 0x0\"\n        );\n        investPerc = _investPerc;\n        underlying = _underlying;\n        minLockPeriod = _minLockPeriod;\n\n        depositors = new Depositors(address(this), \"depositors\", \"p\");\n        claimers = new Claimers(address(this));\n    }\n\n    //\n    // IVault\n    //\n\n"}, "card_48c3652a5e88": {"id": "card_48c3652a5e88", "relpath": "sandclock/contracts/SandclockFactory.sol", "char_start": 1185, "char_end": 1215, "peek_head": "        return addr;\n    }\n}\n\n", "peek_tail": "", "shingle_hash": "771f0725a69e3b83", "top_tokens": ["return", "addr"], "content": "        return addr;\n    }\n}\n"}, "card_8befee93f87e": {"id": "card_8befee93f87e", "relpath": "sandclock/contracts/strategy/NonUSTStrategy.sol", "char_start": 0, "char_end": 1506, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport \"./curve/ICurve.sol\";\nimport", "peek_tail": "\n        curvePool = ICurve(_curvePool);\n        underlyingI = _underlyingI;\n        ustI = _ustI;\n\n", "shingle_hash": "385ba30db96bc91b", "top_tokens": ["address", "ierc20", "the", "curvepool", "import", "curve", "sol", "token", "int128", "underlyingi"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport \"./curve/ICurve.sol\";\nimport \"./BaseStrategy.sol\";\nimport {IERC20} from \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\nimport {SafeERC20} from \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\n\n/**\n * Strategy that handles non-UST tokens, by first converting them to UST via\n * Curve (https://curve.fi/), and only then depositing into EthAnchor\n */\ncontract NonUSTStrategy is BaseStrategy {\n    using SafeERC20 for IERC20;\n\n    // address of the Curve pool to use\n    ICurve public curvePool;\n\n    // index of the underlying token in the pool\n    int128 public underlyingI;\n\n    // index of the UST token in the pool\n    int128 public ustI;\n\n    constructor(\n        address _vault,\n        address _treasury,\n        address _ethAnchorRouter,\n        address _exchangeRateFeeder,\n        IERC20 _ustToken,\n        IERC20 _aUstToken,\n        uint16 _perfFeePct,\n        address _owner,\n        address _curvePool,\n        int128 _underlyingI,\n        int128 _ustI\n    )\n        BaseStrategy(\n            _vault,\n            _treasury,\n            _ethAnchorRouter,\n            _exchangeRateFeeder,\n            _ustToken,\n            _aUstToken,\n            _perfFeePct,\n            _owner\n        )\n    {\n        require(underlying != _ustToken, \"invalid underlying\");\n        require(_curvePool != address(0), \"0x addr\");\n        curvePool = ICurve(_curvePool);\n        underlyingI = _underlyingI;\n        ustI = _ustI;\n\n"}, "card_1c4611ac2f02": {"id": "card_1c4611ac2f02", "relpath": "sandclock/contracts/strategy/USTStrategy.sol", "char_start": 0, "char_end": 987, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin", "peek_tail": "    _owner\n        )\n    {\n        require(underlying == _ustToken, \"invalid underlying\");\n    }\n}\n\n", "shingle_hash": "f2694064f178f447", "top_tokens": ["address", "ierc20", "underlying", "usttoken", "basestrategy", "the", "import", "token", "sol", "vault"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\nimport \"./BaseStrategy.sol\";\n\n/**\n * A strategy that uses UST as the underlying currency\n *\n * @notice The base implementation for EthAnchorUSTBaseStrategy already handles\n * everything, since in this case _underlying and _ustToken are the same token\n */\ncontract USTStrategy is BaseStrategy {\n    constructor(\n        address _vault,\n        address _treasury,\n        address _ethAnchorRouter,\n        address _exchangeRateFeeder,\n        IERC20 _ustToken,\n        IERC20 _aUstToken,\n        uint16 _perfFeePct,\n        address _owner\n    )\n        BaseStrategy(\n            _vault,\n            _treasury,\n            _ethAnchorRouter,\n            _exchangeRateFeeder,\n            _ustToken,\n            _aUstToken,\n            _perfFeePct,\n            _owner\n        )\n    {\n        require(underlying == _ustToken, \"invalid underlying\");\n    }\n}\n"}, "card_cbfe116e1f01": {"id": "card_cbfe116e1f01", "relpath": "sandclock/contracts/Vault.sol", "char_start": 13824, "char_end": 15694, "peek_head": "        uint256 claimerId = claimers.mint(\n            _claim.beneficiary,\n            amount,\n     ", "peek_tail": "erOf(_tokenId) == _msgSender(),\n            \"Vault: you are not the owner of a deposit\"\n        );\n\n", "shingle_hash": "98ecc194d4a7b71d", "top_tokens": ["the", "uint256", "claim", "tokenid", "beneficiary", "withdraw", "amount", "deposit", "claimerid", "newshares"], "content": "        uint256 claimerId = claimers.mint(\n            _claim.beneficiary,\n            amount,\n            newShares\n        );\n\n        uint256 tokenId = depositors.mint(\n            _msgSender(),\n            amount,\n            claimerId,\n            _lockedUntil\n        );\n\n        if (_isIntegration(_claim.beneficiary)) {\n            bytes4 ret = IIntegration(_claim.beneficiary).onDepositMinted(\n                tokenId,\n                newShares,\n                _claim.data\n            );\n\n            require(\n                ret == IIntegration(_claim.beneficiary).onDepositMinted.selector\n            );\n        }\n\n        emit DepositMinted(\n            tokenId,\n            _depositGroupId,\n            amount,\n            newShares,\n            _msgSender(),\n            _claim.beneficiary,\n            claimerId,\n            _lockedUntil\n        );\n    }\n\n    /**\n     * Burns a deposit NFT and reduces the principal and shares of the claimer.\n     * If there were any yield to be claimed, the claimer will also keep shares to withdraw later on.\n     *\n     * @notice This function doesn't transfer any funds, it only updates the state.\n     *\n     * @notice Only the owner of the deposit may call this function.\n     *\n     * @param _tokenId The deposit ID to withdraw from.\n     * @param _totalShares The total shares to consider for the withdraw.\n     * @param _totalUnderlyingMinusSponsored The total underlying to consider for the withdraw.\n     *\n     * @return the amount to withdraw.\n     */\n    function _withdrawDeposit(\n        uint256 _tokenId,\n        uint256 _totalShares,\n        uint256 _totalUnderlyingMinusSponsored,\n        address _to,\n        bool _force\n    ) internal returns (uint256) {\n        require(\n            depositors.ownerOf(_tokenId) == _msgSender(),\n            \"Vault: you are not the owner of a deposit\"\n        );\n\n"}, "card_3626faf902d6": {"id": "card_3626faf902d6", "relpath": "sandclock/contracts/Vault.sol", "char_start": 16784, "char_end": 18270, "peek_head": "            require(ret == IIntegration(claimer).onDepositBurned.selector);\n        }\n\n        emit ", "peek_tail": "    if (_amount == 0) return 0;\n        if (_totalShares == 0) return _amount * SHARES_MULTIPLIER;\n\n", "shingle_hash": "f8a4aa1f6275a39a", "top_tokens": ["amount", "uint256", "return", "totalshares", "shares", "totalunderlyingminussponsored", "function", "deposit", "param", "consider"], "content": "            require(ret == IIntegration(claimer).onDepositBurned.selector);\n        }\n\n        emit DepositBurned(_tokenId, depositShares, _to);\n\n        return\n            _computeAmount(\n                depositShares,\n                _totalShares,\n                _totalUnderlyingMinusSponsored\n            );\n    }\n\n    function _transferAndCheckUnderlying(address _from, uint256 _amount)\n        internal\n    {\n        uint256 balanceBefore = totalUnderlying();\n        underlying.safeTransferFrom(_from, address(this), _amount);\n        uint256 balanceAfter = totalUnderlying();\n\n        require(\n            balanceAfter == balanceBefore + _amount,\n            \"Vault: amount received does not match params\"\n        );\n    }\n\n    function _blockTimestamp() public view returns (uint64) {\n        return uint64(block.timestamp);\n    }\n\n    /**\n     * Computes amount of shares that will be received for a given deposit amount\n     *\n     * @param _amount Amount of deposit to consider.\n     * @param _totalShares Amount of existing shares to consider.\n     * @param _totalUnderlyingMinusSponsored Amounf of existing underlying to consider.\n     * @return Amount of shares the deposit will receive.\n     */\n    function _computeShares(\n        uint256 _amount,\n        uint256 _totalShares,\n        uint256 _totalUnderlyingMinusSponsored\n    ) internal pure returns (uint256) {\n        if (_amount == 0) return 0;\n        if (_totalShares == 0) return _amount * SHARES_MULTIPLIER;\n\n"}, "card_5ca0b34fd4df": {"id": "card_5ca0b34fd4df", "relpath": "sandclock/contracts/vault/Claimers.sol", "char_start": 1169, "char_end": 2205, "peek_head": "        claimers[localTokenId].totalShares -= _shares;\n        claimers[localTokenId].totalClaimed +", "peek_tail": "es;\n        claimers[_tokenId].totalPrincipal -= _principal;\n        totalShares -= _shares;\n    }\n\n", "shingle_hash": "c4accdb24ddc2bc9", "top_tokens": ["localtokenid", "shares", "uint256", "claimers", "totalshares", "principal", "tokenid", "amount", "function", "mint"], "content": "        claimers[localTokenId].totalShares -= _shares;\n        claimers[localTokenId].totalClaimed += _amount;\n        totalShares -= _shares;\n\n        emit YieldClaimed(localTokenId, _to, _amount, _shares);\n    }\n\n    function mint(\n        address _to,\n        uint256 _principal,\n        uint256 _shares\n    ) external onlyVault returns (uint256) {\n        uint256 localTokenId = addressToTokenID[_to];\n\n        if (localTokenId == 0) {\n            _tokenIds.increment();\n            localTokenId = _tokenIds.current();\n\n            _mint(_to, localTokenId);\n        }\n\n        claimers[localTokenId].totalShares += _shares;\n        claimers[localTokenId].totalPrincipal += _principal;\n\n        totalShares += _shares;\n\n        return localTokenId;\n    }\n\n    function onWithdraw(\n        uint256 _tokenId,\n        uint256 _principal,\n        uint256 _shares\n    ) external onlyVault {\n        claimers[_tokenId].totalShares -= _shares;\n        claimers[_tokenId].totalPrincipal -= _principal;\n        totalShares -= _shares;\n    }\n\n"}, "card_f6c7e6436288": {"id": "card_f6c7e6436288", "relpath": "sandclock/contracts/lib/PercentMath.sol", "char_start": 0, "char_end": 1460, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nlibrary PercentMath {\n    // Diviso", "peek_tail": "    pure\n        returns (uint256)\n    {\n        return (_amount * _fracNum) / PERC_DIVISOR;\n    }\n\n", "shingle_hash": "495aac86d6c13cc5", "top_tokens": ["amount", "percentage", "uint256", "divisor", "the", "perc", "param", "fracnum", "fraction", "representing"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nlibrary PercentMath {\n    // Divisor used for representing percentages\n    uint256 public constant PERC_DIVISOR = 10000;\n\n    /**\n     * @dev Returns whether an amount is a valid percentage out of PERC_DIVISOR\n     * @param _amount Amount that is supposed to be a percentage\n     */\n    function validPerc(uint256 _amount) internal pure returns (bool) {\n        return _amount <= PERC_DIVISOR;\n    }\n\n    /**\n     * @dev Compute percentage of a value with the percentage represented by a fraction\n     * @param _amount Amount to take the percentage of\n     * @param _fracNum Numerator of fraction representing the percentage\n     * @param _fracDenom Denominator of fraction representing the percentage\n     */\n    function percOf(\n        uint256 _amount,\n        uint256 _fracNum,\n        uint256 _fracDenom\n    ) internal pure returns (uint256) {\n        return (_amount * percPoints(_fracNum, _fracDenom)) / PERC_DIVISOR;\n    }\n\n    /**\n     * @dev Compute percentage of a value with the percentage represented by a fraction over PERC_DIVISOR\n     * @param _amount Amount to take the percentage of\n     * @param _fracNum Numerator of fraction representing the percentage with PERC_DIVISOR as the denominator\n     */\n    function percOf(uint256 _amount, uint256 _fracNum)\n        internal\n        pure\n        returns (uint256)\n    {\n        return (_amount * _fracNum) / PERC_DIVISOR;\n    }\n\n"}, "card_d86556867d74": {"id": "card_d86556867d74", "relpath": "sandclock/contracts/vault/IVaultSponsoring.sol", "char_start": 1102, "char_end": 1980, "peek_head": "    /**\n     * Withdraws the sponsored amount for the deposits with the ids provided\n     * in @para", "peek_tail": " the deposits.\n     */\n    function forceUnsponsor(address _to, uint256[] memory _ids) external;\n}\n\n", "shingle_hash": "db59385fdcf47246", "top_tokens": ["the", "ids", "param", "with", "deposits", "funds", "address", "withdraws", "sponsored", "amount"], "content": "    /**\n     * Withdraws the sponsored amount for the deposits with the ids provided\n     * in @param _ids and sends it to @param _to.\n     *\n     * It fails if the vault is underperforming and there are not enough funds\n     * to withdraw the sponsored amount.\n     *\n     * @param _to Address that will receive the funds.\n     * @param _ids Array with the ids of the deposits.\n     */\n    function unsponsor(address _to, uint256[] memory _ids) external;\n\n    /**\n     * Withdraws the sponsored amount for the deposits with the ids provided\n     * in @param _ids and sends it to @param _to.\n     *\n     * When the vault is underperforming it withdraws the funds with a loss.\n     *\n     * @param _to Address that will receive the funds.\n     * @param _ids Array with the ids of the deposits.\n     */\n    function forceUnsponsor(address _to, uint256[] memory _ids) external;\n}\n"}, "card_7e799cbda8fa": {"id": "card_7e799cbda8fa", "relpath": "sandclock/contracts/strategy/anchor/IEthAnchorRouter.sol", "char_start": 0, "char_end": 376, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\ninterface IEthAnchorRouter {\n    fu", "peek_tail": "ount) external returns (address);\n\n    function finishRedeemStable(address _operation) external;\n}\n\n", "shingle_hash": "64592ec05b8baeb4", "top_tokens": ["function", "external", "address", "uint256", "amount", "returns", "operation", "spdx", "license", "identifier"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\ninterface IEthAnchorRouter {\n    function initDepositStable(uint256 _amount) external returns (address);\n\n    function finishDepositStable(address _operation) external;\n\n    function initRedeemStable(uint256 _amount) external returns (address);\n\n    function finishRedeemStable(address _operation) external;\n}\n"}, "card_8e5e5918bee3": {"id": "card_8e5e5918bee3", "relpath": "sandclock/contracts/lib/PercentMath.sol", "char_start": 1460, "char_end": 2124, "peek_head": "    /**\n     * @dev Checks if a given number corresponds to 100%\n     * @param _perc Percentage valu", "peek_tail": "ure\n        returns (uint256)\n    {\n        return (_fracNum * PERC_DIVISOR) / _fracDenom;\n    }\n}\n\n", "shingle_hash": "cee4127de74f580f", "top_tokens": ["perc", "percentage", "uint256", "param", "divisor", "fraction", "fracnum", "fracdenom", "dev", "function"], "content": "    /**\n     * @dev Checks if a given number corresponds to 100%\n     * @param _perc Percentage value to check, with PERC_DIVISOR\n     */\n    function is100Perc(uint256 _perc) internal pure returns (bool) {\n        return _perc == PERC_DIVISOR;\n    }\n\n    /**\n     * @dev Compute percentage representation of a fraction\n     * @param _fracNum Numerator of fraction represeting the percentage\n     * @param _fracDenom Denominator of fraction represeting the percentage\n     */\n    function percPoints(uint256 _fracNum, uint256 _fracDenom)\n        internal\n        pure\n        returns (uint256)\n    {\n        return (_fracNum * PERC_DIVISOR) / _fracDenom;\n    }\n}\n"}, "card_b1e7187c527b": {"id": "card_b1e7187c527b", "relpath": "sandclock/contracts/strategy/NonUSTStrategy.sol", "char_start": 1506, "char_end": 2520, "peek_head": "        ustToken.safeApprove(_curvePool, type(uint256).max);\n        underlying.safeApprove(_curvePo", "peek_tail": "         ustI,\n                underlyingBalance,\n                0\n            );\n        }\n    }\n\n", "shingle_hash": "e1a838742df57336", "top_tokens": ["underlying", "the", "curvepool", "uint256", "ust", "function", "underlyingbalance", "safeapprove", "type", "max"], "content": "        ustToken.safeApprove(_curvePool, type(uint256).max);\n        underlying.safeApprove(_curvePool, type(uint256).max);\n    }\n\n    /**\n     * Swaps the underlying currency for UST, and initiates a deposit of all\n     * the converted UST into EthAnchor\n     *\n     * @notice since EthAnchor uses an asynchronous model, this function\n     * only starts the deposit process, but does not finish it.\n     */\n    function doHardWork() external override(BaseStrategy) restricted {\n        _swapUnderlyingToUst();\n        _initDepositStable();\n    }\n\n    /**\n     * Calls Curve to convert the existing underlying balance into UST\n     */\n    function _swapUnderlyingToUst() internal {\n        uint256 underlyingBalance = _getUnderlyingBalance();\n        if (underlyingBalance > 0) {\n            // slither-disable-next-line unused-return\n            curvePool.exchange_underlying(\n                underlyingI,\n                ustI,\n                underlyingBalance,\n                0\n            );\n        }\n    }\n\n"}, "card_d7b5630de166": {"id": "card_d7b5630de166", "relpath": "sandclock/contracts/Vault.sol", "char_start": 1018, "char_end": 2073, "peek_head": "/**\n * A vault where other accounts can deposit an underlying token\n * currency and set distribution", "peek_tail": "iod;\n\n    /// See {IVaultSponsoring}\n    uint256 public override(IVaultSponsoring) totalSponsored;\n\n", "shingle_hash": "c7a611368debc779", "top_tokens": ["ivault", "public", "for", "uint256", "using", "see", "vault", "underlying", "ivaultsponsoring", "address"], "content": "/**\n * A vault where other accounts can deposit an underlying token\n * currency and set distribution params for their principal and yield\n *\n * @dev Yield generation strategies not yet implemented\n */\n\ncontract Vault is IVault, IVaultSponsoring, Context, ERC165, Trust {\n    using Counters for Counters.Counter;\n    using SafeERC20 for IERC20;\n    using PercentMath for uint256;\n    using Address for address;\n    using ERC165Query for address;\n\n    //\n    // Constants\n    //\n\n    uint256 public constant MIN_SPONSOR_LOCK_DURATION = 1209600; // 2 weeks in seconds\n    uint256 public constant SHARES_MULTIPLIER = 10**18;\n\n    //\n    // State\n    //\n\n    /// Underlying ERC20 token accepted by the vault\n    /// See {IVault}\n    IERC20 public override(IVault) underlying;\n\n    /// See {IVault}\n    IStrategy public strategy;\n\n    /// See {IVault}\n    uint256 public investPerc;\n\n    /// See {IVault}\n    uint256 public immutable override(IVault) minLockPeriod;\n\n    /// See {IVaultSponsoring}\n    uint256 public override(IVaultSponsoring) totalSponsored;\n\n"}, "card_d484f91c5029": {"id": "card_d484f91c5029", "relpath": "sandclock/contracts/integrations/IIntegration.sol", "char_start": 0, "char_end": 1164, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\n/**\n * @title IIntegration interfac", "peek_tail": "ess throwing\n     */\n    function onDepositBurned(uint256 _depositID) external returns (bytes4);\n}\n\n", "shingle_hash": "80716f05c9d6dc87", "top_tokens": ["uint256", "deposit", "the", "param", "depositid", "bytes4", "ivault", "shares", "data", "iintegration"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\n/**\n * @title IIntegration interface\n *\n * Integrations act as claimers for IVault contracts, and process funds on\n * behalf of their final beneficiaries\n */\ninterface IIntegration {\n    /**\n     * Called when a new deposit is created is created for which this contract is the beneficiary\n     *\n     * @notice msg.sender will be the IVault instance\n     *\n     * @param _depositID new deposit ID\n     * @param _shares The amount of shares assigned to this deposit\n     * @param _data Additional data with no specified format\n     * @return `bytes4(keccak256(\"onDepositMinted(uint256,uint256,bytes)\"))` unless throwing\n     */\n    function onDepositMinted(\n        uint256 _depositID,\n        uint256 _shares,\n        bytes memory _data\n    ) external returns (bytes4);\n\n    /**\n     * Called when an existing deposit is withdrawn\n     *\n     * @notice msg.sender will be the IVault instance\n     *\n     * @param _depositID claim ID\n     * @return `bytes4(keccak256(\"onDepositBurned(uint256)\"))` unless throwing\n     */\n    function onDepositBurned(uint256 _depositID) external returns (bytes4);\n}\n"}, "card_3288985c7d00": {"id": "card_3288985c7d00", "relpath": "sandclock/contracts/strategy/IStrategy.sol", "char_start": 0, "char_end": 1185, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin", "peek_tail": "time to finish the withdrawal of that portion.\n     */\n    function withdrawAllToVault() external;\n\n", "shingle_hash": "b8931e50332def7d", "top_tokens": ["the", "vault", "underlying", "function", "ierc20", "token", "erc20", "notice", "address", "external"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\n// import \"./IControllable.sol\";\n\n/**\n * Strategies can be plugged into vaults to invest and manage their underlying funds\n *\n * @notice It's up to the strategy to decide what do to with investable assets provided by a vault\n *\n * @notice It's up to the vault to decide how much to invest from the total pool\n */\ninterface IStrategy {\n    event ProfitShared(uint256 amount);\n\n    /**\n     * The underlying ERC20 token stored by the vault\n     *\n     * @return The ERC20 token address\n     */\n    function underlying() external view returns (IERC20);\n\n    /**\n     * The vault linked to this stragegy\n     *\n     * @return The vault's address\n     */\n    function vault() external view returns (address);\n\n    /**\n     * Withdraws all underlying back to vault.\n     *\n     * @notice If underlying is currently invested, this also starts the\n     * cross-chain process to redeem it. After that is done, this function\n     * should be called a second time to finish the withdrawal of that portion.\n     */\n    function withdrawAllToVault() external;\n\n"}, "card_ed7d5d80d6de": {"id": "card_ed7d5d80d6de", "relpath": "sandclock/contracts/vault/IVault.sol", "char_start": 1163, "char_end": 2299, "peek_head": "    /**\n     * Update invest percentage\n     *\n     * Emits {InvestPercentageUpdated} event\n     *\n ", "peek_tail": " yield for @param _to.\n     */\n    function yieldFor(address _to) external view returns (uint256);\n\n", "shingle_hash": "1c43adfc64faf9a1", "top_tokens": ["function", "external", "the", "view", "returns", "uint256", "for", "amount", "invest", "percentage"], "content": "    /**\n     * Update invest percentage\n     *\n     * Emits {InvestPercentageUpdated} event\n     *\n     * @param _investPct the new invest percentage\n     */\n    function setInvestPerc(uint16 _investPct) external;\n\n    /**\n     * Percentage of the total underlying to invest in the strategy\n     */\n    function investPerc() external view returns (uint256);\n\n    /**\n     * Minimum lock period for each deposit\n     */\n    function underlying() external view returns (IERC20);\n\n    /**\n     * Minimum lock period for each deposit\n     */\n    function minLockPeriod() external view returns (uint256);\n\n    /**\n     * Total amount of underlying currently controlled by the\n     * vault and the its strategy.\n     */\n    function totalUnderlying() external view returns (uint256);\n\n    /**\n     * Total amount of shares\n     */\n    function totalShares() external view returns (uint256);\n\n    /**\n     * Computes the amount of yield available for an an address.\n     *\n     * @param _to address to consider.\n     *\n     * @return amount of yield for @param _to.\n     */\n    function yieldFor(address _to) external view returns (uint256);\n\n"}, "card_9665cd826b72": {"id": "card_9665cd826b72", "relpath": "sandclock/contracts/Vault.sol", "char_start": 15694, "char_end": 16784, "peek_head": "        (\n            uint256 depositAmount,\n            uint256 claimerId,\n            uint256 lock", "peek_tail": "sIntegration(claimer)) {\n            bytes4 ret = IIntegration(claimer).onDepositBurned(_tokenId);\n\n", "shingle_hash": "86726651d41805e7", "top_tokens": ["uint256", "claimerid", "depositshares", "claimershares", "depositamount", "tokenid", "require", "vault", "claimers", "claimer"], "content": "        (\n            uint256 depositAmount,\n            uint256 claimerId,\n            uint256 lockedUntil\n        ) = depositors.deposits(_tokenId);\n        require(lockedUntil <= block.timestamp, \"Vault: deposit is locked\");\n\n        require(claimerId != 0, \"Vault: token id is not a withdraw\");\n\n        uint256 claimerShares = claimers.sharesOf(claimerId);\n\n        uint256 depositShares = _computeShares(\n            depositAmount,\n            _totalShares,\n            _totalUnderlyingMinusSponsored\n        );\n\n        if (_force && depositShares > claimerShares) {\n            depositShares = claimerShares;\n        } else if (!_force) {\n            require(\n                claimerShares >= depositShares,\n                \"Vault: cannot withdraw more than the available amount\"\n            );\n        }\n\n        claimers.onWithdraw(claimerId, depositAmount, depositShares);\n        depositors.burn(_tokenId);\n\n        address claimer = claimers.ownerOf(claimerId);\n\n        if (_isIntegration(claimer)) {\n            bytes4 ret = IIntegration(claimer).onDepositBurned(_tokenId);\n\n"}, "card_5873be626997": {"id": "card_5873be626997", "relpath": "sandclock/contracts/strategy/IStrategy.sol", "char_start": 1185, "char_end": 2009, "peek_head": "    /**\n     * Withdraws a specified amount back to the vault\n     *\n     * @notice Unlike `withdraw", "peek_tail": "tes the process of investing the underlying currency\n     */\n    function doHardWork() external;\n}\n\n", "shingle_hash": "78d13870100a6316", "top_tokens": ["the", "amount", "function", "underlying", "currently", "external", "currency", "notice", "withdrawtovault", "only"], "content": "    /**\n     * Withdraws a specified amount back to the vault\n     *\n     * @notice Unlike `withdrawToVault`, this function only considers the\n     * amount currently not invested, but only what is currently held by the\n     * strategy\n     *\n     * @param amount Amount to withdraw\n     */\n    function withdrawToVault(uint256 amount) external;\n\n    /**\n     * Amount, expressed in the underlying currency, currently in the strategy\n     *\n     * @notice both held and invested amounts are included here, using the\n     * latest known exchange rates to the underlying currency\n     *\n     * @return The total amount of underlying\n     */\n    function investedAssets() external view returns (uint256);\n\n    /**\n     * Initiates the process of investing the underlying currency\n     */\n    function doHardWork() external;\n}\n"}, "card_815458129e72": {"id": "card_815458129e72", "relpath": "sandclock/contracts/vault/IVault.sol", "char_start": 2299, "char_end": 3484, "peek_head": "    /**\n     * Transfers all the yield generated for the caller to\n     *\n     * @param _to Address ", "peek_tail": " of the deposits.\n     */\n    function forceWithdraw(address _to, uint256[] memory _ids) external;\n\n", "shingle_hash": "26fda02f7c14b52e", "top_tokens": ["the", "param", "ids", "address", "with", "function", "external", "deposits", "funds", "that"], "content": "    /**\n     * Transfers all the yield generated for the caller to\n     *\n     * @param _to Address that will receive the yield.\n     */\n    function claimYield(address _to) external;\n\n    /**\n     * Creates a new deposit\n     *\n     * @param _params Deposit params\n     */\n    function deposit(DepositParams calldata _params) external;\n\n    /**\n     * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.\n     *\n     * It fails if the vault is underperforming and there are not enough funds\n     * to withdraw the expected amount.\n     *\n     * @param _to Address that will receive the funds.\n     * @param _ids Array with the ids of the deposits.\n     */\n    function withdraw(address _to, uint256[] memory _ids) external;\n\n    /**\n     * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.\n     *\n     * When the vault is underperforming it withdraws the funds with a loss.\n     *\n     * @param _to Address that will receive the funds.\n     * @param _ids Array with the ids of the deposits.\n     */\n    function forceWithdraw(address _to, uint256[] memory _ids) external;\n\n"}, "card_21f399091876": {"id": "card_21f399091876", "relpath": "sandclock/contracts/strategy/BaseStrategy.sol", "char_start": 2190, "char_end": 3222, "peek_head": "        _;\n    }\n\n    modifier onlyVault() {\n        require(msg.sender == vault, \"only vault\");\n\n  ", "peek_tail": ");\n        ustToken = _ustToken;\n        aUstToken = _aUstToken;\n        perfFeePct = _perfFeePct;\n\n", "shingle_hash": "554c38b41af9e23d", "top_tokens": ["address", "require", "vault", "ethanchorrouter", "exchangeratefeeder", "usttoken", "austtoken", "perffeepct", "addr", "treasury"], "content": "        _;\n    }\n\n    modifier onlyVault() {\n        require(msg.sender == vault, \"only vault\");\n\n        _;\n    }\n\n    constructor(\n        address _vault,\n        address _treasury,\n        address _ethAnchorRouter,\n        address _exchangeRateFeeder,\n        IERC20 _ustToken,\n        IERC20 _aUstToken,\n        uint16 _perfFeePct,\n        address _owner\n    ) Trust(_owner) {\n        require(_ethAnchorRouter != address(0), \"0x addr\");\n        require(_exchangeRateFeeder != address(0), \"0x addr\");\n        require(address(_ustToken) != address(0), \"0x addr\");\n        require(address(_aUstToken) != address(0), \"0x addr\");\n        require(PercentMath.validPerc(_perfFeePct), \"invalid pct\");\n\n        treasury = _treasury;\n        vault = _vault;\n        underlying = IVault(_vault).underlying();\n        ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);\n        exchangeRateFeeder = IExchangeRateFeeder(_exchangeRateFeeder);\n        ustToken = _ustToken;\n        aUstToken = _aUstToken;\n        perfFeePct = _perfFeePct;\n\n"}, "card_68f30c4c4be1": {"id": "card_68f30c4c4be1", "relpath": "sandclock/contracts/vault/Claimers.sol", "char_start": 2205, "char_end": 3248, "peek_head": "    function principalOf(uint256 _tokenId) external view returns (uint256) {\n        return claimers", "peek_tail": "ressToTokenID[_to] == 0,\n                \"Claimers: destination already has an NFT\"\n            );\n\n", "shingle_hash": "7019e5ce6d8c20b3", "top_tokens": ["tokenid", "address", "uint256", "function", "claimers", "addresstotokenid", "nft", "param", "from", "external"], "content": "    function principalOf(uint256 _tokenId) external view returns (uint256) {\n        return claimers[_tokenId].totalPrincipal;\n    }\n\n    function sharesOf(uint256 _tokenId) external view returns (uint256) {\n        return claimers[_tokenId].totalShares;\n    }\n\n    /**\n     * Ensures the addressToTokenID mapping is up to date.\n     *\n     * @notice This function prevents transfers to addresses that already own an NFT.\n     *\n     * @param _from origin address.\n     * @param _to destination address.\n     * @param _tokenId id of the token.\n     */\n    function _beforeTokenTransfer(\n        address _from,\n        address _to,\n        uint256 _tokenId\n    ) internal virtual override {\n        require(_to != address(0), \"Claimers: cannot burn this NFT\");\n\n        if (_from == address(0)) {\n            // MINT\n            addressToTokenID[_to] = _tokenId;\n        } else {\n            // TRANSFER\n            require(\n                addressToTokenID[_to] == 0,\n                \"Claimers: destination already has an NFT\"\n            );\n\n"}, "card_a83486e1597c": {"id": "card_a83486e1597c", "relpath": "sandclock/contracts/strategy/BaseStrategy.sol", "char_start": 0, "char_end": 1044, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin", "peek_tail": "override(IStrategy) underlying;\n    // Vault address\n    address public override(IStrategy) vault;\n\n", "shingle_hash": "879b52f1d8cb6066", "top_tokens": ["import", "sol", "ierc20", "istrategy", "uint256", "from", "safeerc20", "trust", "vault", "ethanchor"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\nimport {IERC20} from \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\nimport {SafeERC20} from \"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\";\nimport {Trust} from \"@rari-capital/solmate/src/auth/Trust.sol\";\n\nimport \"../lib/PercentMath.sol\";\nimport \"../vault/IVault.sol\";\nimport \"./IStrategy.sol\";\nimport \"./anchor/IEthAnchorRouter.sol\";\nimport \"./anchor/IExchangeRateFeeder.sol\";\n\n// import \"./Controllable.sol\";\n\n/**\n * Base strategy that handles UST tokens and invests them via the EthAnchor\n * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)\n */\nabstract contract BaseStrategy is IStrategy, Trust {\n    using SafeERC20 for IERC20;\n    using PercentMath for uint256;\n\n    event PerfFeeClaimed(uint256 amount);\n    event PerfFeePctUpdated(uint256 pct);\n\n    struct Operation {\n        address operator;\n        uint256 amount;\n    }\n\n    IERC20 public override(IStrategy) underlying;\n    // Vault address\n    address public override(IStrategy) vault;\n\n"}, "card_b3299cc1a03d": {"id": "card_b3299cc1a03d", "relpath": "sandclock/contracts/Vault.sol", "char_start": 3078, "char_end": 4085, "peek_head": "    /// See {IVault}\n    function setStrategy(address _strategy)\n        external\n        override(I", "peek_tail": "es() public view override(IVault) returns (uint256) {\n        return claimers.totalShares();\n    }\n\n", "shingle_hash": "b19b980c2f660c43", "top_tokens": ["strategy", "address", "ivault", "vault", "see", "function", "override", "require", "this", "return"], "content": "    /// See {IVault}\n    function setStrategy(address _strategy)\n        external\n        override(IVault)\n        requiresTrust\n    {\n        require(_strategy != address(0), \"Vault: strategy 0x\");\n        require(\n            IStrategy(_strategy).vault() == address(this),\n            \"Vault: invalid vault\"\n        );\n        require(\n            address(strategy) == address(0) || strategy.investedAssets() == 0,\n            \"Vault: strategy has invested funds\"\n        );\n\n        strategy = IStrategy(_strategy);\n    }\n\n    /// See {IVault}\n    function totalUnderlying() public view override(IVault) returns (uint256) {\n        if (address(strategy) != address(0)) {\n            return\n                underlying.balanceOf(address(this)) + strategy.investedAssets();\n        } else {\n            return underlying.balanceOf(address(this));\n        }\n    }\n\n    /// See {IVault}\n    function totalShares() public view override(IVault) returns (uint256) {\n        return claimers.totalShares();\n    }\n\n"}, "card_82fbbc4765c2": {"id": "card_82fbbc4765c2", "relpath": "sandclock/contracts/vault/Depositors.sol", "char_start": 1308, "char_end": 1709, "peek_head": "        _safeMint(_owner, localTokenId);\n\n        deposits[localTokenId] = Deposit(_amount, _claimer", "peek_tail": " exists(uint256 _tokenId) external view returns (bool) {\n        return _exists(_tokenId);\n    }\n}\n\n", "shingle_hash": "02ef63c0078d67fe", "top_tokens": ["localtokenid", "deposit", "return", "function", "burn", "uint256", "external", "exists", "tokenid", "safemint"], "content": "        _safeMint(_owner, localTokenId);\n\n        deposits[localTokenId] = Deposit(_amount, _claimerId, _lockedUntil);\n\n        return localTokenId;\n    }\n\n    // called when a deposit's principal is withdrawn\n    function burn(uint256 _id) external onlyVault {\n        _burn(_id);\n    }\n\n    function exists(uint256 _tokenId) external view returns (bool) {\n        return _exists(_tokenId);\n    }\n}\n"}, "card_761dc21b8942": {"id": "card_761dc21b8942", "relpath": "sandclock/contracts/Vault.sol", "char_start": 7423, "char_end": 8609, "peek_head": "        uint256 tokenId = depositors.mint(\n            _msgSender(),\n            _amount,\n          ", "peek_tail": " {\n        // TODO no invested amount yet\n        return totalUnderlying() - totalSponsored;\n    }\n\n", "shingle_hash": "265de14082db76dd", "top_tokens": ["amount", "the", "uint256", "ids", "msgsender", "sponsored", "function", "unsponsor", "total", "principal"], "content": "        uint256 tokenId = depositors.mint(\n            _msgSender(),\n            _amount,\n            0,\n            _lockedUntil\n        );\n\n        emit Sponsored(tokenId, _amount, _msgSender(), _lockedUntil);\n\n        totalSponsored += _amount;\n        _transferAndCheckUnderlying(_msgSender(), _amount);\n    }\n\n    /// See {IVaultSponsoring}\n    function unsponsor(address _to, uint256[] memory _ids) external {\n        _unsponsor(_to, _ids, false);\n    }\n\n    /// See {IVaultSponsoring}\n    function forceUnsponsor(address _to, uint256[] memory _ids) external {\n        _unsponsor(_to, _ids, true);\n    }\n\n    //\n    // Public API\n    //\n\n    /**\n     * Computes the total amount of principal + yield currently controlled by the\n     * vault and the strategy. The principal + yield is the total amount\n     * of underlying that can be claimed or withdrawn, excluding the sponsored amount.\n     *\n     * @return Total amount of principal and yield help by the vault (not including sponsored amount).\n     */\n    function totalUnderlyingMinusSponsored() public view returns (uint256) {\n        // TODO no invested amount yet\n        return totalUnderlying() - totalSponsored;\n    }\n\n"}, "card_bbb69140ec19": {"id": "card_bbb69140ec19", "relpath": "sandclock/contracts/strategy/anchor/IExchangeRateFeeder.sol", "char_start": 0, "char_end": 217, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\ninterface IExchangeRateFeeder {\n   ", "peek_tail": "eRateOf(address _token, bool _simulate)\n        external\n        view\n        returns (uint256);\n}\n\n", "shingle_hash": "44243f6acdb0385a", "top_tokens": ["spdx", "license", "identifier", "unlicensed", "pragma", "solidity", "interface", "iexchangeratefeeder", "function", "exchangerateof"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\ninterface IExchangeRateFeeder {\n    function exchangeRateOf(address _token, bool _simulate)\n        external\n        view\n        returns (uint256);\n}\n"}, "card_bb6a2b51e51b": {"id": "card_bb6a2b51e51b", "relpath": "sandclock/contracts/lib/ERC165Query.sol", "char_start": 1020, "char_end": 1716, "peek_head": "        assembly {\n            let x := mload(0x40) // Find empty storage location using \"free memor", "peek_tail": " // Outputs are 32 bytes long\n\n            result := mload(x) // Load the result\n        }\n    }\n}\n\n", "shingle_hash": "66a69bb78f5dd2da", "top_tokens": ["are", "mload", "empty", "storage", "location", "mstore", "place", "signature", "inputs", "bytes"], "content": "        assembly {\n            let x := mload(0x40) // Find empty storage location using \"free memory pointer\"\n            mstore(x, erc165ID) // Place signature at beginning of empty storage\n            mstore(add(x, 0x04), _interfaceId) // Place first argument directly next to signature\n\n            success := staticcall(\n                30000, // 30k gas\n                _contract, // To addr\n                x, // Inputs are stored at location x\n                0x24, // Inputs are 36 bytes long\n                x, // Store output over input (saves space)\n                0x20\n            ) // Outputs are 32 bytes long\n\n            result := mload(x) // Load the result\n        }\n    }\n}\n"}, "card_90a7a4363cfd": {"id": "card_90a7a4363cfd", "relpath": "sandclock/contracts/strategy/curve/ICurve.sol", "char_start": 0, "char_end": 361, "peek_head": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\ninterface ICurve {\n    function exc", "peek_tail": "g(\n        int128 i,\n        int128 j,\n        uint256 dx\n    ) external view returns (uint256);\n}\n\n", "shingle_hash": "8b2e8714e93ee21b", "top_tokens": ["uint256", "int128", "function", "underlying", "external", "returns", "spdx", "license", "identifier", "unlicensed"], "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.10;\n\ninterface ICurve {\n    function exchange_underlying(\n        int128 i,\n        int128 j,\n        uint256 dx,\n        uint256 min_dy\n    ) external returns (uint256);\n\n    function get_dy_underlying(\n        int128 i,\n        int128 j,\n        uint256 dx\n    ) external view returns (uint256);\n}\n"}};
+        
+        let currentGraph = null;
+        let currentGraphName = Object.keys(allGraphs)[0];
+        let simulation = null;
+        
+        // Professional color schemes with tech accent
+        const typeColors = {
+            // Common node types from graph generation
+            'contract': '#30a14e',         // GitHub green - main contracts
+            'interface': '#58a6ff',        // GitHub blue - interfaces
+            'library': '#a371f7',          // Purple - library contracts
+            'function': '#56d364',         // Light green - functions
+            'storage': '#f9826c',          // Warm orange - storage/state
+            'event': '#79c0ff',            // Light blue - events
+            'modifier': '#bc8cff',         // Light purple - modifiers
+            'external_actor': '#d29922',   // Gold - external entities
+            'role': '#ffa657',             // Orange - roles/permissions
+            
+            // Legacy/alternative types
+            'code': '#30a14e',             // GitHub green
+            'concept': '#58a6ff',          // GitHub blue
+            'invariant': '#f9826c',        // Warm orange
+            'observation': '#a371f7',      // Purple
+            'hypothesis': '#d29922',       // Gold
+            'issue': '#f85149',            // GitHub red
+            'pattern': '#56d364',          // Light green
+            'dataflow': '#79c0ff',         // Light blue
+            'control': '#ff7b72',          // Coral
+            'vulnerability': '#da3633',   // Danger red
+            'assumption': '#ffa657',       // Orange
+            'constraint': '#bc8cff',      // Light purple
+            'custom': '#8b949e'            // Gray - fallback
+        };
+        
+        // Edge type colors - expanded palette with more distinct colors
+        const edgeColors = {
+            // Primary relationships (high contrast)
+            'calls': '#30a14e',           // Green
+            'contains': '#58a6ff',         // Blue  
+            'depends_on': '#f9826c',       // Light red/orange
+            'references': '#a371f7',       // Purple
+            'uses': '#79c0ff',             // Light blue
+            'implements': '#56d364',       // Bright green
+            'extends': '#bc8cff',          // Light purple
+            'imports': '#d29922',          // Gold
+            
+            // Data flow (warm colors)
+            'dataflow': '#ffa657',         // Orange
+            'reads': '#39d353',            // Green
+            'writes': '#ff7b72',           // Coral
+            'modifies': '#f85149',         // Red
+            
+            // Control flow (cool colors)
+            'control': '#ffea7f',          // Yellow
+            'triggers': '#db61a2',         // Pink
+            'validates': '#2ea043',        // Dark green
+            'checks': '#539bf5',           // Sky blue
+            
+            // Security/Analysis (strong colors)
+            'violates': '#da3633',         // Danger red
+            'protects': '#1f6feb',         // Royal blue
+            'trusts': '#8957e5',           // Violet
+            'restricts': '#f778ba',        // Light pink
+            
+            // Structural (purple spectrum)
+            'inherits': '#986ee2',         // Lavender
+            'overrides': '#ff9492',        // Salmon
+            'delegates': '#56d4dd',        // Cyan
+            'aggregates': '#a475f9',       // Medium purple
+            
+            // Associations (varied)
+            'relates_to': '#8b949e',       // Gray (neutral)
+            'links_to': '#7ee787',         // Mint green
+            'connects': '#ffc680',         // Peach
+            'maps_to': '#c297ff',          // Light violet
+            
+            // State/Lifecycle (traffic light colors)
+            'initializes': '#3fb950',      // Green
+            'creates': '#58a6ff',          // Blue
+            'destroys': '#f85149',         // Red
+            'updates': '#d29922',          // Gold
+            
+            // Additional common relationships
+            'emits': '#ff6b6b',            // Light red
+            'listens': '#4ecdc4',          // Teal
+            'owns': '#95e1d3',             // Mint
+            'manages': '#f38181',          // Rose
+            'requires': '#aa96da',         // Soft purple
+            'provides': '#8fcaca',         // Soft cyan
+            'processes': '#ffd93d',        // Bright yellow
+            'handles': '#6bcf7f',          // Fresh green
+            
+            // Default fallback - will cycle through palette for unknowns
+            'custom': '#8b949e'            // Gray
+        };
+        
+        // Color palette for unknown edge types (will cycle through)
+        const fallbackColors = [
+            '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181', '#aa96da',
+            '#8fcaca', '#ffd93d', '#6bcf7f', '#ffbe76', '#ff7979',
+            '#badc58', '#dfe4ea', '#5f27cd', '#00d2d3', '#48dbfb',
+            '#0abde3', '#ee5a24', '#f368e0', '#feca57', '#ff9ff3'
+        ];
+        
+        // Function to get edge color (with fallback for unknown types)
+        function getEdgeColor(type) {
+            if (edgeColors[type]) {
+                return edgeColors[type];
+            }
+            // Generate consistent color for unknown types
+            let hash = 0;
+            for (let i = 0; i < type.length; i++) {
+                hash = ((hash << 5) - hash) + type.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return fallbackColors[Math.abs(hash) % fallbackColors.length];
+        }
+        
+        // Initialize
+        function init() {
+            loadGraph(currentGraphName);
+            setupEventListeners();
+            updateObservations();
+        }
+        
+        function loadGraph(graphName) {
+            currentGraphName = graphName;
+            currentGraph = allGraphs[graphName];
+            
+            // Clear existing graph
+            d3.select("#graph-container svg").remove();
+            
+            // Create new graph
+            createGraph(currentGraph);
+            updateStats();
+            updateTypeFilter();
+            updateLegend();
+        }
+        
+        function createGraph(graphData) {
+            const width = document.getElementById('graph-container').clientWidth;
+            const height = document.getElementById('graph-container').clientHeight;
+            
+            const svg = d3.select("#graph-container")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            const g = svg.append("g");
+            
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // Process nodes and edges
+            const nodes = graphData.nodes || [];
+            const edges = graphData.edges || [];
+            
+            // Create node ID set for validation
+            const nodeIds = new Set(nodes.map(n => n.id));
+            
+            // Create links data, filtering out invalid edges
+            const links = edges
+                .filter(e => {
+                    if (!nodeIds.has(e.source_id)) {
+                        console.warn(`Edge references non-existent source node: ${e.source_id}`);
+                        return false;
+                    }
+                    if (!nodeIds.has(e.target_id)) {
+                        console.warn(`Edge references non-existent target node: ${e.target_id}`);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(e => ({
+                    source: e.source_id,
+                    target: e.target_id,
+                    type: e.type,
+                    label: e.label,
+                    confidence: e.confidence || 1
+                }));
+            
+            // Create force simulation with better spacing
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(150))  // Increased distance
+                .force("charge", d3.forceManyBody().strength(-800))  // Stronger repulsion
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(50))  // Larger collision radius
+                .force("x", d3.forceX(width / 2).strength(0.05))  // Gentle centering
+                .force("y", d3.forceY(height / 2).strength(0.05));
+            
+            // Create arrow markers for edge types
+            const allEdgeTypes = [...new Set(edges.map(e => e.type))];
+            svg.append("defs").selectAll("marker")
+                .data(allEdgeTypes)
+                .enter().append("marker")
+                .attr("id", d => `arrow-${d}`)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 25)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", d => getEdgeColor(d));
+            
+            // Create link group for lines and labels
+            const linkGroup = g.append("g").attr("class", "links");
+            
+            // Create links with edge-specific colors
+            const link = linkGroup.selectAll("line")
+                .data(links)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("stroke", d => getEdgeColor(d.type))
+                .attr("stroke-width", d => 1 + Math.sqrt(d.confidence * 2))
+                .attr("marker-end", d => `url(#arrow-${d.type})`);
+            
+            // Create edge labels
+            const linkLabel = linkGroup.selectAll("text")
+                .data(links)
+                .enter().append("text")
+                .attr("class", "link-label")
+                .attr("font-size", "9px")
+                .attr("fill", d => getEdgeColor(d.type))
+                .attr("text-anchor", "middle")
+                .attr("opacity", 0.7)
+                .text(d => d.label || d.type);
+            
+            // Create nodes
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+            
+            node.append("circle")
+                .attr("r", d => {
+                    const confidence = d.confidence || 1;
+                    return 10 + confidence * 8;
+                })
+                .attr("fill", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("stroke", d => typeColors[d.type?.toLowerCase()] || typeColors['custom'])
+                .attr("fill-opacity", 0.8);
+            
+            // Node label
+            node.append("text")
+                .attr("dx", 18)
+                .attr("dy", 4)
+                .text(d => d.label ? (d.label.length > 30 ? d.label.substring(0, 30) + "..." : d.label) : "")
+                .style("fill", "#e6edf3")
+                .style("font-size", "12px")
+                .style("font-weight", "500")
+                .style("text-shadow", "1px 1px 3px rgba(0,0,0,0.5)");
+            
+            // Add observations/assumptions box if they exist
+            node.each(function(d) {
+                const g = d3.select(this);
+                const hasObs = d.observations && d.observations.length > 0;
+                const hasAssump = d.assumptions && d.assumptions.length > 0;
+                
+                if (hasObs || hasAssump) {
+                    // Create background box
+                    const bbox = g.append("rect")
+                        .attr("x", 16)
+                        .attr("y", 10)
+                        .attr("rx", 3)
+                        .attr("ry", 3)
+                        .style("fill", "rgba(22, 27, 34, 0.8)")
+                        .style("stroke", "rgba(48, 54, 61, 0.8)")
+                        .style("stroke-width", "1px");
+                    
+                    let yOffset = 22;
+                    let maxWidth = 0;
+                    const textElements = [];
+                    
+                    // Add observations (up to 3)
+                    if (hasObs) {
+                        const obsToShow = d.observations
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 1) || 1;
+                                const confB = (typeof b === 'object' ? b.confidence : 1) || 1;
+                                return confB - confA;
+                            })
+                            .slice(0, 3);
+                        
+                        obsToShow.forEach(obs => {
+                            const obsText = typeof obs === 'object' ? 
+                                (obs.description || obs.content || '') : String(obs);
+                            if (obsText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("✓ " + (obsText.length > 25 ? obsText.substring(0, 25) + "..." : obsText))
+                                    .style("fill", "#30a14e")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Add assumptions (up to 2)
+                    if (hasAssump) {
+                        const assumToShow = d.assumptions
+                            .sort((a, b) => {
+                                const confA = (typeof a === 'object' ? a.confidence : 0.5) || 0.5;
+                                const confB = (typeof b === 'object' ? b.confidence : 0.5) || 0.5;
+                                return confB - confA;
+                            })
+                            .slice(0, 2);
+                        
+                        assumToShow.forEach(assum => {
+                            const assumText = typeof assum === 'object' ? 
+                                (assum.description || assum.content || '') : String(assum);
+                            if (assumText) {
+                                const text = g.append("text")
+                                    .attr("x", 20)
+                                    .attr("y", yOffset)
+                                    .text("? " + (assumText.length > 25 ? assumText.substring(0, 25) + "..." : assumText))
+                                    .style("fill", "#d29922")
+                                    .style("font-size", "10px")
+                                    .style("font-family", "'JetBrains Mono', monospace");
+                                textElements.push(text);
+                                yOffset += 12;
+                            }
+                        });
+                    }
+                    
+                    // Calculate max width from text elements
+                    textElements.forEach(text => {
+                        const bbox = text.node().getBBox();
+                        maxWidth = Math.max(maxWidth, bbox.width);
+                    });
+                    
+                    // Update background box size
+                    bbox.attr("width", maxWidth + 8)
+                        .attr("height", yOffset - 14);
+                }
+            });
+            
+            // Tooltip
+            const tooltip = d3.select("#tooltip");
+            
+            node.on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                
+                let content = `<strong>${d.label}</strong><br/>`;
+                content += `Type: ${d.type}<br/>`;
+                if (d.confidence !== undefined) {
+                    content += `Confidence: ${(d.confidence * 100).toFixed(0)}%<br/>`;
+                }
+                if (d.description) {
+                    content += `<br/>${d.description}`;
+                }
+                if (d.observations && d.observations.length > 0) {
+                    content += `<br/><br/><strong style="color: #30a14e;">Observations:</strong><br/>`;
+                    d.observations.slice(0, 5).forEach(obs => {
+                        const obsText = typeof obs === 'object' ? 
+                            (obs.description || obs.content || JSON.stringify(obs)) : String(obs);
+                        content += `<span style="color: #30a14e;">✓</span> ${obsText}<br/>`;
+                    });
+                }
+                if (d.assumptions && d.assumptions.length > 0) {
+                    content += `<br/><strong style="color: #d29922;">Assumptions:</strong><br/>`;
+                    d.assumptions.slice(0, 3).forEach(assum => {
+                        const assumText = typeof assum === 'object' ? 
+                            (assum.description || assum.content || JSON.stringify(assum)) : String(assum);
+                        const conf = typeof assum === 'object' ? assum.confidence : 0.5;
+                        content += `<span style="color: #d29922;">?</span> ${assumText} <span style="opacity: 0.7;">(conf: ${conf})</span><br/>`;
+                    });
+                }
+                if (d.properties && Object.keys(d.properties).length > 0) {
+                    content += `<br/><br/>Properties:<br/>`;
+                    for (const [key, value] of Object.entries(d.properties)) {
+                        content += `${key}: ${value}<br/>`;
+                    }
+                }
+                
+                tooltip.html(content)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                showNodeDetails(d);
+            });
+            
+            // Update positions
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                linkLabel
+                    .attr("x", d => (d.source.x + d.target.x) / 2)
+                    .attr("y", d => (d.source.y + d.target.y) / 2);
+                
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function updateStats() {
+            const stats = currentGraph.stats || {};
+            let html = '';
+            
+            html += `<div class="stat"><span>Nodes</span><span class="stat-value">${stats.num_nodes || 0}</span></div>`;
+            html += `<div class="stat"><span>Edges</span><span class="stat-value">${stats.num_edges || 0}</span></div>`;
+            html += `<div class="stat"><span>Node Types</span><span class="stat-value">${(stats.node_types || []).length}</span></div>`;
+            html += `<div class="stat"><span>Edge Types</span><span class="stat-value">${(stats.edge_types || []).length}</span></div>`;
+            
+            document.getElementById('stats').innerHTML = html;
+        }
+        
+        function updateTypeFilter() {
+            const types = new Set();
+            (currentGraph.nodes || []).forEach(n => types.add(n.type));
+            
+            const select = document.getElementById('type-filter');
+            select.innerHTML = '<option value="all">All Types</option>';
+            
+            Array.from(types).sort().forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        }
+        
+        function updateLegend() {
+            // Get unique node types
+            const nodeTypes = new Set();
+            (currentGraph.nodes || []).forEach(n => nodeTypes.add(n.type));
+            
+            // Get unique edge types
+            const edgeTypes = new Set();
+            (currentGraph.edges || []).forEach(e => edgeTypes.add(e.type));
+            
+            let html = '<h4>Legend</h4>';
+            
+            // Node types section
+            if (nodeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Node Types</div>';
+                Array.from(nodeTypes).sort().forEach(type => {
+                    const color = typeColors[type?.toLowerCase()] || typeColors['custom'];
+                    html += `<div class="legend-item">
+                        <div class="legend-color" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Edge types section
+            if (edgeTypes.size > 0) {
+                html += '<div class="legend-section">';
+                html += '<div class="legend-section-title">Edge Types</div>';
+                Array.from(edgeTypes).sort().forEach(type => {
+                    const color = getEdgeColor(type);
+                    html += `<div class="legend-item">
+                        <div class="legend-line" style="background: ${color};"></div>
+                        <span>${type}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Add observations/assumptions legend
+            html += '<div class="legend-section">';
+            html += '<div class="legend-section-title">Annotations</div>';
+            html += '<div class="legend-item"><span style="color: #30a14e; font-weight: bold;">✓</span> <span>Verified observation</span></div>';
+            html += '<div class="legend-item"><span style="color: #d29922; font-weight: bold;">?</span> <span>Unverified assumption</span></div>';
+            html += '</div>';
+            
+            document.getElementById('legend').innerHTML = html;
+        }
+        
+        function showNodeDetails(node) {
+            const nodeColor = typeColors[node.type?.toLowerCase()] || typeColors['custom'];
+            let html = `<h4 style="margin: 0 0 10px 0; color: ${nodeColor};">${node.label}</h4>`;
+            html += `<div style="color: #8b949e;"><strong>Type:</strong> <span style="color: ${nodeColor};">${node.type}</span></div>`;
+            html += `<div style="color: #8b949e;"><strong>ID:</strong> <span style="color: #7d8590; font-family: 'JetBrains Mono', monospace; font-size: 11px;">${node.id}</span></div>`;
+            
+            if (node.confidence !== undefined) {
+                const confColor = node.confidence > 0.7 ? '#30a14e' : node.confidence > 0.4 ? '#d29922' : '#f9826c';
+                html += `<div style="color: #8b949e;"><strong>Confidence:</strong> <span style="color: ${confColor};">${(node.confidence * 100).toFixed(0)}%</span></div>`;
+            }
+            
+            if (node.created_by) {
+                html += `<div style="color: #8b949e;"><strong>Created:</strong> <span style="color: #7d8590;">${node.created_by}</span></div>`;
+            }
+            
+            if (node.description) {
+                html += `<div style="margin-top: 10px; color: #8b949e;"><strong>Description:</strong><br/><span style="color: #e6edf3;">${node.description}</span></div>`;
+            }
+            
+            // Observations (verified facts about the system)
+            if (node.observations && node.observations.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(48, 164, 78, 0.1); border-radius: 6px; border: 1px solid rgba(48, 164, 78, 0.3);">';
+                html += '<strong style="color: #30a14e; font-size: 11px; text-transform: uppercase;">✓ Verified Observations</strong>';
+                node.observations.forEach(obs => {
+                    let obsText, obsType = 'general', obsConf = 1.0;
+                    if (typeof obs === 'object') {
+                        obsText = obs.description || obs.content || JSON.stringify(obs);
+                        obsType = obs.type || 'general';
+                        obsConf = obs.confidence !== undefined ? obs.confidence : 1.0;
+                    } else {
+                        obsText = String(obs);
+                    }
+                    const typeLabel = obsType !== 'general' ? ` [${obsType}]` : '';
+                    const confLabel = obsConf < 1.0 ? ` (conf: ${obsConf.toFixed(1)})` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #30a14e; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${obsText}${typeLabel}${confLabel}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Assumptions (unverified, needs validation)
+            if (node.assumptions && node.assumptions.length > 0) {
+                html += '<div style="margin-top: 12px; padding: 10px; background: rgba(210, 153, 34, 0.1); border-radius: 6px; border: 1px solid rgba(210, 153, 34, 0.3);">';
+                html += '<strong style="color: #d29922; font-size: 11px; text-transform: uppercase;">? Unverified Assumptions</strong>';
+                node.assumptions.forEach(assum => {
+                    let assumText, assumType = 'general', assumConf = 0.5;
+                    if (typeof assum === 'object') {
+                        assumText = assum.description || assum.content || JSON.stringify(assum);
+                        assumType = assum.type || 'general';
+                        assumConf = assum.confidence !== undefined ? assum.confidence : 0.5;
+                    } else {
+                        assumText = String(assum);
+                    }
+                    const typeLabel = assumType !== 'general' ? ` [${assumType}]` : '';
+                    html += `<div style="margin-left: 10px; margin-top: 4px; color: #d29922; font-size: 11px; font-family: 'JetBrains Mono', monospace;">• ${assumText}${typeLabel} (conf: ${assumConf.toFixed(1)})</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (node.properties && Object.keys(node.properties).length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #58a6ff; font-size: 11px; text-transform: uppercase;">Properties</strong></div>';
+                for (const [key, value] of Object.entries(node.properties)) {
+                    html += `<div style="margin-left: 10px; color: #8b949e; font-size: 12px;">• ${key}: <span style="color: #7d8590;">${JSON.stringify(value)}</span></div>`;
+                }
+            }
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                html += '<div style="margin-top: 12px;"><strong style="color: #56d364; font-size: 11px; text-transform: uppercase;">Source References</strong></div>';
+                node.source_refs.forEach(ref => {
+                    html += `<div style="margin-left: 10px; font-size: 10px; color: #7d8590; font-family: 'JetBrains Mono', monospace;">• ${ref}</div>`;
+                });
+            }
+            
+            document.getElementById('node-info').innerHTML = html;
+            
+            // Update card viewer
+            updateCardViewer(node);
+        }
+        
+        function updateCardViewer(node) {
+            const cardViewer = document.getElementById('card-viewer');
+            const noCards = document.getElementById('no-cards');
+            const cardSelector = document.getElementById('card-selector');
+            
+            if (node.source_refs && node.source_refs.length > 0) {
+                // Show card viewer
+                cardViewer.style.display = 'block';
+                noCards.style.display = 'none';
+                
+                // Clear and populate selector
+                cardSelector.innerHTML = '<option value="">Select a card to view code</option>';
+                
+                node.source_refs.forEach(cardId => {
+                    if (cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        const option = document.createElement('option');
+                        option.value = cardId;
+                        option.textContent = `${cardId} (${card.relpath || 'unknown file'})`;
+                        cardSelector.appendChild(option);
+                    }
+                });
+                
+                // Handle card selection
+                cardSelector.onchange = function() {
+                    const cardId = this.value;
+                    const cardContent = document.getElementById('card-content');
+                    
+                    if (cardId && cardStore[cardId]) {
+                        const card = cardStore[cardId];
+                        let content = '';
+                        
+                        // Show file path
+                        if (card.relpath) {
+                            content += `// File: ${card.relpath}\n`;
+                            if (card.char_start !== undefined && card.char_end !== undefined) {
+                                content += `// Characters: ${card.char_start}-${card.char_end}\n`;
+                            }
+                            content += '\n';
+                        }
+                        
+                        // Show actual code content
+                        if (card.content) {
+                            content += card.content;
+                        } else if (card.peek_head || card.peek_tail) {
+                            content += card.peek_head || '';
+                            if (card.peek_head && card.peek_tail) {
+                                content += '\n...\n';
+                            }
+                            content += card.peek_tail || '';
+                        } else {
+                            content = 'No content available for this card';
+                        }
+                        
+                        cardContent.textContent = content;
+                    } else {
+                        cardContent.innerHTML = '<em style="color: #888;">Select a card above to view its content</em>';
+                    }
+                };
+            } else {
+                // Hide card viewer
+                cardViewer.style.display = 'none';
+                noCards.style.display = 'block';
+            }
+        }
+        
+        function updateObservations() {
+            let html = '';
+            const recentObs = observations.slice(-10).reverse();
+            
+            recentObs.forEach(obs => {
+                html += `<div class="observation">${obs}</div>`;
+            });
+            
+            if (html === '') {
+                html = '<em style="color: #888;">No observations yet</em>';
+            }
+            
+            document.getElementById('observations').innerHTML = html;
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('graph-selector').addEventListener('change', (e) => {
+                loadGraph(e.target.value);
+            });
+            
+            document.getElementById('type-filter').addEventListener('change', (e) => {
+                filterNodesByType(e.target.value);
+            });
+            
+            document.getElementById('layout-selector').addEventListener('change', (e) => {
+                changeLayout(e.target.value);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                resetView();
+            });
+        }
+        
+        function filterNodesByType(type) {
+            d3.selectAll('.node').style('opacity', d => {
+                return type === 'all' || d.type === type ? 1 : 0.1;
+            });
+        }
+        
+        function changeLayout(layout) {
+            // Simplified - would implement different layout algorithms
+            if (simulation) {
+                simulation.alpha(1).restart();
+            }
+        }
+        
+        function resetView() {
+            const svg = d3.select("svg");
+            const width = svg.attr("width");
+            const height = svg.attr("height");
+            
+            svg.transition()
+                .duration(750)
+                .call(
+                    d3.zoom().transform,
+                    d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+                );
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+Running hypothesis finalization...
+╭───────────────── Finalization Summary ─────────────────╮
+│ Hypothesis Finalization                                │
+│                                                        │
+│ Project: houndD-gpt56_20261012-direct-2021-08-notional │
+│ Total hypotheses: 6                                    │
+│ Pending (not confirmed/rejected): 6                    │
+│ Above threshold (50%): 2                               │
+│ To review: 2 hypotheses                                │
+╰────────────────────────────────────────────────────────╯
+Normal audits end; YOUR verdicts become precedent and the code falls in line.
+
+Hypotheses to review:
+┏━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Co… ┃ Type           ┃ Title                                                 ┃
+┡━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 60% │ oracle_price_… │ Stale oracle prices can be used to manipulate         │
+│     │                │ collateral valuation and liquidation outcomes         │
+│ 60% │ price_manipul… │ Manipulable Asset-Rate Conversion Can Inflate or      │
+│     │                │ Deflate Settled Account Cash                          │
+└─────┴────────────────┴───────────────────────────────────────────────────────┘
+
+🧠 Reviewer openai-codex/gpt-5.6-luna enters the chamber...
+  ✓ CONFIRMED: Stale oracle prices can be used to manipulate collateral val
+    Justification: Upon reviewing ExchangeRate.buildExchangeRate in 
+contracts/internal/valuation/ExchangeRate.sol, I confirmed that the 
+oracle-consumption weakness is present. For non-ETH currencies, the function 
+calls AggregatorV2V3Interface.latestRoundData() but discards the roundId, 
+startedAt, updatedAt, and answeredInRound fields, validating only that the 
+returned rate is greater than zero. No heartbeat, maximum-age, 
+round-completeness, or answeredInRound consistency check is enforced. The 
+resulting ETHRate is consumed by FreeCollateral.getFreeCollateralStateful, 
+getFreeCollateralView, and getLiquidationFactors through _updateNetETHValue, and
+consequently affects checkFreeCollateralAndRevert, 
+LiquidationHelpers.preLiquidationActions, and LiquidateCurrency liquidation 
+pricing. Therefore, if the configured aggregator stops updating while its last 
+positive answer is stale, the protocol continues valuing balances and 
+calculating liquidation discounts and transfers using that obsolete price. The 
+positivity check prevents zero or negative answers but does not mitigate stale 
+data, so the hypothesis is not a false positive. Exploitability and impact 
+depend on feed failure or halted updates and the configured oracle, but the 
+missing freshness validation is clearly demonstrated.
+  ? UNCERTAIN: Manipulable Asset-Rate Conversion Can Inflate or Deflate Set
+    Note: Upon reviewing SettleAssetsExternal._settleAccount, 
+SettlePortfolioAssets.settlePortfolio, and 
+AssetRate.buildSettlementRateStateful, the code clearly makes the asset rate 
+financially consequential: a permissionless settlement call can obtain a 
+stateful adapter rate, convert matured fCash through convertFromUnderlying, 
+delete the portfolio asset, and persist the resulting cash change through 
+BalanceHandler.finalizeSettleAmounts. AssetRate only requires the adapter result
+to be positive, and the first caller for a currency and maturity establishes the
+stored settlement rate, with no visible freshness, deviation, reference-price, 
+or manipulation-resistance checks. However, the supplied code does not include 
+the concrete AssetRateAdapter implementation or demonstrate that its 
+exchange-rate calculation can actually be manipulated by an attacker; the 
+interface may be backed by a deterministic accrual mechanism such as a cToken 
+exchange rate. The stored settlement rate also prevents later changes for that 
+maturity, limiting repeated manipulation after initialization. Therefore, the 
+settlement design exposes a potentially exploitable oracle dependency, but the 
+available source is insufficient to prove a practical attack without adapter 
+implementation, configuration, and economic-manipulation details.
+
+
+============================================================
+
+Finalization Complete:
+  ✓ Confirmed: 1
+  ✗ Rejected: 0
+  ? Uncertain: 1
+
+Total reviewed: 2
+
+Confirmed Vulnerabilities:
+  • Stale oracle prices can be used to manipulate collateral valuation and 
+liquidation outcomes
+    Type: oracle_price_manipulation | Severity: high
+

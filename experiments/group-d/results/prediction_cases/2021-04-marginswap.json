@@ -1,0 +1,79 @@
+{
+  "repo_id": "2021-04-marginswap",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_0bb6b48214f2",
+      "title": "Cross-margin liquidation valuation uses manipulable Uniswap spot reserves instead of the cached EMA",
+      "description": "CrossMarginLiquidation evaluates holdings and borrow balances through holdingsInPeg(account, true) and loanInPeg(account, true). PriceAware.getCurrentPriceInPeg with forceCurBlock=true directly reads the configured AMM reserves through viewCurrentPriceInPeg when the cache is fresh, and calls getPriceFromAMM when stale. This bypasses the cached smoothed price for every liquidation decision and allows a temporary AMM reserve distortion to change collateralization and liquidation amounts.",
+      "impact": "A victim can be liquidated at an attacker-controlled valuation, and the protocol can return incorrect collateral, recognize an incorrect debt value, or incur liquidation shortfalls from AMM price distortion.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/CrossMarginLiquidation.sol",
+          "contract": "CrossMarginLiquidation",
+          "function": "liquidate(address[] memory)"
+        },
+        {
+          "file": "contracts/CrossMarginAccounts.sol",
+          "contract": "CrossMarginAccounts",
+          "function": "holdingsInPeg(CrossMarginAccount storage,bool)"
+        },
+        {
+          "file": "contracts/CrossMarginAccounts.sol",
+          "contract": "CrossMarginAccounts",
+          "function": "loanInPeg(CrossMarginAccount storage,bool)"
+        },
+        {
+          "file": "contracts/PriceAware.sol",
+          "contract": "PriceAware",
+          "function": "getCurrentPriceInPeg(address,uint256,bool)"
+        },
+        {
+          "file": "contracts/PriceAware.sol",
+          "contract": "PriceAware",
+          "function": "viewCurrentPriceInPeg(address,uint256)"
+        },
+        {
+          "file": "contracts/PriceAware.sol",
+          "contract": "PriceAware",
+          "function": "getPriceFromAMM(address,uint256)"
+        }
+      ],
+      "mitigation": "Use a manipulation-resistant oracle or a validated cached/TWAP price for liquidation eligibility, debt valuation, and payout calculations. Do not allow forceCurBlock to bypass the protected price path; add stale-price handling and independent deviation checks against AMM execution quotes.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_6de4941c9937",
+      "title": "Liquidation swaps execute against manipulable AMM reserves with no slippage bound",
+      "description": "CrossMarginLiquidation calls PriceAware.liquidateToPeg and liquidateFromPeg. These invoke MarginRouter.authorizedSwapExactT4T with amountOutMin=0 or authorizedSwapT4ExactT with amountInMax=type(uint256).max. The router computes swap amounts directly from current Uniswap-style reserves and executes without a caller-supplied or oracle-derived limit, so a reserve-manipulating trader can force protocol liquidation trades at an arbitrarily adverse rate.",
+      "impact": "Protocol funds can lose substantial peg or collateral during liquidation, creating liquidation shortfalls and reducing or eliminating recoveries for lenders and account holders.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/PriceAware.sol",
+          "contract": "PriceAware",
+          "function": "liquidateToPeg(address,uint256)"
+        },
+        {
+          "file": "contracts/PriceAware.sol",
+          "contract": "PriceAware",
+          "function": "liquidateFromPeg(address,uint256)"
+        },
+        {
+          "file": "contracts/MarginRouter.sol",
+          "contract": "MarginRouter",
+          "function": "authorizedSwapExactT4T(uint256,uint256,address[] calldata,address[] calldata)"
+        },
+        {
+          "file": "contracts/MarginRouter.sol",
+          "contract": "MarginRouter",
+          "function": "authorizedSwapT4ExactT(uint256,uint256,address[] calldata,address[] calldata)"
+        }
+      ],
+      "mitigation": "Derive minimum-output and maximum-input limits from an independent oracle/TWAP with conservative deviation bounds, or use deep/liquidation-specific auctions instead of spot AMM execution. Revert when execution deviates materially from the protected valuation and cap protocol trade size relative to pool liquidity.",
+      "severity": "high"
+    }
+  ]
+}

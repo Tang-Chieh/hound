@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2024-04-panoptic</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Panoptic</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2024-04-panoptic<br>
+                <strong>Date:</strong> October 13, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the Panoptic protocol, focusing on its deployed contracts, option-position lifecycle, collateral handling, factory deployment processes, and integrations with Uniswap V3 and token standards.</p>
+<p>The review covered the system architecture and high-level component and flow relationships, including users and integrators, PanopticFactory, PanopticHelper, PanopticPool, CollateralTracker, SemiFungiblePositionManager, tokenized positions, shared mathematics and accounting libraries, and external ERC20, ERC1155, Uniswap V3, and DonorNFT interfaces.</p>
+<p>Our team confirmed six security and operational findings, including high-severity risks involving unsolicited Uniswap mint callbacks and token transfers to non-contract addresses. Additional confirmed issues affect donor NFT issuer control, unchecked approval results, unbounded token metadata, and signed fee packing. Two further areas require deployment-context validation, while several suspected issues were rejected after review of the protocol's validation and reentrancy protections. Overall, the architecture contains meaningful safeguards, but callback authorization, token validation, arithmetic bounds, and privileged configuration require remediation.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The Panoptic architecture is centered on PanopticFactory, which creates and initializes PanopticPool and CollateralTracker clones from reference implementations. During deployment, the factory starts collateral tokens, initializes pool state, configures the Uniswap V3 observation cardinality, records the canonical pool mapping, and may issue donor rewards through DonorNFT. This deployment path crosses trust boundaries involving configured ERC20 tokens, the canonical Uniswap V3 factory and pools, and the mutable donor NFT issuer configuration.</p>
+<p>PanopticPool manages option-position balances, collateral interactions, premium and fee accounting, and solvency-related operations. It relies on CollateralTracker for collateral shares and underlying asset movement, while PanopticMath, FeesCalc, TokenId, LeftRight, and related mathematical types support payoff, margin, liquidity, and fee calculations. The review confirmed that several position and liquidation paths apply TokenId validation, pool identity checks, reentrancy locks, and TWAP-based liquidation protections rather than relying solely on an instantaneous market tick.</p>
+<p>SemiFungiblePositionManager represents tokenized option positions through ERC1155-compatible balances and coordinates position creation, burning, transfers, and Uniswap V3 liquidity operations. Minting and burning flow through validation and forwarding routines into canonical Uniswap pools, with callback handling performed by uniswapV3MintCallback and transfer operations implemented through SafeTransferLib. InteractionHelper supplies approval and metadata functionality used during initialization and integration flows.</p>
+<p>Our analysis revealed that canonical-pool authentication in uniswapV3MintCallback does not by itself prove that a callback originated from an active SFPM-controlled mint. A direct call to a canonical Uniswap pool can therefore reach the callback with attacker-selected payer data, potentially drawing tokens from addresses that approved SFPM. We also identified that SafeTransferLib accepts successful low-level calls to addresses without contract code, allowing configured no-code token addresses to advance accounting without moving assets. These issues should be addressed with active callback context checks, token-code validation, and stronger asset-transfer verification.</p>
+<p>The Hound team additionally identified risks from ignored ERC20 approval return values, unbounded external token metadata, unchecked signed fee downcasts, and mutable DonorNFT factory authorization. Proposed approval-target and deployment-context issues should be assessed against all reachable production call paths. Remediation should prioritize callback authorization and token validation, followed by bounded arithmetic and metadata handling, safe approval semantics, and governance controls around reward issuance.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">6</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">2</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">4</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 0,1 211.60,175.00 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L211.60,175.00 A100,100 0 1,1 125.00,25.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">6</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">2</div>
+                    <div style="color: #64738c; font-size: 12px;">(33.3%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">4</div>
+                    <div style="color: #64738c; font-size: 12px;">(66.7%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Uniswap mint callback can be triggered through an unsolicited direct pool mint</h3>
+                <div class="vulnerability-description">
+                    <p>This is a high-severity callback-authentication logic error in which the Uniswap V3 mint callback authenticates the originating pool but does not verify that the callback belongs to an active SFPM-controlled mint operation. The callback also trusts a payer address supplied through externally controlled callback data, allowing an attacker to influence whose approved tokens are used to settle the mint.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the SemiFungiblePositionManager contract, specifically the uniswapV3MintCallback() and _mintLiquidity() functions, together with the canonical Uniswap V3 pool mint and callback path</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing SemiFungiblePositionManager.uniswapV3MintCallback and _mintLiquidity, I confirmed that the callback lacks authorization that the callback originated from an SFPM-controlled mint operation. The callback decodes attacker-controlled CallbackData, validates only that msg.sender is a canonical Uniswap V3 pool matching the supplied token and fee features, and then calls SafeTransferLib.safeTransferFrom(decoded.poolFeatures.token0/token1, decoded.payer, msg.sender, amountOwed). Because Uniswap V3 pools permit arbitrary callers to invoke mint with any recipient and callback data, an attacker can call the canonical pool directly with recipient equal to the SFPM and payer set to any address that has approved the SFPM for the underlying tokens. The callback will execute even though mintTokenizedPosition, _validateAndForwardToAMM, and _mintLiquidity were never entered. The per-pool ReentrancyLock does not protect the callback because direct pool.mint does not acquire it, and callback validation does not check the lock or an active operation context. Thus approved protocol or user funds can be pulled, subject to the selected liquidity and allowance.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Track an active mint context containing the expected pool, payer, and relevant operation data before calling Uniswap, and require the callback to match that context. Alternatively require the callback payer to equal the original SFPM caller and reject callbacks when no SFPM mint operation is active; clear the context after completion.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/SemiFungiblePositionManager.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 402-418</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function uniswapV3MintCallback(
+    uint256 amount0Owed,
+    uint256 amount1Owed,
+    bytes calldata data
+) external {
+    // Decode the mint callback data
+    CallbackLib.CallbackData memory decoded = abi.decode(data, (CallbackLib.CallbackData));
+    // Validate caller to ensure we got called from the AMM pool
+    CallbackLib.validateCallback(msg.sender, FACTORY, decoded.poolFeatures);
+    // Sends the amount0Owed and amount1Owed quantities provided
+    if (amount0Owed &gt; 0)
+        SafeTransferLib.safeTransferFrom(
+            decoded.poolFeatures.token0,
+            decoded.payer,
+            msg.sender,
+            amount0Owed
+        );</code></pre></div>
+            </div>
+            <div class="code-explanation">The externally callable mint callback validates only that msg.sender is the Uniswap pool described by callback data. It does not verify an active SFPM-controlled mint operation, and it uses the payer address supplied in the externally controlled data to transfer approved tokens.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>SafeTransferLib silently accepts transfers to non-contract token addresses</h3>
+                <div class="vulnerability-description">
+                    <p>This is a high-severity token-validation logic error in SafeTransferLib: low-level calls to transfer() and transferFrom() do not verify that the target address contains contract code. Calls to an externally owned account or another address without code can therefore return successfully without transferring any assets, while the surrounding protocol may record the operation as paid or completed.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the SafeTransferLib library, specifically the safeTransfer() and safeTransferFrom() functions, and the SemiFungiblePositionManager mintTokenizedPosition() and uniswapV3MintCallback() payment flows</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing SafeTransferLib.safeTransferFrom and safeTransfer, I confirmed that both functions invoke the ERC20 selector using a low-level call but perform no extcodesize or equivalent contract-existence check. The success condition explicitly accepts calls with zero return data, which is the behavior of a call to an EOA or other no-code address; such a call therefore succeeds without moving tokens. This behavior is reachable from SemiFungiblePositionManager.uniswapV3MintCallback and uniswapV3SwapCallback, as well as CollateralTracker.deposit, mint, withdraw, and redeem, all of which update protocol or user accounting based solely on SafeTransferLib completion. In particular, CollateralTracker.deposit and mint increment s_poolAssets and mint shares after the unchecked transferFrom, while withdraw and redeem decrement accounting before the unchecked outbound transfer. The shown initialization paths do not validate token code: initializeAMMPool relies on the configured factory pool, and CollateralTracker.startToken stores supplied token addresses directly. Consequently, if a pool or tracker can be configured with an EOA/no-code token, the transfer is silently skipped while state advances. Exploitability depends on deployment/configuration allowing such tokens, but no guard exists in the reviewed code.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require the token address to contain contract code before transfer operations, and validate token code and ERC20 behavior when registering or initializing pools. Where possible, verify post-transfer balance changes instead of relying solely on low-level call success.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/libraries/SafeTransferLib.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 21-38</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function safeTransferFrom(address token, address from, address to, uint256 amount) internal {
+    bool success;
+
+    assembly (&quot;memory-safe&quot;) {
+        // Get free memory pointer - we will store our calldata in scratch space starting at the offset specified here.
+        let p := mload(0x40)
+
+        // Write the abi-encoded calldata into memory, beginning with the function selector.
+        mstore(p, 0x23b872dd00000000000000000000000000000000000000000000000000000000)
+        mstore(add(4, p), from) // Append the &quot;from&quot; argument.
+        mstore(add(36, p), to) // Append the &quot;to&quot; argument.
+        mstore(add(68, p), amount) // Append the &quot;amount&quot; argument.
+
+        success := and(
+            // Set success to whether the call reverted, if not we check it either
+            // returned exactly 1 (can&#39;t just be non-zero data), or had no return data.
+            or(and(eq(mload(0), 1), gt(returndatasize(), 31)), iszero(returndatasize())),
+            // We use 100 because that&#39;s the total length of our calldata (4 + 32 * 3)</code></pre></div>
+            </div>
+            <div class="code-explanation">The safeTransferFrom implementation validates only the low-level call result and return data. It performs no extcodesize or code-length check, so a call to an EOA or no-code address can succeed with empty returndata.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/SemiFungiblePositionManager.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 402-419</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function uniswapV3MintCallback(
+    uint256 amount0Owed,
+    uint256 amount1Owed,
+    bytes calldata data
+) external {
+    // Decode the mint callback data
+    CallbackLib.CallbackData memory decoded = abi.decode(data, (CallbackLib.CallbackData));
+    // Validate caller to ensure we got called from the AMM pool
+    CallbackLib.validateCallback(msg.sender, FACTORY, decoded.poolFeatures);
+    // Sends the amount0Owed and amount1Owed quantities provided
+    if (amount0Owed &gt; 0)
+        SafeTransferLib.safeTransferFrom(
+            decoded.poolFeatures.token0,
+            decoded.payer,
+            msg.sender,
+            amount0Owed
+        );
+    if (amount1Owed &gt; 0)</code></pre></div>
+            </div>
+            <div class="code-explanation">The mint callback uses SafeTransferLib.safeTransferFrom to pay token amounts owed to the pool. Because the library accepts successful calls to non-contract addresses, this protocol-level payment path can proceed without an actual token transfer.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Owner-controlled factory can arbitrarily mint donor NFTs or permanently disable issuance</h3>
+                <div class="vulnerability-description">
+                    <p>This is a medium-severity access-control weakness caused by an owner-controlled setter that can replace the sole authorized NFT issuer without validation, immutability, or governance safeguards. The changeFactory() function permits the owner to assign an arbitrary address, including a malicious contract or the zero address, while issueNFT() authorizes issuance solely by checking whether the caller matches the configured factory.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the DonorNFT contract, specifically the changeFactory() and issueNFT() functions, and the factory-controlled reward issuance path</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing DonorNFT.changeFactory and DonorNFT.issueNFT in periphery/DonorNFT.sol, I confirmed that the issuer authorization is fully mutable by the contract owner. The constructor initializes Owned with msg.sender, but does not initialize panopticFactory, and changeFactory(address newFactory) is externally callable by onlyOwner without rejecting address(0), validating the canonical PanopticFactory, emitting an event, or imposing a timelock or one-time restriction. issueNFT then authorizes calls solely through require(msg.sender == panopticFactory) and performs no validation of deployer, pool, token addresses, or fee before minting to the supplied deployer and incrementing nextId. Consequently, an owner or compromised owner account can set panopticFactory to an attacker-controlled contract or EOA and cause arbitrary addresses to receive NFTs, while setting it to address(0) permanently prevents ordinary issuance until corrected. This is not an unauthorized external takeover because onlyOwner remains enforced, but it is a real privileged access-control and operational-integrity vulnerability under the stated threat model.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Set the factory immutably during construction or restrict changes to a controlled governance process with a timelock and event emission. Reject address(0), validate that the replacement is the canonical PanopticFactory, and consider a one-time initialization guard if factory replacement is not required.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/tokens/interfaces/IDonorNFT.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 13-21</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>13
+14
+15
+16
+17
+18
+19
+20</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">    function issueNFT(
+        address deployer,
+        PanopticPool newPoolContract,
+        address token0,
+        address token1,
+        uint24 fee
+    ) external;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Relevant function &#39;issueNFT&#39; referenced by the finding.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">periphery/DonorNFT.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 16-19</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>16
+17
+18</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function changeFactory(address newFactory) external onlyOwner {
+    panopticFactory = newFactory;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Relevant function &#39;changeFactory&#39; referenced by the finding.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">periphery/DonorNFT.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 24-31</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>24
+25
+26
+27
+28
+29
+30</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">    function issueNFT(address deployer, PanopticPool, address, address, uint24) external {
+        require(msg.sender == panopticFactory);
+
+        _mint(deployer, nextId);
+        nextId++;
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">Relevant function &#39;issueNFT&#39; referenced by the finding.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Ignored approve return values can leave pools initialized with unusable allowances</h3>
+                <div class="vulnerability-description">
+                    <p>This is a medium-severity denial-of-service issue in the approval logic because the InteractionHelper does not verify the return values of ERC20 approve() calls or otherwise confirm that the required allowance was established. Some ERC20 implementations return false without reverting and leave the allowance unchanged, allowing initialization to proceed as though approval had succeeded.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the InteractionHelper library, specifically the doApprovals() function, and the SemiFungiblePositionManager mint-position and collateral-withdrawal flows that depend on those allowances</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the alleged denial-of-service vulnerability in InteractionHelper.doApprovals, I confirmed that the approval result is ignored. The function performs four direct IERC20Partial(token).approve(...) calls for the SFPM and both CollateralTracker contracts, but does not inspect the returned boolean or verify the resulting allowance. An ERC20 implementation that returns false without reverting and leaves the allowance unchanged can therefore cause pool initialization to continue successfully despite required approvals not being established. Subsequent SFPM minting, collateral movement, or withdrawal paths use SafeTransferLib.safeTransferFrom and depend on those allowances; those operations will revert when the Panoptic Pool lacks sufficient allowance, leaving the configured pool operationally unusable. No compensating check appears in doApprovals or in the shown initialization flow. Although the token must be accepted by the surrounding factory and pool configuration, such behavior is possible for a supported nonstandard ERC20 and does not require privileged post-deployment access. This is consequently a valid initialization-time denial of service, not an immediate theft issue.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Use a safe approval helper that requires a successful return value or accepts no-return tokens according to a documented compatibility policy, and revert initialization when the required allowance is not established.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/libraries/InteractionHelper.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 24-38</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function doApprovals(
+    SemiFungiblePositionManager sfpm,
+    CollateralTracker ct0,
+    CollateralTracker ct1,
+    address token0,
+    address token1
+) external {
+    // Approve transfers of Panoptic Pool funds by SFPM
+    IERC20Partial(token0).approve(address(sfpm), type(uint256).max);
+    IERC20Partial(token1).approve(address(sfpm), type(uint256).max);
+
+    // Approve transfers of Panoptic Pool funds by Collateral token
+    IERC20Partial(token0).approve(address(ct0), type(uint256).max);
+    IERC20Partial(token1).approve(address(ct1), type(uint256).max);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The targeted doApprovals function performs four ERC20 approve calls as standalone statements and ignores their boolean return values. Tokens that return false without reverting can therefore leave allowances unchanged while the caller proceeds as if approvals succeeded.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Unbounded token metadata can cause gas or memory denial of service</h3>
+                <div class="vulnerability-description">
+                    <p>This is a medium-severity denial-of-service issue caused by trusting externally supplied ERC20 metadata without imposing a length limit. The computeName() and computeSymbol() helpers copy and concatenate token-provided strings, allowing an ERC20 implementation to return an excessively large dynamic value during pool or collateral-token initialization.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the InteractionHelper library, specifically the computeName() and computeSymbol() functions, and the factory clone-initialization and collateral-start-token flows that consume the generated metadata</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing InteractionHelper.computeName and computeSymbol, I confirmed that the alleged unbounded metadata denial of service is technically present. Both functions call IERC20Metadata(token).symbol() and accept the returned dynamic string without validating its length; computeName then incorporates each symbol multiple times through string.concat, while computeSymbol concatenates the entire value with the prefix. The try/catch blocks only handle call failure and do not constrain successful, oversized return data. PanopticFactory.deployNewPool invokes CollateralTracker.startToken for both underlying tokens, and the affected initialization path therefore depends on these helpers. A malicious ERC20 can implement symbol() to return an extremely large ABI-encoded string, causing excessive return-data copying, memory expansion, concatenation, and gas consumption, potentially reverting pool or collateral tracker deployment. The practical impact is constrained because the attacker must supply or control an accepted Uniswap pool, and factory ownership may restrict deployment until permissionlessness is enabled; nevertheless, those are deployment authorization constraints rather than metadata protections. A bounded read or explicit maximum length is warranted.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Bound the maximum returned symbol length before concatenation, use a bounded metadata read, or replace oversized/malformed values with a fixed placeholder.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/libraries/InteractionHelper.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 91-101</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">function computeSymbol(
+    address token,
+    string memory prefix
+) external view returns (string memory) {
+    // not guaranteed that token supports metadada extension
+    // so we need to let call fail and return placeholder if not
+    try IERC20Metadata(token).symbol() returns (string memory tokenSymbol) {
+        return string.concat(prefix, tokenSymbol);
+    } catch {
+        return string.concat(prefix, &quot;???&quot;);
+    }</code></pre></div>
+            </div>
+            <div class="code-explanation">computeSymbol() trusts the externally returned ERC20 symbol without imposing a length limit, then concatenates it into a new dynamic string; a malicious token can therefore force excessive memory allocation and gas consumption.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Uniswap fee-growth values can overflow signed fee packing</h3>
+                <div class="vulnerability-description">
+                    <p>This is a medium-severity arithmetic validation issue in which unsigned Uniswap fee-growth-derived amounts are converted into bounded signed packed fields without an explicit range check. Although Uniswap fee-growth accumulators use unsigned arithmetic and may wrap according to their intended design, the resulting values cannot be safely represented in a finite signed component such as an int128 field unless the conversion is validated.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the FeesCalc fee-accounting logic, the PanopticPool fee-computation paths, the Uniswap V3 pool fee-growth state, and the signed packing and math-library components used to represent fee values</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing FeesCalc.calculateAMMSwapFees and SemiFungiblePositionManager.getAccountPremium, I confirmed an unchecked signed-packing vulnerability. calculateAMMSwapFees computes each fee as Math.mulDiv128(feeGrowthPerLiquidity, liquidity), converts the uint256 result through int256 and then directly to int128, and stores it in LeftRightSigned without verifying that it is within [-2^127, 2^127-1]. The same pattern exists in SemiFungiblePositionManager._getFeesBase for Uniswap position fee-growth values, and PanopticPool._getPremia later relies on these packed values when calculating and applying premia. Solidity integer downcasts truncate rather than enforce the destination range, so sufficiently large fee growth or a wrapped Uniswap accumulator can produce corrupted signed values, including negative or otherwise unrelated fees. PositionTooLarge only constrains the underlying token amounts and liquidity position, not accumulated fees, while the uint128 accumulator caps in addCapped occur later and do not protect this conversion. Consequently, the implementation lacks the independent range checks required before signed packing, although triggering the condition may require extreme fee accumulation.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Validate each computed fee against the exact int128/component bounds before packing; reject out-of-range values. Preserve Uniswap&#39;s intended modulo arithmetic for accumulator deltas separately from the bounded conversion, and add tests for accumulator wraparound and maximum representable fee values.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/libraries/FeesCalc.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 97-114</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function calculateAMMSwapFees(
+    IUniswapV3Pool univ3pool,
+    int24 currentTick,
+    int24 tickLower,
+    int24 tickUpper,
+    uint128 liquidity
+) public view returns (LeftRightSigned) {
+    // extract the amount of AMM fees collected within the liquidity chunk`
+    // note: the fee variables are *per unit of liquidity*; so more &quot;rate&quot; variables
+    (
+        uint256 ammFeesPerLiqToken0X128,
+        uint256 ammFeesPerLiqToken1X128
+    ) = _getAMMSwapFeesPerLiquidityCollected(univ3pool, currentTick, tickLower, tickUpper);
+
+    // Use the fee growth (rate) variable to compute the absolute fees accumulated within the chunk:
+    //   ammFeesToken0X128 * liquidity / (2**128)
+    // to store the (absolute) fees as int128:
+    return</code></pre></div>
+            </div>
+            <div class="code-explanation">The AMM fee-growth values are computed as unsigned 256-bit amounts and are explicitly intended to be stored as signed int128 values. The subsequent packing performs the narrowing conversion without a prior range check, making this function the direct source of the signed fee-packing overflow risk.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

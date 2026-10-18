@@ -1,0 +1,801 @@
+{
+  "session_id": "sess_agent_20261012_224332",
+  "start_time": "2026-10-12T22:43:32.226098",
+  "status": "completed",
+  "models": {
+    "scout": "OpenAI/openai-codex/gpt-5.6-luna",
+    "strategist": "OpenAI/openai-codex/gpt-5.6-luna"
+  },
+  "investigations": [
+    {
+      "timestamp": "2026-10-12T22:45:07.421609",
+      "goal": "Vulnerability analysis of StakingModule",
+      "priority": 10,
+      "category": "aspect",
+      "frame_id": "frame_e3a4ecced0e0",
+      "planned_batch": 1,
+      "planned_index": 1,
+      "started_at": "2026-10-12T22:43:36.924204",
+      "ended_at": "2026-10-12T22:45:07.421499",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 4,
+        "confirmed": 3,
+        "rejected": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "timestamp": "2026-10-12T22:46:07.004876",
+      "goal": "Vulnerability analysis of SimplePlugin",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_68a29d55e3a9",
+      "planned_batch": 2,
+      "planned_index": 1,
+      "started_at": "2026-10-12T22:45:12.526590",
+      "ended_at": "2026-10-12T22:46:07.004771",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 6,
+        "confirmed": 4,
+        "rejected": 0,
+        "uncertain": 2
+      }
+    },
+    {
+      "timestamp": "2026-10-12T22:46:59.193533",
+      "goal": "Vulnerability analysis of AuxDataLib",
+      "priority": 7,
+      "category": "aspect",
+      "frame_id": "frame_69bbb18519d9",
+      "planned_batch": 3,
+      "planned_index": 1,
+      "started_at": "2026-10-12T22:46:14.443927",
+      "ended_at": "2026-10-12T22:46:59.193317",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 6,
+        "confirmed": 4,
+        "rejected": 0,
+        "uncertain": 2
+      }
+    },
+    {
+      "timestamp": "2026-10-12T22:48:11.274044",
+      "goal": "Vulnerability analysis of RECOVERY_ROLE",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_42165d539780",
+      "planned_batch": 4,
+      "planned_index": 1,
+      "started_at": "2026-10-12T22:47:04.858297",
+      "ended_at": "2026-10-12T22:48:11.273910",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 8,
+        "confirmed": 5,
+        "rejected": 0,
+        "uncertain": 3
+      }
+    },
+    {
+      "timestamp": "2026-10-12T22:48:40.770522",
+      "goal": "Vulnerability analysis of TieredOwnership",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_985df29d7c1b",
+      "planned_batch": 5,
+      "planned_index": 1,
+      "started_at": "2026-10-12T22:48:17.895281",
+      "ended_at": "2026-10-12T22:48:40.770284",
+      "iterations_completed": 2,
+      "hypotheses": {
+        "total": 8,
+        "confirmed": 5,
+        "rejected": 0,
+        "uncertain": 3
+      }
+    },
+    {
+      "timestamp": "2026-10-12T22:49:51.431247",
+      "goal": "Vulnerability analysis of External swap aggregator",
+      "priority": 8,
+      "category": "aspect",
+      "frame_id": "frame_0e3d4232424a",
+      "planned_batch": 6,
+      "planned_index": 1,
+      "started_at": "2026-10-12T22:48:45.966512",
+      "ended_at": "2026-10-12T22:49:51.431037",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 10,
+        "confirmed": 7,
+        "rejected": 0,
+        "uncertain": 3
+      }
+    }
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-10-12T22:43:36.913356",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of StakingModule",
+          "focus_areas": [
+            "Stake, exit, claim, and migration accounting across checkpointed balances and total staked supply",
+            "Plugin registry updates and notification ordering during stake changes",
+            "Role-gated slashing, pausing, rescue, and initialization controls",
+            "Reentrancy, token-transfer assumptions, and claim delta validation",
+            "TEL custody, excess-token rescue, and invariant preservation"
+          ],
+          "priority": 10,
+          "reasoning": "WHY NOW: StakingModule is the central custody and accounting component, connecting users, plugins, TEL transfers, privileged roles, and migration paths; defects here could affect all stakers and reward accounting. EXIT CRITERIA: Trace every state-mutating entry point and privilege check, document invariants for user balances, total supply, checkpoints, plugin synchronization, and TEL custody, and conclude whether any reachable call sequence causes unauthorized movement, underpayment, overpayment, stuck funds, accounting divergence, or bypass of pause/reentrancy protections.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T22:45:12.505669",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of SimplePlugin",
+          "focus_areas": [
+            "Claimable-balance accounting across checkpoints and total owed state",
+            "Authorization and validation of the configured increaser",
+            "Stake-change notification ordering and interactions with staking balances",
+            "Claim transfers, reentrancy, and handling of non-standard TEL token behavior",
+            "Consistency of claimable, totalClaimable, and claimableAt views after claims and stake updates"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: SimplePlugin is an unvisited major contract that holds reward-accounting state and transfers TEL, making it a high-value component independent of the completed StakingModule review. Its externally callable notification, claim, and increase paths are tightly coupled to checkpoint updates and authorization, so defects could cause reward theft, permanent denial of claims, or accounting divergence. EXIT CRITERIA: Trace every state mutation and external call in SimplePlugin, verify all privileged and caller-dependent paths, reconcile checkpoint and aggregate accounting before and after claims and stake changes, assess token-transfer and reentrancy assumptions, and document any concrete vulnerability or conclude that no exploitable issue is present.",
+          "category": "aspect",
+          "expected_impact": "medium"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T22:46:14.420577",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of AuxDataLib",
+          "focus_areas": [
+            "ABI decoding and calldata bounds validation",
+            "Address matching and payload-slice selection",
+            "Malformed or adversarial auxiliary data handling",
+            "Effects on downstream authorization and external-call parameters"
+          ],
+          "priority": 7,
+          "reasoning": "WHY NOW: AuxDataLib is an unvisited shared parsing component whose decoded address and payload values may influence swap or plugin-related execution, making malformed calldata and parser ambiguity important attack surfaces after the primary staking and plugin contracts have been covered. EXIT CRITERIA: Trace every library entry point and caller, verify bounds checks, decoding assumptions, address-selection semantics, malformed-input behavior, and downstream use of returned data; document any exploitable issue or conclude that all reachable inputs are safely constrained.",
+          "category": "aspect",
+          "expected_impact": "medium"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T22:47:04.834903",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of RECOVERY_ROLE",
+          "focus_areas": [
+            "Role assignment and revocation paths",
+            "Authorization of rescue and emergency state-changing operations",
+            "Privilege escalation or unauthorized token recovery",
+            "Interaction with StakingModule pause, plugin, and accounting invariants"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: RECOVERY_ROLE is an unvisited critical permission boundary, while StakingModule and SimplePlugin accounting paths have already been analyzed; recovery authority can directly affect asset custody and system invariants. EXIT CRITERIA: Trace every RECOVERY_ROLE grant, revoke, and gated operation statically; verify intended administrators and lifecycle controls; confirm rescue capabilities cannot extract owed TEL, bypass pause or accounting protections, or be obtained by unauthorized actors; document any concrete exploitable path or conclude the role boundary is sound.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T22:48:17.870420",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of TieredOwnership",
+          "focus_areas": [
+            "Two-step executor nomination and acceptance",
+            "Owner addition, removal, and executor management authorization",
+            "Consistency between executor and owner privileges",
+            "Initialization and recovery of ownership state"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: TieredOwnership is a critical permission component that controls owner-gated administration and executor-controlled owner management, yet it is not covered by the completed investigations. EXIT CRITERIA: Trace every ownership transition and privileged operation, verify authorization, nomination/acceptance, zero-address, and state-consistency invariants, and determine whether any unauthorized takeover, permanent lockout, or privilege escalation is possible.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T22:48:45.942079",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of External swap aggregator",
+          "focus_areas": [
+            "Validation of forwarded swap calldata and destination/token parameters",
+            "Handling of native value, token approvals, refunds, and residual balances",
+            "Callback or reentrancy assumptions during FeeBuyback submissions",
+            "Failure and return-value behavior affecting buyback accounting"
+          ],
+          "priority": 8,
+          "reasoning": "WHY NOW: This is an unvisited external integration that receives arbitrary swapData and msg.value from FeeBuyback, making it a high-value trust boundary for asset loss, unexpected execution, and stuck funds. EXIT CRITERIA: Trace the aggregator interaction and identify whether destination, assets, value, approvals, callbacks, failures, and residual funds are safely constrained; conclude with no issue or one concrete exploitable vulnerability supported by the static call/data-flow analysis.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-12T22:49:56.909340",
+      "items": [
+        {
+          "goal": "System component review: Staking user (actor_staking_user)",
+          "focus_areas": [
+            "actor_staking_user@SystemArchitecture"
+          ],
+          "priority": 7,
+          "reasoning": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+          "category": "aspect",
+          "expected_impact": "medium"
+        }
+      ]
+    }
+  ],
+  "token_usage": {
+    "total_usage": {
+      "input_tokens": 298134,
+      "output_tokens": 21609,
+      "total_tokens": 319743,
+      "call_count": 44
+    },
+    "by_model": {
+      "OpenAI:openai-codex/gpt-5.6-luna": {
+        "input_tokens": 298134,
+        "output_tokens": 21609,
+        "total_tokens": 319743,
+        "call_count": 44
+      }
+    },
+    "history": [
+      {
+        "timestamp": "2026-10-12T22:43:36.913075",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2023,
+        "output_tokens": 265,
+        "total_tokens": 2288,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:43:41.545782",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4114,
+        "output_tokens": 144,
+        "total_tokens": 4258,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:43:45.324569",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7378,
+        "output_tokens": 201,
+        "total_tokens": 7579,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:43:50.063608",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 12603,
+        "output_tokens": 231,
+        "total_tokens": 12834,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:43:58.241050",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 18506,
+        "output_tokens": 176,
+        "total_tokens": 18682,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:44:56.583086",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 17496,
+        "output_tokens": 3078,
+        "total_tokens": 20574,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:45:07.376638",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 21465,
+        "output_tokens": 304,
+        "total_tokens": 21769,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:45:12.504738",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2257,
+        "output_tokens": 288,
+        "total_tokens": 2545,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:45:18.778294",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4450,
+        "output_tokens": 499,
+        "total_tokens": 4949,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:45:23.746981",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4542,
+        "output_tokens": 172,
+        "total_tokens": 4714,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:45:31.171461",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8941,
+        "output_tokens": 442,
+        "total_tokens": 9383,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:45:37.916097",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 9717,
+        "output_tokens": 202,
+        "total_tokens": 9919,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:45:42.029596",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 9801,
+        "output_tokens": 215,
+        "total_tokens": 10016,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:00.233880",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8912,
+        "output_tokens": 1949,
+        "total_tokens": 10861,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:06.978435",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 958,
+        "output_tokens": 189,
+        "total_tokens": 1147,
+        "profile": "lightweight"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:14.419938",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2321,
+        "output_tokens": 286,
+        "total_tokens": 2607,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:19.526061",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4602,
+        "output_tokens": 105,
+        "total_tokens": 4707,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:27.443808",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5391,
+        "output_tokens": 299,
+        "total_tokens": 5690,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:32.608583",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 9999,
+        "output_tokens": 185,
+        "total_tokens": 10184,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:38.575194",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 10087,
+        "output_tokens": 157,
+        "total_tokens": 10244,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:51.935049",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 9272,
+        "output_tokens": 617,
+        "total_tokens": 9889,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:46:59.172615",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 10414,
+        "output_tokens": 165,
+        "total_tokens": 10579,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:47:04.834332",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2300,
+        "output_tokens": 401,
+        "total_tokens": 2701,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:47:11.160388",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4610,
+        "output_tokens": 266,
+        "total_tokens": 4876,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:47:16.082444",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6007,
+        "output_tokens": 174,
+        "total_tokens": 6181,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:47:21.571541",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6093,
+        "output_tokens": 162,
+        "total_tokens": 6255,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:47:36.482571",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5265,
+        "output_tokens": 1519,
+        "total_tokens": 6784,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:47:44.139709",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 1278,
+        "output_tokens": 461,
+        "total_tokens": 1739,
+        "profile": "lightweight"
+      },
+      {
+        "timestamp": "2026-10-12T22:47:52.693856",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7078,
+        "output_tokens": 306,
+        "total_tokens": 7384,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:47:58.664276",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8088,
+        "output_tokens": 394,
+        "total_tokens": 8482,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:48:11.239156",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7294,
+        "output_tokens": 1312,
+        "total_tokens": 8606,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:48:17.869700",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2366,
+        "output_tokens": 516,
+        "total_tokens": 2882,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:48:21.770156",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4716,
+        "output_tokens": 188,
+        "total_tokens": 4904,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:48:33.993841",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 3954,
+        "output_tokens": 630,
+        "total_tokens": 4584,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:48:40.756454",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5044,
+        "output_tokens": 379,
+        "total_tokens": 5423,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:48:45.941380",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2382,
+        "output_tokens": 333,
+        "total_tokens": 2715,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:48:55.127321",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4708,
+        "output_tokens": 264,
+        "total_tokens": 4972,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:49:02.491126",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6047,
+        "output_tokens": 371,
+        "total_tokens": 6418,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:49:08.732554",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7797,
+        "output_tokens": 165,
+        "total_tokens": 7962,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:49:13.668189",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7873,
+        "output_tokens": 174,
+        "total_tokens": 8047,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:49:41.411210",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7125,
+        "output_tokens": 2800,
+        "total_tokens": 9925,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-12T22:49:45.476518",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 955,
+        "output_tokens": 201,
+        "total_tokens": 1156,
+        "profile": "lightweight"
+      },
+      {
+        "timestamp": "2026-10-12T22:49:51.411952",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 9536,
+        "output_tokens": 328,
+        "total_tokens": 9864,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-12T22:49:56.907805",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2369,
+        "output_tokens": 96,
+        "total_tokens": 2465,
+        "profile": "strategist"
+      }
+    ]
+  },
+  "coverage": {
+    "nodes": {
+      "visited": 43,
+      "total": 45,
+      "percent": 95.6
+    },
+    "cards": {
+      "visited": 36,
+      "total": 37,
+      "percent": 97.3
+    },
+    "visited_node_ids": [
+      "role_recovery",
+      "service_wallet",
+      "storage_fee_addresses",
+      "interface_isimple_plugin",
+      "entry_exit",
+      "interface_ifee_buyback",
+      "service_safe",
+      "storage_stakes",
+      "entry_migration",
+      "entry_staking_rescue",
+      "contract_fee_buyback",
+      "entry_fee_rescue",
+      "actor_staking_admin",
+      "entry_fee_submit",
+      "contract_simple_plugin",
+      "contract_tiered_ownership",
+      "entry_pause_admin",
+      "entry_claim",
+      "actor_fee_buyback_executor",
+      "entry_plugin_views",
+      "service_aggregator",
+      "entry_stake",
+      "library_aux_data",
+      "interface_iplugin",
+      "entry_plugin_admin",
+      "storage_staking_tel",
+      "storage_plugin_claimable",
+      "entry_staking_slash",
+      "entry_ownership_admin",
+      "entry_staking_initialize",
+      "entry_plugin_notify",
+      "contract_staking_module",
+      "role_slasher",
+      "role_pauser",
+      "entry_plugin_increase",
+      "entry_claim_exit",
+      "actor_recovery",
+      "entry_plugin_claim",
+      "storage_ownership",
+      "storage_plugin_increaser",
+      "entry_staking_views",
+      "storage_staking_plugins",
+      "actor_fee_buyback_owner"
+    ],
+    "visited_card_ids": [
+      "card_be73014bf7be",
+      "card_ee3997789810",
+      "card_a5618fd50d26",
+      "card_3fc7f6fcd977",
+      "card_c4aeddc90cbf",
+      "card_7d3ef6b7b3b9",
+      "card_feaffa33e89c",
+      "card_b5f99ab3616d",
+      "card_75fdf6a4bb5a",
+      "card_ec61e7c06fac",
+      "card_c92bb6efd063",
+      "card_254a445020dd",
+      "card_2f790c06de47",
+      "card_d78e7464badf",
+      "card_a60bc5665cf3",
+      "card_919b9719ff70",
+      "card_0c2e7aa8345d",
+      "card_e3af4ab8a3ba",
+      "card_555837c040fb",
+      "card_52097c951bcc",
+      "card_73e9c01bd864",
+      "card_fa0f399c10ed",
+      "card_010ce6bf7cbd",
+      "card_0251cdcca348",
+      "card_eed862d5bb77",
+      "card_ac54aa90d552",
+      "card_e1a5e07cff1b",
+      "card_ba5be2afddcc",
+      "card_f2358eadabf2",
+      "card_25b594790423",
+      "card_d3aa27e40206",
+      "card_fd7cef52dd5c",
+      "card_61252ad5bdf5",
+      "card_c7352272d8f0",
+      "card_0bfd79bae728",
+      "card_2b991ae225af"
+    ],
+    "node_visit_counts": {
+      "entry_staking_initialize": 1,
+      "entry_stake": 1,
+      "entry_exit": 1,
+      "entry_claim": 1,
+      "entry_claim_exit": 1,
+      "entry_staking_views": 1,
+      "entry_staking_slash": 1,
+      "entry_plugin_admin": 1,
+      "entry_migration": 1,
+      "entry_staking_rescue": 1,
+      "entry_pause_admin": 1,
+      "entry_plugin_claim": 1,
+      "entry_plugin_views": 1,
+      "entry_plugin_notify": 1,
+      "entry_plugin_increase": 1,
+      "storage_stakes": 1,
+      "storage_staking_plugins": 1,
+      "storage_staking_tel": 1,
+      "storage_plugin_claimable": 1,
+      "storage_plugin_increaser": 1,
+      "contract_tiered_ownership": 1,
+      "interface_iplugin": 1,
+      "interface_isimple_plugin": 1,
+      "contract_simple_plugin": 1,
+      "contract_fee_buyback": 1,
+      "entry_fee_submit": 1,
+      "storage_fee_addresses": 1,
+      "entry_fee_rescue": 1,
+      "entry_ownership_admin": 1,
+      "library_aux_data": 1,
+      "contract_staking_module": 1,
+      "role_recovery": 1,
+      "actor_recovery": 1,
+      "role_slasher": 1,
+      "actor_staking_admin": 1,
+      "storage_ownership": 1,
+      "interface_ifee_buyback": 1,
+      "actor_fee_buyback_owner": 1,
+      "service_aggregator": 1,
+      "service_wallet": 1,
+      "actor_fee_buyback_executor": 1,
+      "service_safe": 1,
+      "role_pauser": 1
+    }
+  },
+  "end_time": "2026-10-12T22:49:56.932666"
+}

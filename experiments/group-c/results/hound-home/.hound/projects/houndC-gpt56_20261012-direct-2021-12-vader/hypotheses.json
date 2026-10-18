@@ -1,0 +1,1040 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_fb1cb8287a17": {
+      "title": "Liquidity add minimum amounts are ignored, enabling slippage and sandwich losses",
+      "description": "VULNERABILITY TYPE: slippage_control\nROOT CAUSE: The router interfaces expose slippage parameters, but the implementation marks them unused and performs no minimum-output or minimum-liquidity validation.\nATTACK VECTOR: A user submits addLiquidity with expected minimum values; an attacker trades or adds/removes liquidity before execution, changing the pool ratio and the amounts accepted/minted by the router.\nAFFECTED NODES: legacy_router, v2_router, legacy_pool, v2_pool\nAFFECTED CODE: contracts/dex/router/VaderRouter.sol:addLiquidity, contracts/dex-v2/router/VaderRouterV2.sol:addLiquidity\nSEVERITY: high\nREASONING: The supplied code explicitly names amountAMin and amountBMin as unused in both router interfaces/implementations, and the shown implementation forwards only desired amounts to the pool.\nSUGGESTED MITIGATION: Calculate the actual deposited amounts and minted liquidity, then require each actual amount to meet its corresponding minimum and require minted liquidity to meet a caller-provided minimum; revert otherwise.",
+      "vulnerability_type": "slippage_control",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "legacy_router",
+        "v2_router",
+        "legacy_pool",
+        "v2_pool"
+      ],
+      "evidence": [],
+      "reasoning": "The supplied code explicitly names amountAMin and amountBMin as unused in both router interfaces/implementations, and the shown implementation forwards only desired amounts to the pool.",
+      "mitigation": "Calculate the actual deposited amounts and minted liquidity, then require each actual amount to meet its corresponding minimum and require minted liquidity to meet a caller-provided minimum; revert otherwise.",
+      "finding_description": "Both legacy and V2 router addLiquidity overloads accept amountAMin and amountBMin but explicitly discard them and invoke pool minting without enforcing minimum deposits or minimum liquidity. A searcher can front-run or otherwise change pool reserves before the transaction executes, causing the user to receive materially different liquidity than expected while the transaction still succeeds.",
+      "impact": "Users can receive substantially fewer LP units or provide an unfavorable asset ratio, resulting in direct loss of deposited assets and value extraction by sandwichers.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/dex/router/VaderRouter.sol",
+          "contract": "VaderRouter",
+          "function": "addLiquidity(IERC20,IERC20,uint256,uint256,uint256,uint256,address,uint256)"
+        },
+        {
+          "file": "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contract": "VaderRouterV2",
+          "function": "addLiquidity(IERC20,IERC20,uint256,uint256,uint256,uint256,address,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/dex/pool/VaderPool.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/dex/pool/BasePool.sol",
+          "contracts/dex/router/VaderRouter.sol",
+          "contracts/interfaces/dex/router/IVaderRouter.sol",
+          "contracts/dex-v2/pool/BasePoolV2.sol",
+          "contracts/interfaces/dex/pool/IBasePool.sol",
+          "contracts/interfaces/dex-v2/pool/IVaderPoolV2.sol",
+          "contracts/interfaces/dex-v2/router/IVaderRouterV2.sol",
+          "contracts/interfaces/dex-v2/pool/IBasePoolV2.sol",
+          "contracts/interfaces/dex/pool/IVaderPool.sol",
+          "contracts/dex-v2/pool/VaderPoolV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:59:43.717638",
+      "id": "hyp_fb1cb8287a17",
+      "qa_comment": "Upon reviewing VaderRouter.addLiquidity and VaderRouterV2.addLiquidity, I confirmed that the slippage controls exposed by the Uniswap V2-compatible interfaces are ignored. In both external overloads, amountAMin and amountBMin are unnamed parameters and are forwarded to overloads that accept only desired amounts, without performing any validation. The legacy router's _addLiquidity function simply returns amountADesired and amountBDesired, transfers both exact amounts to the selected VaderPool, and calls pool.mint(to). Likewise, VaderRouterV2 forwards the desired native and foreign deposits directly to pool.mint, and BasePoolV2._mint transfers precisely those values before calculating liquidity using current reserves and total supply. Consequently, a prior trade or liquidity operation can alter the reserve ratio and reduce the liquidity minted or worsen the economic value of the position, while the caller's specified minimums cannot cause a revert. No minimum-liquidity parameter or post-mint validation exists in either router. The deadline only limits execution time and does not protect against reserve manipulation, so the stated slippage-control weakness is exploitable."
+    },
+    "hyp_7ca78c1353ac": {
+      "title": "V2 mintSynth lacks router access control and can spend arbitrary approved users' native assets",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: A state-changing asset-transfer and token-minting entry point trusts arbitrary from and to parameters without restricting invocation to the designated router or requiring that from equals the authenticated caller.\nATTACK VECTOR: After a victim approves the pool directly, an attacker calls mintSynth(foreignAsset, amount, victim, attacker) and receives synth tokens backed by the victim's transferred native asset.\nAFFECTED NODES: v2_pool, synth_factory, synth, v2_router\nAFFECTED CODE: contracts/dex-v2/pool/VaderPoolV2.sol:mintSynth, contracts/dex-v2/synths/Synth.sol:mint/burn\nSEVERITY: critical\nREASONING: The loaded function signature and body show an external mintSynth entry point with no onlyRouter modifier and a transferFrom using arbitrary from followed by minting to arbitrary to. The exploit requires the victim to have granted the pool sufficient allowance, which is consistent with pool-side transferFrom-based liquidity flows.\nSUGGESTED MITIGATION: Restrict mintSynth to the configured router and require from == the authenticated user where appropriate, or use msg.sender as the source and avoid arbitrary source addresses. Validate the recipient and add authorization tests covering unauthorized direct calls.",
+      "vulnerability_type": "access_control",
+      "severity": "critical",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "v2_pool",
+        "synth_factory",
+        "synth",
+        "v2_router"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded function signature and body show an external mintSynth entry point with no onlyRouter modifier and a transferFrom using arbitrary from followed by minting to arbitrary to. The exploit requires the victim to have granted the pool sufficient allowance, which is consistent with pool-side transferFrom-based liquidity flows.",
+      "mitigation": "Restrict mintSynth to the configured router and require from == the authenticated user where appropriate, or use msg.sender as the source and avoid arbitrary source addresses. Validate the recipient and add authorization tests covering unauthorized direct calls.",
+      "finding_description": "VaderPoolV2.mintSynth is externally callable and its shown modifiers include nonReentrant and supportedToken but not onlyRouter. It calls nativeAsset.safeTransferFrom(from, address(this), nativeDeposit) using a caller-supplied from address, then mints synthetic tokens to a caller-supplied to address. Any attacker can therefore use a victim's native-asset allowance to the pool to transfer the victim's assets and direct the resulting synth tokens to the attacker.",
+      "impact": "Approved users can have native assets drained from the pool allowance and converted into synth tokens sent to an attacker, causing direct loss of funds.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/dex-v2/pool/VaderPoolV2.sol",
+          "contract": "VaderPoolV2",
+          "function": "mintSynth(IERC20,uint256,address,address)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/interfaces/dex-v2/synth/ISynth.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/dex-v2/synths/SynthFactory.sol",
+          "contracts/dex-v2/pool/BasePoolV2.sol",
+          "contracts/interfaces/dex-v2/pool/IVaderPoolV2.sol",
+          "contracts/interfaces/dex-v2/synth/ISynthFactory.sol",
+          "contracts/dex-v2/synths/Synth.sol",
+          "contracts/interfaces/dex-v2/router/IVaderRouterV2.sol",
+          "contracts/interfaces/dex-v2/pool/IBasePoolV2.sol",
+          "contracts/dex-v2/pool/VaderPoolV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:59:43.738299",
+      "id": "hyp_7ca78c1353ac",
+      "qa_comment": "Upon reviewing VaderPoolV2.mintSynth in contracts/dex-v2/pool/VaderPoolV2.sol, I confirmed that the access-control vulnerability is exploitable. The function is external and protected only by nonReentrant and supportedToken(foreignAsset); unlike mint, swap, and burn, it has no onlyRouter modifier. It calls nativeAsset.safeTransferFrom(from, address(this), nativeDeposit) using the arbitrary from parameter, without requiring from == msg.sender or otherwise authenticating that address. It then obtains or creates the synth through SynthFactory and invokes synth.mint(to, amountSynth). SynthFactory is owned by the pool, and Synth.mint is restricted to that owner, so the pool can successfully mint synth tokens to an attacker-controlled recipient during this call. Consequently, any victim who has directly approved the pool to spend nativeAsset can be targeted by an attacker supplying the victim as from and themselves as to. The router\u2019s access control on other pool functions does not mitigate this independently callable entry point."
+    },
+    "hyp_63ec722e9e6b": {
+      "title": "Pool reserve accounting can truncate balances above uint112 and desynchronize pricing",
+      "description": "VULNERABILITY TYPE: arithmetic\nROOT CAUSE: Reserve-width constraints are not visibly checked before converting uint256 token balances to uint112 reserve storage.\nATTACK VECTOR: An attacker or token issuer causes a pool balance to exceed the uint112 range through a large transfer, rebasing/minting token, or malicious ERC-20 behavior, then invokes a reserve-updating operation.\nAFFECTED NODES: legacy_pool, v2_pool, math_utilities\nAFFECTED CODE: contracts/dex/pool/BasePool.sol:_update, contracts/dex-v2/pool/BasePoolV2.sol:_update\nSEVERITY: medium\nREASONING: The interfaces and pool code use uint112 reserve fields while token balances and transfer amounts are uint256. The shown update logic assigns balances into those narrow fields, but no explicit upper-bound validation is present in the loaded excerpts.\nSUGGESTED MITIGATION: Require each balance to be <= type(uint112).max before storage conversion and reject unsupported tokens whose balance model can exceed that bound; alternatively store reserves in uint256 and update all dependent arithmetic safely.",
+      "vulnerability_type": "arithmetic",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "legacy_pool",
+        "v2_pool",
+        "math_utilities"
+      ],
+      "evidence": [],
+      "reasoning": "The interfaces and pool code use uint112 reserve fields while token balances and transfer amounts are uint256. The shown update logic assigns balances into those narrow fields, but no explicit upper-bound validation is present in the loaded excerpts.",
+      "mitigation": "Require each balance to be <= type(uint112).max before storage conversion and reject unsupported tokens whose balance model can exceed that bound; alternatively store reserves in uint256 and update all dependent arithmetic safely.",
+      "finding_description": "Pool reserve state is stored as uint112, while token balances and deposits are uint256. The loaded pool code updates reserves by assigning balance values to uint112 fields. If a supported token balance exceeds uint112.max, the conversion can truncate or revert depending on the compiler context, leaving reserve accounting inconsistent with actual token balances or making pool operations fail.",
+      "impact": "Reserve desynchronization can cause incorrect swap prices and liquidity calculations; alternatively, reserve updates can be forced to revert, locking swaps, deposits, withdrawals, or other pool operations.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/dex/pool/BasePool.sol",
+          "contract": "BasePool",
+          "function": "_update"
+        },
+        {
+          "file": "contracts/dex-v2/pool/BasePoolV2.sol",
+          "contract": "BasePoolV2",
+          "function": "_update"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/dex/pool/VaderPool.sol",
+          "contracts/dex/pool/BasePool.sol",
+          "contracts/external/libraries/UniswapV2Library.sol",
+          "contracts/dex-v2/pool/BasePoolV2.sol",
+          "contracts/external/libraries/UQ112x112.sol",
+          "contracts/external/libraries/FullMath.sol",
+          "contracts/interfaces/dex/pool/IBasePool.sol",
+          "contracts/interfaces/dex-v2/pool/IVaderPoolV2.sol",
+          "contracts/external/libraries/TransferHelper.sol",
+          "contracts/external/libraries/BitMath.sol",
+          "contracts/external/libraries/Babylonian.sol",
+          "contracts/interfaces/dex-v2/pool/IBasePoolV2.sol",
+          "contracts/interfaces/dex/pool/IVaderPool.sol",
+          "contracts/dex-v2/pool/VaderPoolV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:59:43.753575",
+      "id": "hyp_63ec722e9e6b",
+      "qa_comment": "Upon reviewing the alleged reserve-truncation vulnerability in BasePool._update and BasePoolV2._update, I determined this is a false positive. Both implementations explicitly require balanceNative and balanceForeign to be less than or equal to type(uint112).max before performing the uint112 assignments. In contracts/dex/pool/BasePool.sol, mint, burn, and swap all eventually call _update, so balances exceeding the representable range cause the transaction to revert with \"Balance Overflow\" rather than being silently truncated. The same guard exists in contracts/dex-v2/pool/BasePoolV2.sol, covering mint, burn, swap, and doubleSwap updates for each supported pair. Consequently, an oversized transfer or token rebase could potentially cause update operations to fail, creating a denial-of-service concern depending on token behavior, but it cannot produce the hypothesized truncated reserve or pricing desynchronization through these functions. The stated root cause\u2014that no upper-bound validation exists\u2014is contradicted by the source code."
+    },
+    "hyp_33ecc0f2eea1": {
+      "title": "Daily mint limit is bypassed whenever a mint cycle rolls over",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: The daily-limit comparison is present only in the continuing-cycle branch; the cycle-reset branch assigns the requested amount without validation.\nATTACK VECTOR: Submit a USDV mint request larger than dailyLimit immediately after deployment or after cycleTimestamp expires. Repeat after each 24-hour reset.\nAFFECTED NODES: usdv_token, vader_token\nAFFECTED CODE: contracts/tokens/USDV.sol:mint, contracts/tokens/USDV.sol:cycleTimestamp/cycleMints accounting\nSEVERITY: high\nREASONING: The loaded mint fragment explicitly shows cycleMints = uAmount in the reset branch, while the dailyLimit require exists only in the else branch. No upper-bound check is applied to the new-cycle amount.\nSUGGESTED MITIGATION: Require uAmount <= dailyLimit in the cycle-reset branch, or use a single accounting path that checks the resulting cycleMints value against dailyLimit before minting.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "usdv_token",
+        "vader_token"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded mint fragment explicitly shows cycleMints = uAmount in the reset branch, while the dailyLimit require exists only in the else branch. No upper-bound check is applied to the new-cycle amount.",
+      "mitigation": "Require uAmount <= dailyLimit in the cycle-reset branch, or use a single accounting path that checks the resulting cycleMints value against dailyLimit before minting.",
+      "finding_description": "When cycleTimestamp is expired, the mint logic sets cycleMints directly to uAmount without requiring uAmount <= dailyLimit. The same path is used for the first mint because cycleTimestamp is initially zero, allowing a caller authorized to trigger USDV minting to mint an arbitrary amount above the configured daily limit once per cycle.",
+      "impact": "The intended daily USDV issuance cap can be exceeded by an amount of arbitrary size at the start of every 24-hour window, increasing USDV supply and potentially enabling excessive VADER conversion or draining backing liquidity.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/tokens/USDV.sol",
+          "contract": "USDV",
+          "function": "mint"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/tokens/USDV.sol",
+          "contracts/interfaces/tokens/IUSDV.sol",
+          "contracts/interfaces/tokens/IVader.sol",
+          "contracts/tokens/Vader.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:00:27.316674",
+      "id": "hyp_33ecc0f2eea1",
+      "qa_comment": "Upon reviewing the USDV.mint function in contracts/tokens/USDV.sol, I confirmed the reported daily-limit logic error. After calculating uAmount from the current VADER price and the user-supplied vAmount, the function enters the reset branch whenever cycleTimestamp is less than or equal to block.timestamp. That branch sets cycleTimestamp to block.timestamp + 24 hours and assigns cycleMints = uAmount without checking uAmount against dailyLimit. The only require enforcing cycleMints <= dailyLimit appears in the continuing-cycle branch, after cycleMints is incremented. Consequently, a caller can submit a mint whose resulting USDV amount exceeds dailyLimit immediately after deployment or after the 24-hour window expires, subject only to ordinary transfer, burn, pricing, and token-balance constraints. The lock modifier does not impose a mint-size restriction, and Vader.mint/burn access control does not enforce USDV's daily limit. The default dailyLimit is also uint256.max, but whenever the owner configures a meaningful lower limit, the rollover path remains exploitable."
+    },
+    "hyp_b449f1558c3e": {
+      "title": "Hardcoded payout-token decimals can misprice bonds",
+      "description": "VULNERABILITY TYPE: arithmetic\nROOT CAUSE: The valuation formula relies on a compile-time decimal constant rather than IERC20Metadata(payoutToken).decimals(), without enforcing that the payout token matches the assumed decimals.\nATTACK VECTOR: Deploy or configure VaderBond/Treasury with a payout token whose decimals differ from PAYOUT_TOKEN_DECIMALS, then purchase bonds using principal tokens. The resulting payout amounts are miscalculated according to the decimal mismatch.\nAFFECTED NODES: vader_bond, bond_treasury\nAFFECTED CODE: repo/vader-bond/contracts/Treasury.sol:valueOfToken, repo/vader-bond/contracts/VaderBond.sol:constructor\nSEVERITY: medium\nREASONING: The supplied code explicitly accepts an arbitrary payout-token address but performs valuation using PAYOUT_TOKEN_DECIMALS. This is exploitable whenever deployment assumptions about payout-token decimals are violated.\nSUGGESTED MITIGATION: Derive the payout-token decimals from IERC20Metadata(payoutToken).decimals() and normalize all bond-price calculations consistently, or enforce at construction that the configured payout token has exactly PAYOUT_TOKEN_DECIMALS decimals.",
+      "vulnerability_type": "arithmetic",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "vader_bond",
+        "bond_treasury"
+      ],
+      "evidence": [],
+      "reasoning": "The supplied code explicitly accepts an arbitrary payout-token address but performs valuation using PAYOUT_TOKEN_DECIMALS. This is exploitable whenever deployment assumptions about payout-token decimals are violated.",
+      "mitigation": "Derive the payout-token decimals from IERC20Metadata(payoutToken).decimals() and normalize all bond-price calculations consistently, or enforce at construction that the configured payout token has exactly PAYOUT_TOKEN_DECIMALS decimals.",
+      "finding_description": "Treasury.valueOfToken converts principal amounts using PAYOUT_TOKEN_DECIMALS instead of querying the configured payoutToken's actual decimals, while the constructor accepts any payout-token address. If the configured payout token does not use the assumed decimal count, bond valuation and bond-price calculations are systematically incorrect.",
+      "impact": "Bond purchasers may receive materially too much or too little payout token; an overpayment configuration can drain Treasury reserves and make the bond insolvent.",
+      "vulnerable_code": [
+        {
+          "file": "repo/vader-bond/contracts/Treasury.sol",
+          "contract": "Treasury",
+          "function": "valueOfToken"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "repo/vader-bond/contracts/Treasury.sol",
+          "repo/vader-bond/contracts/interfaces/ITreasury.sol",
+          "repo/vader-bond/contracts/VaderBond.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:01:28.043671",
+      "id": "hyp_b449f1558c3e",
+      "qa_comment": "Upon reviewing Treasury.valueOfToken and VaderBond\u2019s constructor and pricing functions, I determined this specific hardcoded-decimals hypothesis is a false positive. Treasury does not use a compile-time payout-token decimal constant: its constructor stores PAYOUT_TOKEN_DECIMALS from IERC20Metadata(_payoutToken).decimals(), and valueOfToken normalizes principal amounts using that value and the principal token\u2019s metadata decimals. VaderBond does define PAYOUT_TOKEN_DECIMALS = 18, but this constant is used primarily for MIN_PAYOUT, while payoutFor receives a value already denominated in the Treasury payout token\u2019s native units; bondPrice and debtRatio use consistent unit-independent scaling. Therefore, configuring both contracts with a payout token having non-18 decimals does not by itself misprice bonds through valueOfToken. The code does lack an explicit check that VaderBond.payoutToken matches Treasury\u2019s payout token, which could create a separate severe misconfiguration involving transfers and redemption, but that is distinct from the alleged hardcoded decimal valuation issue."
+    },
+    "hyp_d47616be84e6": {
+      "title": "Swap queue operations are unimplemented and silently return default values",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Queue insertion and execution logic is declared but not implemented, with Solidity default return values masking the failure.\nATTACK VECTOR: A user or integrating contract invokes the queue workflow; insertion does not record an item and executeQueue completes without executing queued work or reimbursing the caller.\nAFFECTED NODES: swap_queue\nAFFECTED CODE: contracts/dex/queue/SwapQueue.sol:_insertQueue(uint256), contracts/dex/queue/SwapQueue.sol:_executeQueue(), contracts/dex/queue/SwapQueue.sol:executeQueue()\nSEVERITY: high\nREASONING: The loaded implementation contains empty bodies for both queue primitives, and executeQueue directly relies on _executeQueue's return value before transferring reimbursement. No state mutation or queue processing can occur in the shown code.\nSUGGESTED MITIGATION: Implement and test linked-list insertion and execution, explicitly return success or revert on failure, validate queue invariants, and add tests proving that queued items are recorded, processed exactly once, and reimbursed according to the intended policy.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "swap_queue"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation contains empty bodies for both queue primitives, and executeQueue directly relies on _executeQueue's return value before transferring reimbursement. No state mutation or queue processing can occur in the shown code.",
+      "mitigation": "Implement and test linked-list insertion and execution, explicitly return success or revert on failure, validate queue invariants, and add tests proving that queued items are recorded, processed exactly once, and reimbursed according to the intended policy.",
+      "finding_description": "Both internal queue functions have empty bodies. _insertQueue therefore returns the default boolean value false without modifying the public queue mapping, while _executeQueue returns a zero reimbursement without processing any queued item. Any integration relying on this contract to enqueue or execute swaps will silently fail.",
+      "impact": "Queued swaps can remain unprocessed indefinitely, causing denial of service for the queue functionality and potentially leaving assets or accounting state stranded in upstream integrations that assume successful queue execution.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/dex/queue/SwapQueue.sol",
+          "contract": "SwapQueue",
+          "function": "_insertQueue(uint256)"
+        },
+        {
+          "file": "contracts/dex/queue/SwapQueue.sol",
+          "contract": "SwapQueue",
+          "function": "_executeQueue()"
+        },
+        {
+          "file": "contracts/dex/queue/SwapQueue.sol",
+          "contract": "SwapQueue",
+          "function": "executeQueue()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/dex/queue/SwapQueue.sol",
+          "contracts/interfaces/dex/queue/ISwapQueue.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:02:27.675719",
+      "id": "hyp_d47616be84e6",
+      "qa_comment": "Upon reviewing SwapQueue.sol, I confirmed the alleged logic error in the queue primitives. The internal function _insertQueue(uint256) has an empty body and therefore implicitly returns Solidity\u2019s default bool value, false, without modifying the public queue mapping or its linked-list fields. Likewise, _executeQueue() has an empty body and implicitly returns zero. executeQueue() externally invokes _executeQueue(), receives a zero reimbursement, and calls Address.sendValue with that amount, so the transaction can complete successfully while performing no queue processing and transferring no reimbursement. There are no access controls, validation checks, reverts, or other guards that compensate for these missing implementations. Although the supplied contract exposes no public insertion function, meaning the shown code alone does not demonstrate theft or creation of queued entries, any intended workflow or integrating contract relying on these primitives will silently fail: insertion reports failure and execution is a no-op. The issue is therefore a confirmed implementation-level availability and correctness vulnerability, while its ultimate economic impact depends on omitted integration code."
+    },
+    "hyp_82ed2fad32c4": {
+      "title": "Execution reimbursement is always zero and forced ETH cannot be recovered",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The reimbursement calculation is unimplemented and there is no administrator or rescue mechanism for ETH held by the contract.\nATTACK VECTOR: ETH is forced into SwapQueue using selfdestruct or another protocol path, or an integration funds the address expecting execution reimbursement; callers invoke executeQueue but receive zero and no recovery path exists.\nAFFECTED NODES: swap_queue\nAFFECTED CODE: contracts/dex/queue/SwapQueue.sol:executeQueue(), contracts/dex/queue/SwapQueue.sol:_executeQueue()\nSEVERITY: medium\nREASONING: _executeQueue has an empty body and returns uint256, so the reimbursement expression is zero under Solidity default-return semantics. The loaded contract defines no payable receiver or withdrawal/recovery function; forced ETH can nevertheless reach its balance.\nSUGGESTED MITIGATION: Implement the reimbursement calculation and account for the contract balance explicitly; add a narrowly controlled emergency ETH recovery function protected by the intended governance or owner mechanism, and reject or safely handle unsupported funding paths.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "swap_queue"
+      ],
+      "evidence": [],
+      "reasoning": "_executeQueue has an empty body and returns uint256, so the reimbursement expression is zero under Solidity default-return semantics. The loaded contract defines no payable receiver or withdrawal/recovery function; forced ETH can nevertheless reach its balance.",
+      "mitigation": "Implement the reimbursement calculation and account for the contract balance explicitly; add a narrowly controlled emergency ETH recovery function protected by the intended governance or owner mechanism, and reject or safely handle unsupported funding paths.",
+      "finding_description": "executeQueue reimburses msg.sender with the value returned by _executeQueue, but the current _executeQueue implementation returns the default value zero. The contract also exposes no withdrawal or recovery function. ETH forcibly sent to the contract cannot be recovered through the available interface.",
+      "impact": "ETH held by the contract can become permanently inaccessible, and keepers or executors receive no reimbursement, preventing reliable operation of any intended queue maintenance process.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/dex/queue/SwapQueue.sol",
+          "contract": "SwapQueue",
+          "function": "executeQueue()"
+        },
+        {
+          "file": "contracts/dex/queue/SwapQueue.sol",
+          "contract": "SwapQueue",
+          "function": "_executeQueue()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/dex/queue/SwapQueue.sol",
+          "contracts/interfaces/dex/queue/ISwapQueue.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:02:27.692083",
+      "id": "hyp_82ed2fad32c4",
+      "qa_comment": "Upon reviewing SwapQueue.sol, particularly executeQueue(), _executeQueue(), and the contract\u2019s complete set of functions, I confirmed that the alleged issue exists in the provided implementation. executeQueue() calls _executeQueue() and forwards its returned value through Address.sendValue(), but _executeQueue() has an empty body and no named return variable or return statement, so the uint256 result defaults to zero. Consequently, callers receive no execution reimbursement regardless of queue activity. The contract also defines no payable receive or fallback function, administrator-controlled withdrawal method, emergency recovery function, or other mechanism to transfer ETH held by the contract. Although ordinary ETH transfers are not accepted, ETH can still be forcibly deposited through mechanisms such as selfdestruct, leaving the balance permanently inaccessible through this contract\u2019s exposed functionality. No access-control or balance-handling logic mitigates either condition. The related _insertQueue() function is also unimplemented, reinforcing that this source is incomplete, but based on the supplied code the zero reimbursement and unrecoverable forced ETH are directly demonstrable."
+    },
+    "hyp_91486a5ae4c6": {
+      "title": "Governor proposals can pass without a quorum",
+      "description": "VULNERABILITY TYPE: governance_security\nROOT CAUSE: Missing quorum or minimum-participation validation in proposal success conditions.\nATTACK VECTOR: An attacker acquires or controls a small amount of XVader voting power, submits a proposal, votes for it, and waits for the voting period to expire while legitimate voters abstain. The proposal can then be queued and executed through the Timelock.\nAFFECTED NODES: governor_alpha, xvader, timelock, actor_user\nAFFECTED CODE: GovernorAlpha proposal creation, voting, and success evaluation, GovernorAlpha queue and execute flow, XVader voting-power snapshot integration\nSEVERITY: high\nREASONING: The loaded governance architecture identifies GovernorAlpha voting power and Timelock execution but does not identify any quorum control. Standard GovernorAlpha success logic commonly checks only forVotes > againstVotes, which permits passage with negligible participation.\nSUGGESTED MITIGATION: Add an explicit quorum requirement based on a documented fraction or absolute amount of total voting power at the proposal snapshot, and require both quorum and a favorable vote result before queueing or execution.",
+      "vulnerability_type": "governance_security",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "governor_alpha",
+        "xvader",
+        "timelock",
+        "actor_user"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded governance architecture identifies GovernorAlpha voting power and Timelock execution but does not identify any quorum control. Standard GovernorAlpha success logic commonly checks only forVotes > againstVotes, which permits passage with negligible participation.",
+      "mitigation": "Add an explicit quorum requirement based on a documented fraction or absolute amount of total voting power at the proposal snapshot, and require both quorum and a favorable vote result before queueing or execution.",
+      "finding_description": "GovernorAlpha determines success from the relative number of for and against votes but does not require a minimum participation threshold. Consequently, a proposal can pass with only a small amount of voting power when the broader XVader holder base does not participate.",
+      "impact": "Low-participation governance takeover can authorize arbitrary protocol changes, including transfers of treasury assets, parameter changes, or replacement of privileged administrators.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/governance/GovernorAlpha.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/interfaces/governance/ITimelock.sol",
+          "contracts/interfaces/x-vader/IXVader.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/x-vader/XVader.sol",
+          "contracts/governance/Timelock.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:03:45.253323",
+      "id": "hyp_91486a5ae4c6",
+      "qa_comment": "Upon reviewing the alleged missing-quorum vulnerability in GovernorAlpha, I determined this is a false positive. The implementation explicitly defines quorumVotes(uint256 blockNumber) as 4% of xVader.getPastTotalSupply(blockNumber). In state(uint256 proposalId), once voting has ended, a proposal is marked Defeated whenever proposal.forVotes <= proposal.againstVotes or proposal.forVotes < quorumVotes(proposal.startBlock). Consequently, queue(uint256) can proceed only when state returns Succeeded, and execute(uint256) requires the proposal to be queued, so ordinary proposals cannot pass solely because legitimate voters abstain. Voting power is also snapshot-based through xVader.getPastVotes(voter, proposal.startBlock), consistently matching the quorum snapshot. The council veto path is an intentional privileged mechanism: veto(..., true) queues a proposal directly and therefore bypasses normal voting quorum, but this is not an attacker-controlled low-participation voting path because only the configured council may invoke it. Subject to the intended governance design and assuming XVader\u2019s historical supply functions are correct, the stated attack vector is not exploitable."
+    },
+    "hyp_203b2368e382": {
+      "title": "Timelock administrator retains a direct privileged authorization path",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Multiple privileged authorities remain authorized for Timelock administration instead of enforcing GovernorAlpha as the sole operational admin.\nATTACK VECTOR: A compromised or malicious administrator invokes Timelock administrative functions directly to schedule privileged calls, bypassing token-holder proposal and voting controls, subject only to the Timelock delay.\nAFFECTED NODES: timelock, governor_alpha, actor_administrator\nAFFECTED CODE: Timelock administrator authorization and queued transaction management, GovernorAlpha-to-Timelock administration handoff\nSEVERITY: high\nREASONING: The system graph explicitly records actor_administrator->timelock authorization as well as timelock->governor authorization. This is a concrete alternate control path unless the administrator authorization is only temporary and provably revoked after governance initialization.\nSUGGESTED MITIGATION: After deployment and governance handoff, set the Timelock admin exclusively to the intended GovernorAlpha authority, verify the old administrator can no longer queue, cancel, or execute administrative transactions, and expose an initialization invariant preventing reintroduction of the old admin.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "timelock",
+        "governor_alpha",
+        "actor_administrator"
+      ],
+      "evidence": [],
+      "reasoning": "The system graph explicitly records actor_administrator->timelock authorization as well as timelock->governor authorization. This is a concrete alternate control path unless the administrator authorization is only temporary and provably revoked after governance initialization.",
+      "mitigation": "After deployment and governance handoff, set the Timelock admin exclusively to the intended GovernorAlpha authority, verify the old administrator can no longer queue, cancel, or execute administrative transactions, and expose an initialization invariant preventing reintroduction of the old admin.",
+      "finding_description": "The architecture shows both GovernorAlpha and the administrator authorizing Timelock operations. If the administrator remains configured as Timelock admin rather than being fully transferred to GovernorAlpha, the administrator can independently queue or execute privileged protocol changes outside the GovernorAlpha voting process.",
+      "impact": "Compromise of the administrator can result in unauthorized upgrades, asset transfers, parameter changes, or governance takeover without a valid community-approved proposal.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/dex/pool/VaderPoolFactory.sol",
+          "contracts/governance/GovernorAlpha.sol",
+          "contracts/interfaces/governance/ITimelock.sol",
+          "contracts/staking-rewards/Owned.sol",
+          "contracts/governance/Timelock.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:03:45.270016",
+      "id": "hyp_203b2368e382"
+    },
+    "hyp_b3acedd3d5d7": {
+      "title": "XVader share-price donation attack enables zero-share deposits",
+      "description": "VULNERABILITY TYPE: economic_attack\nROOT CAUSE: Share valuation relies directly on balanceOf(VADER) and does not demonstrably separate accounted assets from unsolicited transfers or protect deposit rounding.\nATTACK VECTOR: An attacker deposits a small amount, transfers VADER directly to XVader to inflate the exchange rate, waits for a victim deposit that rounds down to few or zero shares, then withdraws shares at the inflated balance.\nAFFECTED NODES: xvader, vader_token, actor_user\nAFFECTED CODE: XVader share minting and redemption calculations, VADER balance-based share-price calculation\nSEVERITY: high\nREASONING: The architecture explicitly states that XVader share price is derived from the Vader balance. This is the characteristic precondition for ERC4626-style donation and rounding attacks; confirmation requires checking deposit rounding and whether virtual shares or internal asset accounting are present.\nSUGGESTED MITIGATION: Use internal accounted assets rather than raw token balance for pricing, add virtual shares/assets or equivalent minimum-share protections, reject deposits that mint zero shares, and test direct-donation and first-depositor scenarios.",
+      "vulnerability_type": "economic_attack",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "xvader",
+        "vader_token",
+        "actor_user"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly states that XVader share price is derived from the Vader balance. This is the characteristic precondition for ERC4626-style donation and rounding attacks; confirmation requires checking deposit rounding and whether virtual shares or internal asset accounting are present.",
+      "mitigation": "Use internal accounted assets rather than raw token balance for pricing, add virtual shares/assets or equivalent minimum-share protections, reject deposits that mint zero shares, and test direct-donation and first-depositor scenarios.",
+      "finding_description": "XVader prices shares from the contract's current VADER balance. If deposits calculate newly minted shares from that balance without virtual shares, a holder can make a small initial deposit, directly transfer or otherwise donate a large amount of VADER to XVader, and cause a victim's subsequent deposit to mint zero or severely underpriced shares. The attacker can then redeem the initial shares for the victim-funded VADER.",
+      "impact": "Victim deposits can be partially or wholly captured by the attacker, causing direct loss of VADER and dilution of depositor ownership.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/tokens/USDV.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/interfaces/x-vader/IXVader.sol",
+          "contracts/interfaces/tokens/IVader.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/x-vader/XVader.sol",
+          "contracts/tokens/Vader.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:04:43.864182",
+      "id": "hyp_b3acedd3d5d7",
+      "qa_comment": "Upon reviewing XVader.enter and XVader.leave, I confirmed that the alleged donation and rounding vulnerability is exploitable. enter derives the exchange rate from vader.balanceOf(address(this)) and totalSupply(), then computes xVADERToMint using integer division: (_amount * totalShares) / totalVader. There is no internal asset accounting, virtual balance, minimum-share requirement, or check that the minted amount is nonzero. An attacker can obtain initial shares, transfer VADER directly to XVader to inflate totalVader without increasing totalSupply, and then cause a subsequent victim deposit to mint zero or disproportionately few shares when the division rounds down. The victim's VADER remains in the contract, while the attacker can call leave and receive (_shares * vader.balanceOf(address(this))) / totalShares, thereby capturing value attributable to the victim's deposit. The direct transfer is unrestricted by XVader, and leave uses the same raw balance with no protection against donated assets. ERC20 transfer and allowance mechanics do not mitigate this economic flaw."
+    },
+    "hyp_622e21100d3d": {
+      "title": "GasThrottle enforcement is ineffective because validation is disabled",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The implementation does not execute the configured throttle validation and does not consult the enabled state when processing operations.\nATTACK VECTOR: A caller invokes the protected operation under gas conditions that the throttle was intended to reject, bypassing the missing validation and repeatedly consuming excessive execution resources or triggering unsafe execution paths.\nAFFECTED NODES: gas_throttle, chainlink_interfaces, protocol_constants\nAFFECTED CODE: GasThrottle validation and enabled-flag handling, GasThrottle Chainlink-based gas checks\nSEVERITY: medium\nREASONING: The system architecture explicitly records that validation is commented out and the enabled flag is unused. The concrete effect on callers should be confirmed by tracing every operation that is expected to invoke GasThrottle.\nSUGGESTED MITIGATION: Restore and enforce validation at the protected entry points, honor the enabled flag, validate oracle freshness and bounds, and add tests proving that over-limit calls revert while disabled-mode behavior is intentional and explicit.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.9,
+      "status": "proposed",
+      "node_refs": [
+        "gas_throttle",
+        "chainlink_interfaces",
+        "protocol_constants"
+      ],
+      "evidence": [],
+      "reasoning": "The system architecture explicitly records that validation is commented out and the enabled flag is unused. The concrete effect on callers should be confirmed by tracing every operation that is expected to invoke GasThrottle.",
+      "mitigation": "Restore and enforce validation at the protected entry points, honor the enabled flag, validate oracle freshness and bounds, and add tests proving that over-limit calls revert while disabled-mode behavior is intentional and explicit.",
+      "finding_description": "GasThrottle is documented with its validation logic commented out and its enabled flag unused. Calls that are expected to be constrained by the throttle can therefore proceed without the configured gas or oracle-based safety check, leaving the control as a non-functional security boundary.",
+      "impact": "An attacker may bypass gas-safety limits, increasing execution cost and potentially causing transaction failures or denial of service for operations relying on GasThrottle.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/interfaces/external/chainlink/IAggregator.sol",
+          "contracts/interfaces/external/chainlink/IAggregatorV3.sol",
+          "contracts/external/interfaces/AggregatorV3Interface.sol",
+          "contracts/dex/utils/GasThrottle.sol",
+          "contracts/shared/ProtocolConstants.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:04:43.880517",
+      "id": "hyp_622e21100d3d"
+    },
+    "hyp_113e6292e37d": {
+      "title": "Reward notification can schedule rewards against pre-existing contract balances",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Reward scheduling is not demonstrably tied to a measured increase in the reward-token balance, allowing unrelated balances to be counted as newly funded rewards.\nATTACK VECTOR: A caller with distributor authorization invokes reward notification while the contract already holds reward tokens, or supplies an amount that is not actually transferred, causing the contract to promise more rewards than the intended funding supports.\nAFFECTED NODES: staking_rewards, rewards_recipient, actor_user, external_token_boundary\nAFFECTED CODE: StakingRewards reward notification and reward-rate accounting, RewardsDistributionRecipient distributor-gated notification\nSEVERITY: medium\nREASONING: The architecture explicitly identifies StakingRewards as reward-token-balance-backed and calls out distributor-gated notification, while the focused analysis guidance specifically requires verification that only newly funded tokens are scheduled. The source code and exact function lines are not loaded, so this remains conditional pending confirmation of the notification implementation.\nSUGGESTED MITIGATION: Measure the reward-token balance immediately before and after the funding transfer and schedule only the verified balance increase; alternatively require the amount to be transferred in the same call and account separately for leftover rewards. Enforce that the resulting schedule cannot exceed tokens actually held and reserved for rewards.",
+      "vulnerability_type": "logic_error",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "staking_rewards",
+        "rewards_recipient",
+        "actor_user",
+        "external_token_boundary"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies StakingRewards as reward-token-balance-backed and calls out distributor-gated notification, while the focused analysis guidance specifically requires verification that only newly funded tokens are scheduled. The source code and exact function lines are not loaded, so this remains conditional pending confirmation of the notification implementation.",
+      "mitigation": "Measure the reward-token balance immediately before and after the funding transfer and schedule only the verified balance increase; alternatively require the amount to be transferred in the same call and account separately for leftover rewards. Enforce that the resulting schedule cannot exceed tokens actually held and reserved for rewards.",
+      "finding_description": "StakingRewards is described as reward-token-balance-backed, but the available component evidence does not establish that notifyRewardAmount accounts only for tokens newly funded for the notification. If the implementation derives the reward rate from the contract's total balance or accepts a nominal amount without verifying the corresponding transfer, a distributor can schedule previously deposited, leftover, or accidentally sent tokens as a new reward stream.",
+      "impact": "The reward schedule can become underfunded; later stakers may be unable to claim the promised rewards, or previously deposited tokens can be redirected away from their intended purpose.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/staking-rewards/RewardsDistributionRecipient.sol",
+          "contracts/lbt/LiquidityBasedTWAP.sol",
+          "contracts/staking-rewards/IStakingRewards.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/interfaces/shared/IERC20Extended.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/x-vader/XVader.sol",
+          "repo/vader-bond/contracts/Treasury.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:05:41.906817",
+      "id": "hyp_113e6292e37d",
+      "qa_comment": "Upon reviewing StakingRewards.notifyRewardAmount and the onlyRewardsDistribution modifier in RewardsDistributionRecipient, I determined this hypothesis is a false positive under the apparent funding model. notifyRewardAmount is intentionally a notification-only function; it does not claim to transfer tokens, and the authorized distributor is expected to fund the contract separately. The function calculates the new reward rate, includes any unexpired leftover rewards, and then checks that rewardRate <= rewardsToken.balanceOf(address(this)) / rewardsDuration. This is equivalent to ensuring that the newly scheduled amount plus leftover obligations does not exceed the contract\u2019s current reward-token balance. Consequently, pre-existing reward-token balances may be used, but the contract does not promise more tokens than it currently holds, and an unfunded notification fails unless sufficient tokens were already deposited. The onlyRewardsDistribution restriction also prevents arbitrary users from invoking the function. Although the implementation does not measure a balance delta, that is not required by this pre-funding design and no exploitable insolvency path is shown. A compromised or intentionally malicious distributor would represent an administrative trust issue, not this vulnerability."
+    },
+    "hyp_a4b545c26cc9": {
+      "title": "VaderRouterV2 does not reliably enforce transaction deadlines",
+      "description": "VULNERABILITY TYPE: economic_attack\nROOT CAUSE: Router operations lack a mandatory expiry validation before token transfers and pool calls.\nATTACK VECTOR: A user submits a transaction with stale or absent expiry protection; a block producer or MEV searcher delays inclusion until the pool price changes, then executes the transaction at the still-valid user parameters and captures value through sandwiching or adverse execution.\nAFFECTED NODES: v2_router, v2_pool, actor_user\nAFFECTED CODE: VaderRouterV2 swap entry points, VaderRouterV2 liquidity entry points, VaderPoolV2 operations invoked by the router\nSEVERITY: medium\nREASONING: The loaded architecture identifies the router as the execution boundary for pool calls and output checks, but does not expose a deadline-validation observation. This should be confirmed against the source before treating it as verified; it is distinct from the existing finding that liquidity-add minimum amounts are ignored.\nSUGGESTED MITIGATION: Require every state-changing router operation to accept a deadline and revert before any external call when block.timestamp exceeds it; ensure all supported overloads and native-token paths apply the same check.",
+      "vulnerability_type": "economic_attack",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "v2_router",
+        "v2_pool",
+        "actor_user"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded architecture identifies the router as the execution boundary for pool calls and output checks, but does not expose a deadline-validation observation. This should be confirmed against the source before treating it as verified; it is distinct from the existing finding that liquidity-add minimum amounts are ignored.",
+      "mitigation": "Require every state-changing router operation to accept a deadline and revert before any external call when block.timestamp exceeds it; ensure all supported overloads and native-token paths apply the same check.",
+      "finding_description": "The router execution path is documented as transferring positions and invoking pool operations, but no deadline enforcement is identified for router-mediated swaps or liquidity operations. Without an on-chain deadline check against block.timestamp, signed transactions can remain executable after market conditions change and may be deliberately delayed or included after a favorable price movement for an attacker.",
+      "impact": "Users can receive materially worse swap or liquidity-removal outcomes than intended, resulting in extractable value for MEV actors and potentially significant token loss when other protections are absent or insufficient.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/dex-v2/pool/BasePoolV2.sol",
+          "contracts/interfaces/dex-v2/pool/IVaderPoolV2.sol",
+          "contracts/interfaces/dex-v2/router/IVaderRouterV2.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/x-vader/XVader.sol",
+          "contracts/interfaces/dex-v2/pool/IBasePoolV2.sol",
+          "contracts/dex-v2/pool/VaderPoolV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:06:48.039931",
+      "id": "hyp_a4b545c26cc9"
+    },
+    "hyp_9820491da655": {
+      "title": "Vesting accrual is not capped at the vesting end time",
+      "description": "VULNERABILITY TYPE: arithmetic\nROOT CAUSE: Vesting arithmetic uses unbounded block.timestamp elapsed time rather than min(block.timestamp, vestingEnd).\nATTACK VECTOR: A beneficiary waits until after vestingEnd and calls claim; because elapsed time exceeds the configured duration, the calculated claimable amount exceeds its allocation. Repeated calls can continue consuming contract-held tokens.\nAFFECTED NODES: linear_vesting, actor_user, vader_token\nAFFECTED CODE: LinearVesting vesting accrual calculation, LinearVesting claim function\nSEVERITY: high\nREASONING: A linear vesting implementation must cap elapsed time at the vesting end. If the loaded implementation calculates vested amount from uncapped elapsed time, Solidity arithmetic will permit an over-allocation after the end rather than limiting claims to the scheduled amount. The graph identifies LinearVesting as holding and transferring Vader tokens, making excess claims financially material.\nSUGGESTED MITIGATION: Use a capped timestamp such as vestedAt = block.timestamp < vestingEnd ? block.timestamp : vestingEnd, calculate vested amount from vestedAt, and assert the resulting cumulative claim is no greater than the recorded allocation.",
+      "vulnerability_type": "arithmetic",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "linear_vesting",
+        "actor_user",
+        "vader_token"
+      ],
+      "evidence": [],
+      "reasoning": "A linear vesting implementation must cap elapsed time at the vesting end. If the loaded implementation calculates vested amount from uncapped elapsed time, Solidity arithmetic will permit an over-allocation after the end rather than limiting claims to the scheduled amount. The graph identifies LinearVesting as holding and transferring Vader tokens, making excess claims financially material.",
+      "mitigation": "Use a capped timestamp such as vestedAt = block.timestamp < vestingEnd ? block.timestamp : vestingEnd, calculate vested amount from vestedAt, and assert the resulting cumulative claim is no greater than the recorded allocation.",
+      "finding_description": "The vesting claim calculation may derive accrued tokens directly from elapsed time without clamping the timestamp to vestingEnd. After the schedule ends, elapsed time continues increasing, so a beneficiary can claim more than its assigned allocation and repeatedly extract excess tokens from the vesting contract.",
+      "impact": "A beneficiary can drain tokens allocated to other beneficiaries or reserve funds after the vesting schedule ends, causing direct loss of vested-token balances and denial of legitimate claims.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/tokens/USDV.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/tokens/vesting/LinearVesting.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/interfaces/tokens/IVader.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/x-vader/XVader.sol",
+          "contracts/interfaces/tokens/vesting/ILinearVesting.sol",
+          "contracts/tokens/Vader.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:07:22.283187",
+      "id": "hyp_9820491da655",
+      "qa_comment": "Upon reviewing the alleged arithmetic vulnerability in LinearVesting._getClaim and claim, I determined this is a false positive. Although _getClaim references block.timestamp, it explicitly checks `if (block.timestamp >= _end) return amount;`, thereby capping post-expiry claims to the beneficiary\u2019s remaining unclaimed allocation. The claim function then subtracts the returned vestedAmount from `vester.amount`, updates `lastClaim`, stores the modified vesting record, and transfers only that amount of Vader. Consequently, a beneficiary calling claim after the vesting end receives the remaining allocation exactly once; subsequent calls return zero and fail the `vestedAmount != 0` requirement. The same capped behavior applies to schedules created by begin and vestFor because both assign a finite end timestamp. Before expiry, the calculation distributes only a fraction of the current remaining amount over the remaining vesting interval. No path was identified whereby elapsed time after `_end` causes an amount greater than the recorded allocation to be returned or transferred."
+    },
+    "hyp_8253032cfbcf": {
+      "title": "Converter conversion entry point lacks caller authorization",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Missing authorization enforcing that only the configured VaderToken contract may invoke the Converter's token-disbursement path.\nATTACK VECTOR: An attacker calls the Converter conversion function directly, supplies their own recipient and an amount, and drains any token balance held by Converter or causes unauthorized vesting allocations.\nAFFECTED NODES: converter, vader_token, actor_user, linear_vesting\nAFFECTED CODE: Converter: conversion entry point, Converter: token transfer and vesting approval flow\nSEVERITY: high\nREASONING: The system graph shows VaderToken calling Converter, while Converter transfers to users and approves the vesting spender. That trust boundary requires explicit caller validation; no authorization control is recorded for Converter, unlike the explicitly documented access controls on other components.\nSUGGESTED MITIGATION: Restrict the conversion/disbursement function to the immutable or configured VaderToken address using an explicit onlyVader modifier or equivalent check. Validate the recipient and amount, and ensure all token outflows are backed by an authenticated conversion request.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "converter",
+        "vader_token",
+        "actor_user",
+        "linear_vesting"
+      ],
+      "evidence": [],
+      "reasoning": "The system graph shows VaderToken calling Converter, while Converter transfers to users and approves the vesting spender. That trust boundary requires explicit caller validation; no authorization control is recorded for Converter, unlike the explicitly documented access controls on other components.",
+      "mitigation": "Restrict the conversion/disbursement function to the immutable or configured VaderToken address using an explicit onlyVader modifier or equivalent check. Validate the recipient and amount, and ensure all token outflows are backed by an authenticated conversion request.",
+      "finding_description": "The architecture identifies VaderToken as the caller of Converter and Converter as the component that transfers tokens to users and approves the vesting spender. If the conversion function is externally callable without restricting the caller to the authorized VaderToken contract, an attacker can invoke it directly with an arbitrary recipient and amount, causing Converter-held tokens to be transferred or committed to vesting without a valid token conversion.",
+      "impact": "Unauthorized callers may steal the Converter's token inventory or create unbacked/unauthorized vesting positions, resulting in direct token loss and depletion of migration liquidity.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/tokens/USDV.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/interfaces/tokens/converter/IConverter.sol",
+          "contracts/tokens/vesting/LinearVesting.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/interfaces/tokens/IVader.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/x-vader/XVader.sol",
+          "contracts/interfaces/tokens/vesting/ILinearVesting.sol",
+          "contracts/tokens/Vader.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:08:20.292400",
+      "id": "hyp_8253032cfbcf",
+      "qa_comment": "Upon reviewing the alleged access-control vulnerability in Converter.convert in contracts/tokens/converter/Converter.sol, I determined this is a false positive. The function is intentionally callable by users rather than exclusively by Vader: it derives the Merkle leaf from msg.sender, amount, salt, and the current chain ID, then requires a valid proof and an unused claimed[leaf] entry. The recipient is not caller-controlled; both the immediate Vader transfer and the vesting allocation target msg.sender. The conversion also requires a nonzero requested amount, transfers Vether from the caller using their allowance, and calculates Vader solely from the transferred amount. The vesting contract independently protects vestFor with onlyConverter, and Converter is the configured converter address. Consequently, an arbitrary attacker cannot select another recipient, mint an unauthorized allocation, or drain Converter-held Vader without possessing a valid Merkle allocation and supplying the corresponding Vether. Although Converter lacks an onlyVader check, that check would contradict the documented and implemented user-facing conversion flow; Vader does not invoke convert."
+    },
+    "hyp_ba99874b84c7": {
+      "title": "LiquidityBasedTWAP accepts stale or invalid Chainlink responses",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: Missing validation of Chainlink latestRoundData freshness, round completeness, and answer positivity.\nATTACK VECTOR: An attacker exploits a stalled or degraded Chainlink feed, or a feed state returning an invalid answer, to invoke price-dependent mint, burn, reserve, or transfer operations at an incorrect valuation.\nAFFECTED NODES: lbt, chainlink_interfaces, usdv_token, vader_reserve\nAFFECTED CODE: LiquidityBasedTWAP Chainlink price retrieval, USDV price-dependent mint and burn paths, VaderReserve LBT-dependent valuation\nSEVERITY: high\nREASONING: The architecture explicitly identifies Chainlink USD feeds as an LBT input and USDV and VaderReserve as consumers. Without round and freshness checks, oracle outages or invalid responses can directly become protocol prices.\nSUGGESTED MITIGATION: Require positive answers, nonzero timestamps, complete rounds, and an explicit maximum age before accepting Chainlink data; revert or use a separately validated fallback when the feed is stale or invalid.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "lbt",
+        "chainlink_interfaces",
+        "usdv_token",
+        "vader_reserve"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies Chainlink USD feeds as an LBT input and USDV and VaderReserve as consumers. Without round and freshness checks, oracle outages or invalid responses can directly become protocol prices.",
+      "mitigation": "Require positive answers, nonzero timestamps, complete rounds, and an explicit maximum age before accepting Chainlink data; revert or use a separately validated fallback when the feed is stale or invalid.",
+      "finding_description": "LiquidityBasedTWAP depends on Chainlink USD feeds but the available component evidence does not show validation of the feed round, update timestamp, answeredInRound, or positive answer before using the result. A stale, incomplete, or negative feed response can therefore be treated as a valid asset price by downstream reserve and USDV calculations.",
+      "impact": "Users may mint or burn USDV at an incorrect exchange rate, allowing extraction of protocol assets or causing under-collateralized USDV and reserve accounting losses.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/tokens/USDV.sol",
+          "contracts/interfaces/external/chainlink/IAggregator.sol",
+          "contracts/interfaces/reserve/IVaderReserve.sol",
+          "contracts/lbt/LiquidityBasedTWAP.sol",
+          "contracts/interfaces/external/chainlink/IAggregatorV3.sol",
+          "contracts/external/interfaces/AggregatorV3Interface.sol",
+          "contracts/interfaces/tokens/IUSDV.sol",
+          "contracts/reserve/VaderReserve.sol",
+          "contracts/interfaces/lbt/ILiquidityBasedTWAP.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:09:19.577589",
+      "id": "hyp_ba99874b84c7",
+      "qa_comment": "Upon reviewing LiquidityBasedTWAP.getChainlinkPrice and its callers, I confirmed a stale-oracle validation vulnerability. The function invokes latestRoundData(), checks only answeredInRound >= roundID and price > 0, then returns the answer. It does not validate updatedAt, startedAt, roundID != 0, or any maximum age relative to block.timestamp. Consequently, a feed whose latest answer is positive and internally complete but has not been updated for an arbitrary period is still accepted. This value is consumed by _updateVaderPrice, _updateUSDVPrice, _calculateVaderPrice, and _calculateUSDVPrice, which are reached through getVaderPrice and getUSDVPrice. Those public pricing paths are directly used by USDV.mint, USDV.burn, and VaderReserve.reimburseImpermanentLoss, allowing operations to execute against an outdated valuation during a feed outage or stall. The existing positivity and answeredInRound checks mitigate zero, negative, and some incomplete-round responses, but they do not establish freshness. Therefore, the hypothesis is valid, although its claim that all round completeness validation is absent is overstated."
+    },
+    "hyp_0e7bddce442b": {
+      "title": "Chainlink feed decimal differences can produce incorrectly scaled LBT prices",
+      "description": "VULNERABILITY TYPE: oracle_scaling\nROOT CAUSE: Price answers are not demonstrably normalized using each aggregator's decimals before being combined with token amounts and reserve values.\nATTACK VECTOR: An attacker selects or waits for an asset/feed path with a different decimal precision and then performs USDV minting, burning, or reserve operations using the resulting mis-scaled valuation.\nAFFECTED NODES: lbt, chainlink_interfaces, usdv_token, vader_reserve\nAFFECTED CODE: LiquidityBasedTWAP Chainlink feed aggregation and price conversion, USDV LBT-based valuation, VaderReserve LBT-dependent pricing\nSEVERITY: high\nREASONING: The component uses Chainlink USD feeds and downstream financial calculations, but the loaded evidence does not establish per-feed decimal normalization. This is a concrete risk whenever feeds with heterogeneous precision are supported.\nSUGGESTED MITIGATION: Read and cache each feed's decimals, normalize every answer to one checked canonical precision, and add bounds and invariant tests for every configured feed.",
+      "vulnerability_type": "oracle_scaling",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "lbt",
+        "chainlink_interfaces",
+        "usdv_token",
+        "vader_reserve"
+      ],
+      "evidence": [],
+      "reasoning": "The component uses Chainlink USD feeds and downstream financial calculations, but the loaded evidence does not establish per-feed decimal normalization. This is a concrete risk whenever feeds with heterogeneous precision are supported.",
+      "mitigation": "Read and cache each feed's decimals, normalize every answer to one checked canonical precision, and add bounds and invariant tests for every configured feed.",
+      "finding_description": "LiquidityBasedTWAP consumes multiple Chainlink USD feeds, while Chainlink aggregators commonly expose feed-specific decimals. If the implementation assumes a single precision without normalizing each answer to the protocol's canonical price scale, feeds with different decimals produce prices orders of magnitude too high or too low.",
+      "impact": "A decimal-scale error can make collateral appear substantially more or less valuable, enabling large underpriced mints, excessive burns, or loss of reserve assets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/tokens/USDV.sol",
+          "contracts/interfaces/external/chainlink/IAggregator.sol",
+          "contracts/interfaces/reserve/IVaderReserve.sol",
+          "contracts/lbt/LiquidityBasedTWAP.sol",
+          "contracts/interfaces/external/chainlink/IAggregatorV3.sol",
+          "contracts/external/interfaces/AggregatorV3Interface.sol",
+          "contracts/interfaces/tokens/IUSDV.sol",
+          "contracts/reserve/VaderReserve.sol",
+          "contracts/interfaces/lbt/ILiquidityBasedTWAP.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:09:19.594066",
+      "id": "hyp_0e7bddce442b"
+    },
+    "hyp_59d528c64142": {
+      "title": "Reserve-based fallback price is manipulable through a directly traded pair",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Use of immediately observable AMM reserves, or an insufficiently long TWAP window, as a trusted valuation source without manipulation-resistance checks.\nATTACK VECTOR: The attacker trades against the configured pair to skew reserves, calls a USDV or reserve operation at the manipulated price, and reverses the trade after receiving the mispriced assets.\nAFFECTED NODES: lbt, uniswap_pair, uniswap_oracle_library, usdv_token, vader_reserve\nAFFECTED CODE: LiquidityBasedTWAP pair-reserve fallback, Uniswap pair observation used by LBT, USDV LBT-dependent mint and burn paths, VaderReserve price-dependent transfers\nSEVERITY: high\nREASONING: The architecture explicitly lists pair reserve inputs for LBT and a Uniswap oracle library for cumulative-price extrapolation. The security outcome depends on whether the implementation actually enforces a sufficiently long cumulative TWAP; absent that proof, direct reserve use is an exploitable oracle risk.\nSUGGESTED MITIGATION: Use cumulative-price observations over a governance-approved minimum interval, reject insufficient observation history, constrain price deviation from independently validated Chainlink data, and avoid same-block reserve spot prices for value-critical operations.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "lbt",
+        "uniswap_pair",
+        "uniswap_oracle_library",
+        "usdv_token",
+        "vader_reserve"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly lists pair reserve inputs for LBT and a Uniswap oracle library for cumulative-price extrapolation. The security outcome depends on whether the implementation actually enforces a sufficiently long cumulative TWAP; absent that proof, direct reserve use is an exploitable oracle risk.",
+      "mitigation": "Use cumulative-price observations over a governance-approved minimum interval, reject insufficient observation history, constrain price deviation from independently validated Chainlink data, and avoid same-block reserve spot prices for value-critical operations.",
+      "finding_description": "LiquidityBasedTWAP uses pair reserve inputs and is connected to Uniswap pair/oracle components. If the selected fallback path derives a price from current reserves rather than a sufficiently long cumulative-price observation, an attacker can temporarily move the pair price with a flash loan or large swap and invoke an LBT-dependent operation in the same transaction or observation window.",
+      "impact": "A temporary AMM price distortion can cause protocol assets or USDV to be minted, burned, or transferred at an attacker-controlled rate, producing direct collateral loss.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/tokens/USDV.sol",
+          "contracts/interfaces/reserve/IVaderReserve.sol",
+          "contracts/lbt/LiquidityBasedTWAP.sol",
+          "contracts/interfaces/external/uniswap/IUniswapV2Pair.sol",
+          "contracts/external/libraries/UniswapV2OracleLibrary.sol",
+          "contracts/interfaces/tokens/IUSDV.sol",
+          "contracts/reserve/VaderReserve.sol",
+          "contracts/external/UniswapV2Pair.sol",
+          "contracts/interfaces/lbt/ILiquidityBasedTWAP.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:09:19.607962",
+      "id": "hyp_59d528c64142"
+    },
+    "hyp_afeaf869e97b": {
+      "title": "V2 pool accounting is vulnerable to fee-on-transfer or deflationary supported tokens",
+      "description": "VULNERABILITY TYPE: economic_attack\nROOT CAUSE: Accounting is based on user-supplied transfer amounts instead of balance deltas, with no explicit fee-on-transfer token rejection or normalization.\nATTACK VECTOR: A user supplies a deflationary or fee-on-transfer token to add liquidity or execute a swap; the pool records the nominal amount while receiving less, then later allows withdrawals or pricing based on inflated reserves.\nAFFECTED NODES: v2_pool, v2_router, external_token_boundary, vader_math\nAFFECTED CODE: VaderPoolV2 liquidity-add and swap token-transfer/accounting paths, VaderRouterV2 token transfer paths, VaderMath reserve and liquidity calculations\nSEVERITY: high\nREASONING: V2 operates across an external ERC-20 boundary and relies on reserve-based math. Unless each transfer is reconciled using pre/post balances or unsupported token behavior is rejected, fee-on-transfer assets create a direct reserve-accounting mismatch. This is distinct from the previously identified uint112 truncation issue.\nSUGGESTED MITIGATION: Either reject fee-on-transfer, rebasing, and callback-capable assets when configuring supported tokens, or calculate credited amounts from actual balance deltas and use those deltas consistently in reserve, LP, and synth accounting.",
+      "vulnerability_type": "economic_attack",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "v2_pool",
+        "v2_router",
+        "external_token_boundary",
+        "vader_math"
+      ],
+      "evidence": [],
+      "reasoning": "V2 operates across an external ERC-20 boundary and relies on reserve-based math. Unless each transfer is reconciled using pre/post balances or unsupported token behavior is rejected, fee-on-transfer assets create a direct reserve-accounting mismatch. This is distinct from the previously identified uint112 truncation issue.",
+      "mitigation": "Either reject fee-on-transfer, rebasing, and callback-capable assets when configuring supported tokens, or calculate credited amounts from actual balance deltas and use those deltas consistently in reserve, LP, and synth accounting.",
+      "finding_description": "VaderPoolV2 performs reserve-based swap and liquidity calculations across externally supplied ERC-20 assets, but the architecture provides no indication that it measures the actual balance received after transferFrom. A supported token that burns or diverts tokens during transfer can cause the pool to credit the requested amount rather than the amount received, making internal reserves and LP/synth accounting inconsistent.",
+      "impact": "The pool can become undercollateralized, allowing attackers to extract valuable assets or causing LP holders and synth holders to suffer losses when the accounting discrepancy is realized.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/dex/math/VaderMath.sol",
+          "contracts/lbt/LiquidityBasedTWAP.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/dex-v2/pool/BasePoolV2.sol",
+          "contracts/interfaces/shared/IERC20Extended.sol",
+          "contracts/interfaces/dex-v2/pool/IVaderPoolV2.sol",
+          "contracts/interfaces/dex-v2/router/IVaderRouterV2.sol",
+          "repo/vader-bond/contracts/Treasury.sol",
+          "contracts/interfaces/dex-v2/pool/IBasePoolV2.sol",
+          "contracts/dex-v2/pool/VaderPoolV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:10:03.583511",
+      "id": "hyp_afeaf869e97b",
+      "qa_comment": "Upon reviewing BasePoolV2._mint, BasePoolV2.swap, BasePoolV2.doubleSwap, VaderPoolV2.mintFungible, and VaderRouterV2._swap, I confirmed that supported fee-on-transfer or deflationary tokens can create an accounting mismatch. Transfers are performed with SafeERC20 using the user-supplied nominal amounts, but no pre/post balance delta is measured. _mint records nativeDeposit and foreignDeposit in reserves, total liquidity calculations, and Position data even if the pool receives less. Likewise, _swap transfers amountIn to the pool and then passes the unchanged nominal value to swap or doubleSwap; BasePoolV2 updates reserves using that value. Consequently, a user can obtain swap output or LP units calculated against more tokens than the pool actually received, while later withdrawals and pricing rely on inflated reserves. Outbound fee-on-transfer behavior is also unhandled: reserves are reduced by the nominal transfer amount although the recipient may receive less, leaving surplus or causing future insolvency; the unrestricted rescue function may expose such surplus. No token-behavior rejection or normalization guard is present in setTokenSupport or the transfer paths."
+    },
+    "hyp_5aa45e091562": {
+      "title": "External token callbacks can reenter V2 pool state transitions",
+      "description": "VULNERABILITY TYPE: reentrancy\nROOT CAUSE: External token and synth calls occur during pool state transitions without demonstrated reentrancy protection or a checks-effects-interactions ordering guarantee.\nATTACK VECTOR: A supported ERC-777-like token, token with a transfer hook, or malicious configured synth reenters a liquidity, swap, or redemption path during an external call and executes against stale reserves or position state.\nAFFECTED NODES: v2_pool, v2_router, synth, external_token_boundary\nAFFECTED CODE: VaderPoolV2 swap, liquidity, synth-mint, and synth-burn paths, VaderRouterV2 transfer and pool-call paths, Synth mint/burn interaction paths\nSEVERITY: high\nREASONING: The V2 architecture explicitly crosses external token and synth boundaries, while only the legacy pool is documented as having a nonReentrant mint. This warrants verification of every V2 state-changing entry point; the finding applies if the corresponding functions lack a guard and update state after external calls.\nSUGGESTED MITIGATION: Apply a reentrancy guard to every V2 state-changing path that performs token or synth calls, update reserves and position state before interactions where possible, and restrict supported assets to implementations whose callback behavior is understood.",
+      "vulnerability_type": "reentrancy",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "v2_pool",
+        "v2_router",
+        "synth",
+        "external_token_boundary"
+      ],
+      "evidence": [],
+      "reasoning": "The V2 architecture explicitly crosses external token and synth boundaries, while only the legacy pool is documented as having a nonReentrant mint. This warrants verification of every V2 state-changing entry point; the finding applies if the corresponding functions lack a guard and update state after external calls.",
+      "mitigation": "Apply a reentrancy guard to every V2 state-changing path that performs token or synth calls, update reserves and position state before interactions where possible, and restrict supported assets to implementations whose callback behavior is understood.",
+      "finding_description": "VaderPoolV2 and VaderRouterV2 interact with arbitrary supported tokens and synth contracts across an external boundary. The architecture records router-only swap restrictions but does not show a reentrancy guard for V2 pool operations. A callback-capable token or malicious synth implementation can invoke another pool operation during transfer or mint/burn before reserves, LP supply, or position state are finalized.",
+      "impact": "An attacker may obtain excess synths or pool assets, corrupt reserve and LP accounting, or bypass per-operation invariants, potentially draining valuable pool liquidity.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/interfaces/dex-v2/synth/ISynth.sol",
+          "contracts/lbt/LiquidityBasedTWAP.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/dex-v2/pool/BasePoolV2.sol",
+          "contracts/interfaces/shared/IERC20Extended.sol",
+          "contracts/interfaces/dex-v2/pool/IVaderPoolV2.sol",
+          "contracts/dex-v2/synths/Synth.sol",
+          "contracts/interfaces/dex-v2/router/IVaderRouterV2.sol",
+          "repo/vader-bond/contracts/Treasury.sol",
+          "contracts/interfaces/dex-v2/pool/IBasePoolV2.sol",
+          "contracts/dex-v2/pool/VaderPoolV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:10:03.607531",
+      "id": "hyp_5aa45e091562"
+    },
+    "hyp_f2484621b127": {
+      "title": "Legacy pool credits nominal token amounts for fee-on-transfer assets",
+      "description": "VULNERABILITY TYPE: economic_attack\nROOT CAUSE: Accounting is based on nominal transfer parameters instead of the actual amount received by the pool.\nATTACK VECTOR: Deploy or select a fee-on-transfer token, create or use its legacy pool, and add liquidity or swap through VaderRouter so the pool credits the nominal amount despite receiving less.\nAFFECTED NODES: legacy_router, legacy_pool, external_token_boundary\nAFFECTED CODE: legacy_router token transfer and pool interaction, legacy_pool liquidity and swap reserve accounting\nSEVERITY: medium\nREASONING: The architecture explicitly places token transfers in the router and reserve-based accounting in the legacy pool, while the external token boundary permits non-standard ERC-20 behavior. This is distinct from the already identified V2 accounting issue because it affects the legacy router/pool path.\nSUGGESTED MITIGATION: Measure the pool's token balance before and after each transfer and use the actual received delta for liquidity, reserve, and swap calculations; alternatively reject unsupported fee-on-transfer and rebasing tokens at factory or pool creation.",
+      "vulnerability_type": "economic_attack",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "legacy_router",
+        "legacy_pool",
+        "external_token_boundary"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly places token transfers in the router and reserve-based accounting in the legacy pool, while the external token boundary permits non-standard ERC-20 behavior. This is distinct from the already identified V2 accounting issue because it affects the legacy router/pool path.",
+      "mitigation": "Measure the pool's token balance before and after each transfer and use the actual received delta for liquidity, reserve, and swap calculations; alternatively reject unsupported fee-on-transfer and rebasing tokens at factory or pool creation.",
+      "finding_description": "VaderRouter transfers the user-supplied token amount to the legacy pool, while the pool's reserve and liquidity accounting can rely on the requested amount rather than the actual balance increase. A fee-on-transfer or rebasing token can therefore cause the pool to credit more liquidity or swap input than it received.",
+      "impact": "An attacker can obtain excess LP units or swap output relative to assets actually deposited, leaving the pool undercollateralized and causing losses for liquidity providers or later traders.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lbt/LiquidityBasedTWAP.sol",
+          "contracts/dex/pool/VaderPool.sol",
+          "contracts/dex/pool/BasePool.sol",
+          "contracts/dex/router/VaderRouter.sol",
+          "contracts/interfaces/dex/router/IVaderRouter.sol",
+          "contracts/interfaces/shared/IERC20Extended.sol",
+          "contracts/interfaces/dex/pool/IBasePool.sol",
+          "repo/vader-bond/contracts/Treasury.sol",
+          "contracts/interfaces/dex/pool/IVaderPool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:10:41.595108",
+      "id": "hyp_f2484621b127",
+      "qa_comment": "Upon reviewing the alleged nominal-amount accounting flaw in VaderRouter.addLiquidity, VaderRouter._swap, and BasePool.mint and swap, I determined this is a false positive for the supplied implementation. Although the router transfers the requested nominal amounts, BasePool.mint reads nativeAsset.balanceOf(address(this)) and foreignAsset.balanceOf(address(this)) after transfer, subtracts the stored reserves, and records those actual balance deltas as deposits and position.original amounts. Consequently, a fee-on-transfer token is not credited with its nominal transfer amount during liquidity provision. For swaps, BasePool.swap requires the supplied amount to be no greater than balance minus reserve, so a fee-on-transfer input generally causes the transaction to revert rather than allowing an inflated input to be used. After transferring swap output, the pool rereads both token balances and updates reserves through _update using those actual balances. A fee charged on output may cause the recipient to receive less than the function\u2019s reported amount, but this is token-level behavior and does not demonstrate nominal reserve over-crediting or an exploitable accounting path in the pool. No relevant guard bypass is shown."
+    },
+    "hyp_8329bb040cdd": {
+      "title": "Unrestricted skim permits theft of unsolicited or residual pair assets",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Recovery of excess balances is exposed as an unrestricted public operation with an attacker-controlled recipient.\nATTACK VECTOR: An attacker watches token transfers and pair balances, then calls skim(attacker) before the intended recipient can recover or use the excess balance.\nAFFECTED NODES: uniswap_pair, actor_user, external_token_boundary\nAFFECTED CODE: UniswapV2Pair.skim(address)\nSEVERITY: low\nREASONING: Permissionless skim is standard Uniswap V2 behavior, but it makes unsolicited and residual token balances recoverable by arbitrary callers. This is distinct from fee-on-transfer accounting errors because the issue is unauthorized custody and recovery of excess balances.\nSUGGESTED MITIGATION: Do not rely on pair balances above reserves to custody funds. Route all intended deposits through controlled mint or swap flows, and if excess-balance recovery is not required, restrict skim to an authorized recovery role or add an explicit recovery policy.",
+      "vulnerability_type": "access_control",
+      "severity": "low",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "uniswap_pair",
+        "actor_user",
+        "external_token_boundary"
+      ],
+      "evidence": [],
+      "reasoning": "Permissionless skim is standard Uniswap V2 behavior, but it makes unsolicited and residual token balances recoverable by arbitrary callers. This is distinct from fee-on-transfer accounting errors because the issue is unauthorized custody and recovery of excess balances.",
+      "mitigation": "Do not rely on pair balances above reserves to custody funds. Route all intended deposits through controlled mint or swap flows, and if excess-balance recovery is not required, restrict skim to an authorized recovery role or add an explicit recovery policy.",
+      "finding_description": "The UniswapV2Pair skim function is permissionless and transfers any token balance above the recorded reserves to an arbitrary recipient. An attacker can monitor the pair for accidentally transferred tokens, protocol donations, or residual balances and call skim to redirect those assets to themselves.",
+      "impact": "Any assets unintentionally sent to the pair or left as excess balances can be stolen by the first attacker who calls skim, causing direct loss for the sender or protocol treasury.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/lbt/LiquidityBasedTWAP.sol",
+          "contracts/interfaces/external/uniswap/IUniswapV2Pair.sol",
+          "contracts/dex-v2/router/VaderRouterV2.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/interfaces/shared/IERC20Extended.sol",
+          "contracts/tokens/converter/Converter.sol",
+          "contracts/x-vader/XVader.sol",
+          "contracts/external/UniswapV2Pair.sol",
+          "repo/vader-bond/contracts/Treasury.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:12:37.208191",
+      "id": "hyp_8329bb040cdd",
+      "qa_comment": "Upon reviewing UniswapV2Pair.skim(address) in contracts/external/UniswapV2Pair.sol, the function is intentionally permissionless and transfers only token balances exceeding the recorded reserve values; it cannot withdraw accounted liquidity or reserve-backed assets. The implementation applies the pair's reentrancy lock and uses _safeTransfer, but contains no caller authorization because Uniswap V2 semantics treat unsolicited transfers, rounding dust, and residual balances as recoverable excess. Although an attacker can observe an excess balance and call skim(attacker), this does not demonstrate unauthorized theft of protocol-owned or user-owned funds unless the surrounding system deliberately deposits assets into the pair without immediately minting liquidity or otherwise relies on the excess balance for custody. The reviewed VaderRouterV2 routes liquidity through IVaderPoolV2.mint and swaps through pool functions, and no code shown establishes such a reliance on Uniswap pair balances above reserves. Therefore, the behavior is a known design property rather than a demonstrated access-control vulnerability in this codebase."
+    },
+    "hyp_817b2959d89b": {
+      "title": "Zero-address distributor assignment can permanently disable reward notifications",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: setRewardsDistribution lacks a nonzero-address check and does not protect against configuration of an unusable distributor.\nATTACK VECTOR: An owner accidentally or intentionally calls setRewardsDistribution(address(0)); after ownership is renounced or unavailable, no caller can invoke the distributor-gated notification path, freezing further reward distributions.\nAFFECTED NODES: rewards_recipient, staking_rewards, actor_administrator\nAFFECTED CODE: RewardsDistributionRecipient.setRewardsDistribution, RewardsDistributionRecipient.onlyRewardsDistribution, StakingRewards reward notification entry point\nSEVERITY: medium\nREASONING: The loaded architecture identifies RewardsDistributionRecipient as the owner-controlled distributor gate for StakingRewards, and the targeted review specifically indicates that zero-address validation should be checked. Without a nonzero validation, assigning address(0) makes the distributor-only path unreachable; the permanent aspect applies if ownership is later renounced or unavailable.\nSUGGESTED MITIGATION: Require the configured distributor address to be nonzero before assignment, emit an event for distributor changes, and use a recovery or two-step distributor update mechanism before ownership can be renounced.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "rewards_recipient",
+        "staking_rewards",
+        "actor_administrator"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded architecture identifies RewardsDistributionRecipient as the owner-controlled distributor gate for StakingRewards, and the targeted review specifically indicates that zero-address validation should be checked. Without a nonzero validation, assigning address(0) makes the distributor-only path unreachable; the permanent aspect applies if ownership is later renounced or unavailable.",
+      "mitigation": "Require the configured distributor address to be nonzero before assignment, emit an event for distributor changes, and use a recovery or two-step distributor update mechanism before ownership can be renounced.",
+      "finding_description": "RewardsDistributionRecipient permits the owner to set rewardsDistribution to the zero address without validation. Once set, the onlyRewardsDistribution gate can no longer be satisfied by any external caller, preventing future reward notifications; if ownership is subsequently renounced or otherwise lost, the distributor cannot be repaired.",
+      "impact": "Future rewards cannot be notified or scheduled, potentially stopping staking incentives and causing protocol reward operations to remain permanently disabled.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/staking-rewards/RewardsDistributionRecipient.sol",
+          "contracts/staking-rewards/IStakingRewards.sol",
+          "contracts/dex/pool/VaderPoolFactory.sol",
+          "contracts/staking-rewards/StakingRewards.sol",
+          "contracts/staking-rewards/Owned.sol",
+          "contracts/governance/Timelock.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205806",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:14:57.816631",
+      "id": "hyp_817b2959d89b",
+      "qa_comment": "Upon reviewing RewardsDistributionRecipient.setRewardsDistribution and StakingRewards.notifyRewardAmount, I confirmed the described availability weakness. setRewardsDistribution is protected only by onlyOwner and assigns the supplied address directly, without requiring a nonzero address or emitting a change event. The StakingRewards notification entry point is guarded by onlyRewardsDistribution, which requires msg.sender == rewardsDistribution. Once rewardsDistribution is address(0), no practical transaction can satisfy this condition because the zero address cannot originate a call, so notifyRewardAmount becomes permanently unusable unless the owner restores a valid distributor. The StakingRewards constructor also directly accepts and stores a zero _rewardsDistribution, allowing deployment in this broken state. Owned prevents setting owner to zero through its constructor, and this implementation has no explicit renounceOwnership function, so the issue is not automatically permanent after a normal owner action; however, it becomes effectively permanent if the owner key or governing caller is unavailable. Therefore, the hypothesis is a valid conditional availability vulnerability, primarily involving unsafe configuration and lack of recovery safeguards."
+    }
+  },
+  "metadata": {
+    "total": 23,
+    "confirmed": 9,
+    "last_modified": "2026-10-12T21:14:57.817501"
+  }
+}

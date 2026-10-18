@@ -1,0 +1,118 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_d92c00067e19": {
+      "title": "Manipulable Curve spot quote directly controls NonUST share pricing",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: Vault share pricing trusts a manipulable Curve spot quote as an authoritative asset valuation.\nATTACK VECTOR: Use flash liquidity or a large temporary Curve trade to depress get_dy_underlying, execute a deposit during the manipulated state, restore the pool price, and withdraw the over-issued shares.\nAFFECTED NODES: nonust_invested_assets, vault_deposit, vault_create_deposit, vault_withdraw_deposit, vault_withdraw\nAFFECTED CODE: NonUSTStrategy.investedAssets -> Curve.get_dy_underlying, Vault.totalUnderlying -> strategy.investedAssets, Vault._createClaim -> _computeShares, Vault._withdrawDeposit -> _computeShares\nSEVERITY: high\nREASONING: The quote is read directly from Curve spot state and is used synchronously in share issuance and redemption. There is no observed oracle smoothing, freshness check, manipulation bound, or minimum liquidity condition. A temporary downward valuation increases shares minted for a fixed deposit; restoring the quote leaves the attacker with an overvalued share position.\nSUGGESTED MITIGATION: Use a manipulation-resistant valuation such as a bounded TWAP or independently verified oracle, enforce deviation and liquidity checks, and avoid allowing deposits or withdrawals when the valuation is outside configured bounds or changes abnormally within a transaction.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "nonust_invested_assets",
+        "vault_deposit",
+        "vault_create_deposit",
+        "vault_withdraw_deposit",
+        "vault_withdraw"
+      ],
+      "evidence": [],
+      "reasoning": "The quote is read directly from Curve spot state and is used synchronously in share issuance and redemption. There is no observed oracle smoothing, freshness check, manipulation bound, or minimum liquidity condition. A temporary downward valuation increases shares minted for a fixed deposit; restoring the quote leaves the attacker with an overvalued share position.",
+      "mitigation": "Use a manipulation-resistant valuation such as a bounded TWAP or independently verified oracle, enforce deviation and liquidity checks, and avoid allowing deposits or withdrawals when the valuation is outside configured bounds or changes abnormally within a transaction.",
+      "finding_description": "NonUSTStrategy.investedAssets values aUST and pending deposits by calling Curve.get_dy_underlying, a spot quote derived from pool state. Vault.totalUnderlying and totalUnderlyingMinusSponsored consume this value for deposit share minting, yield calculation, and withdrawals without a TWAP, deviation bound, or other manipulation resistance. An attacker can temporarily skew Curve reserves, call Vault.deposit while the quote is depressed to receive excess shares, restore the pool price, and later withdraw those shares for more underlying than deposited.",
+      "impact": "The attacker can obtain an excessive share balance and drain underlying from the vault, diluting existing depositors and potentially causing substantial loss of vault assets.",
+      "vulnerable_code": [
+        {
+          "file": "sandclock/contracts/strategy/NonUSTStrategy.sol",
+          "contract": "NonUSTStrategy",
+          "function": "investedAssets()"
+        },
+        {
+          "file": "sandclock/contracts/Vault.sol",
+          "contract": "Vault",
+          "function": "_createClaim()"
+        },
+        {
+          "file": "sandclock/contracts/Vault.sol",
+          "contract": "Vault",
+          "function": "_withdrawDeposit()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sandclock/contracts/Vault.sol",
+          "sandclock/contracts/strategy/NonUSTStrategy.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203732",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:38:33.193945",
+      "id": "hyp_d92c00067e19",
+      "qa_comment": "Upon reviewing Vault.totalUnderlying, _createDeposit, _createClaim, _withdrawDeposit, and NonUSTStrategy.investedAssets, I confirmed the price-manipulation vulnerability. NonUSTStrategy.investedAssets values the strategy\u2019s UST-denominated assets using curvePool.get_dy_underlying(ustI, underlyingI, ustAssets), which is a live Curve spot quote with no TWAP, deviation, freshness, liquidity, or intra-transaction consistency check. Vault.totalUnderlying incorporates this quote directly, and _createClaim computes shares as amount * totalShares / totalUnderlyingMinusSponsored before the deposit transfer occurs. A temporary reduction in the Curve quote therefore lowers the denominator and mints excess shares to a depositor. After the pool is restored, _withdrawDeposit recalculates the shares attributable to the recorded principal using the restored valuation, potentially burning fewer shares than were minted; the residual shares remain associated with the claimer and can be realized through yieldFor and claimYield, subject to available vault liquidity and the configured lock period. No code-level guard prevents this sequence, so the hypothesis is exploitable where the vault has existing shares and sufficient liquidity."
+    },
+    "hyp_32aa5d901159": {
+      "title": "Zero-output protection allows Curve price manipulation to steal strategy assets during swaps",
+      "description": "VULNERABILITY TYPE: price_manipulation\nROOT CAUSE: Strategy swaps accept any output amount and do not bind settlement to an expected Curve quote or minimum output.\nATTACK VECTOR: Manipulate Curve pool reserves using a temporary trade or flash liquidity, call finishRedeemStable while the pool is distorted, allow the zero-minimum-output swap to execute, then restore the pool state.\nAFFECTED NODES: nonust_swap_back, strategy_finish_redeem, interface_curve, strategy_do_hard_work\nAFFECTED CODE: NonUSTStrategy._swapUnderlyingToUst -> Curve.exchange_underlying(...,0), NonUSTStrategy._swapUstToUnderlying -> Curve.exchange_underlying(...,0), NonUSTStrategy.finishRedeemStable -> _swapUstToUnderlying\nSEVERITY: high\nREASONING: Both swaps hard-code min_dy to zero, and the redeem-side settlement can be initiated by any caller. A manipulated pool price therefore becomes the executed conversion price, rather than merely affecting an informational valuation. The code does not compare actual output against an expected quote or revert on excessive price impact.\nSUGGESTED MITIGATION: Compute a trusted expected output immediately before the swap and pass a conservative min_dy with an explicit slippage limit. Add price-impact, pool-liquidity, and oracle-deviation checks, and restrict or otherwise safely coordinate permissionless settlement so a caller cannot settle during an observable manipulated state.",
+      "vulnerability_type": "price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "nonust_swap_back",
+        "strategy_finish_redeem",
+        "interface_curve",
+        "strategy_do_hard_work"
+      ],
+      "evidence": [],
+      "reasoning": "Both swaps hard-code min_dy to zero, and the redeem-side settlement can be initiated by any caller. A manipulated pool price therefore becomes the executed conversion price, rather than merely affecting an informational valuation. The code does not compare actual output against an expected quote or revert on excessive price impact.",
+      "mitigation": "Compute a trusted expected output immediately before the swap and pass a conservative min_dy with an explicit slippage limit. Add price-impact, pool-liquidity, and oracle-deviation checks, and restrict or otherwise safely coordinate permissionless settlement so a caller cannot settle during an observable manipulated state.",
+      "finding_description": "NonUSTStrategy converts underlying to UST and UST back to underlying using Curve exchange_underlying with min_dy set to zero. The reverse conversion is invoked by the permissionless finishRedeemStable path after asynchronous redemption. An attacker can manipulate Curve immediately before settlement, trigger finishRedeemStable, and force the strategy to accept an arbitrarily poor exchange rate, with no transaction-level slippage protection.",
+      "impact": "Redeemed UST can be converted into materially less underlying than expected, permanently reducing strategy assets and the value recoverable by vault depositors.",
+      "vulnerable_code": [
+        {
+          "file": "sandclock/contracts/strategy/NonUSTStrategy.sol",
+          "contract": "NonUSTStrategy",
+          "function": "_swapUnderlyingToUst()"
+        },
+        {
+          "file": "sandclock/contracts/strategy/NonUSTStrategy.sol",
+          "contract": "NonUSTStrategy",
+          "function": "_swapUstToUnderlying()"
+        },
+        {
+          "file": "sandclock/contracts/strategy/NonUSTStrategy.sol",
+          "contract": "NonUSTStrategy",
+          "function": "finishRedeemStable(uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sandclock/contracts/strategy/BaseStrategy.sol",
+          "sandclock/contracts/strategy/curve/ICurve.sol",
+          "sandclock/contracts/strategy/NonUSTStrategy.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_203732",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:38:33.214140",
+      "id": "hyp_32aa5d901159",
+      "qa_comment": "Upon reviewing NonUSTStrategy._swapUnderlyingToUst, _swapUstToUnderlying, and finishRedeemStable, I confirmed the stated price-manipulation vulnerability. Both swap paths call curvePool.exchange_underlying with min_dy set to zero, so Curve provides no execution-price protection: any non-reverting output amount is accepted. The redeem path is especially exploitable because BaseStrategy.finishRedeemStable is public and NonUSTStrategy.finishRedeemStable invokes _swapUstToUnderlying immediately after receiving UST, allowing any caller to trigger settlement while the pool is temporarily distorted. Although doHardWork is restricted, that restriction does not protect the redeem-side conversion. No trusted quote, oracle comparison, maximum price impact, liquidity check, or caller-supplied slippage bound is used before either swap. The investedAssets view uses get_dy_underlying, but this is only an informational valuation and does not constrain exchange_underlying execution. Consequently, an attacker able to manipulate the Curve pool around settlement can cause strategy UST or underlying assets to be converted at an unfavorable rate; the zero minimum output permits the loss to execute rather than reverting."
+    }
+  },
+  "metadata": {
+    "total": 2,
+    "confirmed": 2,
+    "last_modified": "2026-10-12T20:38:33.214688"
+  }
+}

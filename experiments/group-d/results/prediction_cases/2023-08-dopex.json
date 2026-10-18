@@ -1,0 +1,38 @@
+{
+  "repo_id": "2023-08-dopex",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_d816c1b6feb9",
+      "title": "UniV3 AMO swaps rely on manipulable pool spot price and caller-supplied slippage",
+      "description": "The AMO executes exactInputSingle against a configured Uniswap V3 pool using caller-provided amountOutMinimum and sqrtPriceLimitX96, without validating the execution price against a TWAP or independent oracle. A permissionless attacker can temporarily move the pool price immediately before an authorized AMO transaction, causing the AMO to trade at an adverse manipulated price when the supplied minimum is permissive.",
+      "impact": "The protocol's liquidity assets can be exchanged for materially less value than their fair market value, transferring value to the attacker and potentially causing treasury loss or depletion of AMO-held assets.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/amo/UniV3LiquidityAmo.sol",
+          "contract": "UniV3LiquidityAmo",
+          "function": "swap(address,address,uint24,uint256,uint256,uint160)"
+        },
+        {
+          "file": "contracts/uniswap_V3/ISwapRouter.sol",
+          "contract": "ISwapRouter",
+          "function": "exactInputSingle(ExactInputSingleParams)"
+        }
+      ],
+      "mitigation": "Derive and enforce execution bounds from an independent oracle or sufficiently long Uniswap V3 TWAP, reject materially stale or divergent pool prices, use tightly calculated slippage limits rather than caller-selected permissive values, and consider private transaction submission for large swaps.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_b961004d796b",
+      "title": "UniV2 AMO swaps can execute against attacker-manipulated pair spot prices",
+      "description": "UniV2LiquidityAmo integrates directly with a Uniswap V2 pair/router and enforces only a minimum output, with no loaded evidence of an independent oracle, TWAP, or reserve-integrity check. An attacker can trade against the pool immediately before a predictable AMO swap to distort reserves and cause the authorized swap to execute at an unfavorable price, provided the configured minimum output remains permissive.",
+      "impact": "The AMO can lose treasury or liquidity-manager assets through unfavorable execution, and an attacker can extract the difference as arbitrage or sandwich profit.",
+      "vulnerable_code": [],
+      "mitigation": "Derive an execution price bound from an independent trusted oracle or sufficiently long TWAP, enforce both minimum-output and maximum-input constraints against that bound, use short deadlines and transaction-private submission where possible, and reject trades when pool liquidity or reserve movement exceeds configured limits.",
+      "severity": "high"
+    }
+  ]
+}

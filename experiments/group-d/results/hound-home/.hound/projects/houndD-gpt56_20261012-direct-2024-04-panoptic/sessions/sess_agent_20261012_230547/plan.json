@@ -1,0 +1,696 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_ebadab2324c2": {
+      "frame_id": "frame_ebadab2324c2",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of PanopticPool",
+      "artifact_refs": [
+        "Spot tick usage in position valuation and state transitions",
+        "TWAP versus spot-price selection in liquidation and solvency checks",
+        "Premium calculations based on tick accumulators and oracle observations",
+        "Resistance to short-term Uniswap V3 price manipulation affecting collateral, liquidation, or option pricing"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:05:53.350941",
+      "updated_at": "2026-10-12T23:06:23.295122",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:05:53.351153",
+          "status": "planned",
+          "rationale": "WHY NOW: PanopticPool is the primary risk-bearing component and its annotations show that both spot and TWAP prices influence liquidation and that premiums depend on tick accumulators. This creates a concentrated opportunity for price manipulation through transient pool-price moves, observation/cardinality assumptions, or inconsistent price sources. EXIT CRITERIA: Trace every PanopticPool path that reads or derives prices, identify the exact oracle source and time horizon, verify whether attacker-controlled spot movements can alter solvency, liquidation, premiums, or position values within one transaction or a short window, and document any exploitable impact with the required preconditions; conclude with no finding if all relevant paths use sufficiently robust, consistent manipulation-resistant pricing.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:05:53.360282",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:06:23.295205",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_ab71bb6ae064": {
+      "frame_id": "frame_ab71bb6ae064",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of ERC1155 tokenized option positions",
+      "artifact_refs": [
+        "Determine whether ERC1155 mint, burn, and transfer state changes can be manipulated to alter option-position balances used in pricing, premiums, collateral, or liquidation calculations",
+        "Trace pool-lock and authorization checks around position transfers and assess whether stale or forged balances can influence price-sensitive accounting",
+        "Check receiver-hook and state-update ordering for reentrancy or callback paths that could distort position-derived pricing inputs"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:06:32.449219",
+      "updated_at": "2026-10-12T23:07:42.403605",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:06:32.449463",
+          "status": "planned",
+          "rationale": "WHY NOW: This is an unvisited major component that directly represents tokenized option positions, while PanopticPool and SFPM consume those balances in price-sensitive collateral, premium, and liquidation flows. EXIT CRITERIA: Review the complete ERC1155 position lifecycle, authorization and lock enforcement, callback ordering, and all balance reads affecting pricing; conclude whether any attacker-controlled token operation can create, destroy, or relocate position exposure in a way that manipulates protocol price inputs, or document that such manipulation is prevented.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:06:32.461174",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:07:42.403751",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_3cea194211ed": {
+      "frame_id": "frame_3cea194211ed",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of CallbackLib",
+      "artifact_refs": [
+        "Verify callback validation cannot be bypassed to route AMM mint or burn flows through an unintended pool or manipulated pool state",
+        "Trace factory, pool, token, and callback-data checks for assumptions that could let an attacker influence price-sensitive liquidity or collateral accounting",
+        "Assess whether callback validation binds the callback to the canonical Uniswap pool and the intended operation parameters"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:07:51.536397",
+      "updated_at": "2026-10-12T23:08:16.427970",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:07:51.536904",
+          "status": "planned",
+          "rationale": "WHY NOW: CallbackLib is an unvisited permission and external-call boundary component used by price-sensitive AMM liquidity flows, while PanopticPool and position-token components are already completed. A callback-validation weakness could allow interaction with an attacker-controlled or incorrectly identified pool, undermining spot-price and liquidity-based valuation. EXIT CRITERIA: Trace every CallbackLib validation path and all callers; confirm canonical factory/pool derivation, token and callback-data binding, and operation-context checks prevent alternate-pool or parameter substitution. Record any concrete price-manipulation path, or conclude no exploitable price-sensitive bypass exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:07:51.555092",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:08:16.428181",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_f4c81c1b7b46": {
+      "frame_id": "frame_f4c81c1b7b46",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of Underlying ERC20 tokens",
+      "artifact_refs": [
+        "Fee-on-transfer, rebasing, and balance-changing token behavior affecting collateral accounting",
+        "Discrepancies between transferred amounts, cached pool assets, and utilization-priced collateral",
+        "Token callbacks or transfer semantics that can manipulate observed collateral value during minting, withdrawal, or liquidation"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:08:22.126845",
+      "updated_at": "2026-10-12T23:09:06.393292",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:08:22.127321",
+          "status": "planned",
+          "rationale": "WHY NOW: This is an unvisited external-facing component directly relied upon by CollateralTracker and pool accounting, while the active hypothesis concerns financially sensitive valuation and liquidation. Non-standard ERC20 balance or transfer behavior can create artificial collateral balances or distort the asset and utilization values used for pricing. EXIT CRITERIA: Trace every collateral-token transfer and balance read, determine whether supported token assumptions are enforced, and conclude whether any token behavior permits an attacker to manipulate collateral valuation or liquidation prices; record the relevant evidence or rule out price impact.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:08:22.145857",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:09:06.393440",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_6ea537cff7e6": {
+      "frame_id": "frame_6ea537cff7e6",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of DonorNFT",
+      "artifact_refs": [
+        "Assess whether factory-controlled NFT issuance or sequential token IDs influence reward, collateral, option, or other price-sensitive accounting",
+        "Trace DonorNFT ownership and factory authorization for any price-relevant state changes or externally controllable issuance effects",
+        "Check whether NFT metadata, supply, or issuance timing is used as a market-price or valuation input"
+      ],
+      "priority": 3,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:09:11.762081",
+      "updated_at": "2026-10-12T23:09:42.769420",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:09:11.762597",
+          "status": "planned",
+          "rationale": "WHY NOW: DonorNFT is one of the only remaining unvisited contract components and has factory-gated issuance that may connect to reward or economic accounting. Although its direct price-manipulation surface appears limited, broad sweep coverage requires confirming whether issuance state can affect any price-sensitive flow. EXIT CRITERIA: conclude that DonorNFT has no price-relevant state or influence, or document a concrete path showing how unauthorized or strategically timed issuance can alter a price, valuation, reward rate, collateral amount, or liquidation outcome.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:09:11.781711",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:09:42.769640",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_a5ab7c86a013": {
+      "frame_id": "frame_a5ab7c86a013",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of Users and integrators",
+      "artifact_refs": [
+        "Whether integrator-controlled transaction sequencing, callbacks, or supplied parameters can manipulate spot-price-dependent liquidity sizing or option valuation",
+        "Reliance on Uniswap spot tick, pool state, or observation data that users can influence through swaps or flash liquidity",
+        "Whether user-facing strategy builders and position creation flows enforce price, slippage, and collateral assumptions against manipulated market state"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:09:53.013699",
+      "updated_at": "2026-10-12T23:10:22.266510",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:09:53.014219",
+          "status": "planned",
+          "rationale": "WHY NOW: This is the only unvisited component, and integrator-controlled inputs and transaction ordering are the remaining unexplored attack surface for price manipulation. It is especially relevant because the architecture identifies spot-price liquidity sizing and Uniswap tick reads as financially sensitive dependencies. EXIT CRITERIA: Trace all user/integrator entry paths that consume or influence price-sensitive parameters; determine whether manipulable spot state can alter sizing, valuation, collateral, liquidation, or settlement; and document either a concrete exploitable manipulation flow with affected state or evidence that relevant paths use robust observations and enforce adequate bounds.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:09:53.034471",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:10:22.266680",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9f5b0490148b": {
+      "frame_id": "frame_9f5b0490148b",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of CollateralTracker",
+      "artifact_refs": [
+        "utilization-priced collateral share valuation",
+        "cached pool asset accounting and collateral ratios",
+        "whether manipulated pool state or spot pricing can inflate collateral value or enable under-collateralized withdrawals"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:10:27.438130",
+      "updated_at": "2026-10-12T23:10:31.436709",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:10:27.438399",
+          "status": "planned",
+          "rationale": "WHY NOW: CollateralTracker is an uncompleted core contract that converts between collateral shares and underlying assets and uses utilization-sensitive pricing, making it a critical boundary for price manipulation affecting solvency and liquidation. EXIT CRITERIA: Trace every collateral valuation, share conversion, asset-cache update, mint, burn, and withdrawal path; establish whether any attacker-controllable spot price, pool utilization, or stale cached value can materially misprice collateral; document a concrete exploit path and impact, or conclude that all relevant prices are bounded, synchronized, and manipulation-resistant.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:10:27.454211",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:10:31.436811",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_5d5e69c06def": {
+      "frame_id": "frame_5d5e69c06def",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of PanopticFactory",
+      "artifact_refs": [
+        "Spot-price-dependent liquidity sizing during pool creation",
+        "Initial liquidity donation and bootstrap pricing assumptions",
+        "Pool initialization sequencing relative to Uniswap state and observation data",
+        "Whether manipulable tick or liquidity values affect collateral, option valuation, or subsequent pool safety"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:10:38.822415",
+      "updated_at": "2026-10-12T23:10:44.993151",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:10:38.822972",
+          "status": "planned",
+          "rationale": "WHY NOW: PanopticFactory is an unanalyzed critical component that creates and initializes pools, and the architecture explicitly shows spot-price liquidity sizing and initial liquidity donation. These operations may trust manipulable Uniswap spot state at deployment or bootstrap, allowing an attacker to influence initial pricing, liquidity parameters, or downstream option valuation. EXIT CRITERIA: Trace every factory path that reads or derives values from Uniswap price, tick, liquidity, or observations; identify all bounds, sequencing checks, and caller restrictions; determine whether a same-block or pre-initialization price manipulation can alter economically sensitive state; and document a concrete exploit path or conclude that price inputs are sufficiently validated or isolated from valuation and collateral decisions.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:10:38.841432",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:10:44.993407",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_665a99276123": {
+      "frame_id": "frame_665a99276123",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of SemiFungiblePositionManager",
+      "artifact_refs": [
+        "Reliance on Uniswap V3 spot tick or pool state for position valuation, liquidity sizing, premiums, or collateral effects",
+        "Whether mint, burn, transfer, and liquidity-accounting flows can be manipulated through same-block price or liquidity changes",
+        "Consistency of price-sensitive calculations across forwarded AMM operations and tokenized position state"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:10:50.475241",
+      "updated_at": "2026-10-12T23:11:07.466272",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:10:50.475755",
+          "status": "planned",
+          "rationale": "WHY NOW: SemiFungiblePositionManager is an unanalyzed, high-impact component that bridges tokenized option positions with Uniswap liquidity and may expose price-sensitive accounting paths. It should be checked before lower-level libraries because manipulated pool state could propagate into position creation, settlement, or liquidity calculations. EXIT CRITERIA: Trace every SFPM path that reads or indirectly depends on Uniswap price, ticks, liquidity, or fee growth; determine whether attacker-controlled intra-transaction or short-term pool movements can create mispriced positions or extract value; and document concrete protections or a price-manipulation vulnerability with an exploitable flow.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:10:50.496136",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:11:07.466462",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_a7c18627aa01": {
+      "frame_id": "frame_a7c18627aa01",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of PanopticMath",
+      "artifact_refs": [
+        "Trace all tick, square-root-price, liquidity, and position-value conversions used in collateral, premium, and liquidation calculations",
+        "Check rounding direction, signed arithmetic, boundary handling, and extreme-price behavior for attacker-favorable valuation",
+        "Determine whether externally influenced spot-price inputs can be transformed or bypass canonical Uniswap price constraints"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:11:20.327874",
+      "updated_at": "2026-10-12T23:11:39.601243",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:11:20.328432",
+          "status": "planned",
+          "rationale": "WHY NOW: PanopticMath is an unanalyzed pricing-critical module beneath the already reviewed pool and collateral components, so arithmetic or conversion flaws here could systematically undermine valuation and liquidation decisions across the protocol. EXIT CRITERIA: Map every PanopticMath caller and price-dependent output, verify formulas and rounding across valid and boundary tick ranges, and conclude whether any manipulable or malformed price input can create materially favorable collateral, premium, or liquidation outcomes; record evidence or close the aspect if none is found.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:11:20.347407",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:11:39.601450",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_e7a847c8f84d": {
+      "frame_id": "frame_e7a847c8f84d",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of FeesCalc",
+      "artifact_refs": [
+        "Uniswap fee-growth inputs used in option valuation",
+        "Spot-price or tick-dependent fee accounting and premium calculations",
+        "Whether manipulated pool state can produce underpriced collateral, premiums, or liquidations"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:11:45.611522",
+      "updated_at": "2026-10-12T23:12:30.847343",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:11:45.611993",
+          "status": "planned",
+          "rationale": "WHY NOW: FeesCalc is an uncompleted pricing-sensitive module that consumes external Uniswap accounting data and feeds financially sensitive position calculations; manipulated pool observations or fee-growth state may distort valuation without requiring a direct flaw in the already reviewed PanopticPool. EXIT CRITERIA: Trace every FeesCalc entry point and caller, identify all price- or fee-derived inputs, verify tick/fee-growth domain and observation assumptions, and conclude whether a feasible market participant can manipulate the resulting valuation or liquidation-relevant amounts; document evidence or rule out a price manipulation path.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:11:45.631461",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:12:30.847524",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_c84b2784e4f4": {
+      "frame_id": "frame_c84b2784e4f4",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of PanopticHelper",
+      "artifact_refs": [
+        "Determine whether strategy builders or token-ID composition derive option parameters, strikes, or liquidity from manipulable Uniswap spot price or tick state",
+        "Trace all helper outputs into pool and position-management flows for assumptions that can be influenced by transient AMM price movements",
+        "Check whether view-only calculations expose stale, manipulable, or economically unsafe pricing inputs used by integrators"
+      ],
+      "priority": 6,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:12:37.525820",
+      "updated_at": "2026-10-12T23:12:54.531169",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:12:37.526222",
+          "status": "planned",
+          "rationale": "WHY NOW: PanopticHelper is an unanalyzed contract component that constructs strategy parameters and token IDs feeding the option system, while the audit scope specifically targets price manipulation. Its outputs may encode price-sensitive ranges or sizing assumptions even if the helper does not custody funds. EXIT CRITERIA: Confirm every strategy-builder and token-composition path, identify all price/tick inputs and downstream consumers, and determine whether a manipulable spot price can change economically sensitive parameters without suitable safeguards; conclude with no price-manipulation issue if all outputs are independent of transient pricing or are safely constrained.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:12:37.542741",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:12:54.531318",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_5252f20e21f5": {
+      "frame_id": "frame_5252f20e21f5",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of TokenId and TokenIdLibrary",
+      "artifact_refs": [
+        "Verify that token ID encoding and decoding uniquely and faithfully represent option legs, strikes, width, long/short direction, and pool-specific position parameters",
+        "Check whether malformed, ambiguous, out-of-range, or non-canonical token IDs can cause valuation logic to use favorable spot-price or payoff parameters",
+        "Trace all token ID-derived values into position pricing, collateral requirements, liquidation checks, and option balance accounting"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:13:05.086543",
+      "updated_at": "2026-10-12T23:13:26.334954",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:13:05.087069",
+          "status": "planned",
+          "rationale": "WHY NOW: This is an unanalyzed component at the boundary between user-controlled position descriptions and financially sensitive valuation state. Any encoding ambiguity or missing validation could let an attacker construct positions whose collateral or liquidation value is calculated from manipulated parameters, despite the surrounding pool and position-manager logic being reviewed. EXIT CRITERIA: Confirm every token ID field has canonical encoding, range validation, and consistent decoding across minting, valuation, collateral, and liquidation paths; identify whether any malformed or alternate encoding changes price-sensitive behavior; conclude with no finding only if all token ID representations are unambiguous and cannot alter valuation inputs without corresponding valid position state.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:13:05.108190",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:13:26.335099",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_086445308143": {
+      "frame_id": "frame_086445308143",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of Math",
+      "artifact_refs": [
+        "Price and liquidity conversion formulas used in option valuation",
+        "Rounding direction and precision loss across tick, square-root-price, and liquidity calculations",
+        "Boundary behavior that could let manipulated spot prices produce understated collateral or premium values"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:13:33.129939",
+      "updated_at": "2026-10-12T23:13:43.130161",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:13:33.130457",
+          "status": "planned",
+          "rationale": "WHY NOW: Math is an unanalyzed internal library on the valuation path, while the current hypothesis concerns financially sensitive option valuation and liquidation. Any incorrect rounding, truncation, or boundary handling can amplify a manipulable Uniswap spot price into favorable collateral or liquidation outcomes. EXIT CRITERIA: Trace every externally reachable use of the library, verify price-related formulas against their intended fixed-point domains and rounding requirements, check minimum/maximum price boundaries and signed arithmetic, and determine whether any issue permits an attacker to profit from transient spot-price manipulation. Do not expand into unrelated arithmetic or access-control analysis.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:13:33.150576",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:13:43.130350",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_7a2840d37953": {
+      "frame_id": "frame_7a2840d37953",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of ERC20Minimal",
+      "artifact_refs": [
+        "Assess whether token balance and transfer accounting can manipulate collateral-tracker assets or utilization-derived pricing",
+        "Review mint, burn, transfer, and allowance behavior for donation, balance inflation, or accounting discrepancies that affect price-sensitive calculations",
+        "Trace interactions with pool collateral valuation and withdrawal flows for exploitable price changes"
+      ],
+      "priority": 6,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:13:54.771801",
+      "updated_at": "2026-10-12T23:14:16.195819",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:13:54.772347",
+          "status": "planned",
+          "rationale": "WHY NOW: ERC20Minimal remains unanalyzed and its balances directly feed collateral and utilization-sensitive accounting; anomalous balance updates or transfer semantics could enable price manipulation without modifying the oracle itself. EXIT CRITERIA: confirm all balance-mutating paths and allowance-controlled transfers are reconciled with price-sensitive collateral accounting, and either document a concrete manipulation path with affected flows or rule out exploitable discrepancies.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:13:54.792840",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:14:16.196037",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_58855b942964": {
+      "frame_id": "frame_58855b942964",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of LiquidityChunk and LiquidityChunkLibrary",
+      "artifact_refs": [
+        "Price-derived liquidity and tick-range encoding",
+        "Validation of lower and upper ticks and spacing",
+        "Arithmetic, rounding, and overflow effects on liquidity sizing",
+        "Whether malformed chunks can distort option valuation or liquidation pricing"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:14:25.502274",
+      "updated_at": "2026-10-12T23:14:31.271998",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:14:25.502672",
+          "status": "planned",
+          "rationale": "WHY NOW: This uncompleted internal component sits directly between price/tick inputs and AMM liquidity representation, while the current high-severity hypothesis concerns financially sensitive option valuation and liquidation. A flaw in tick-range encoding, validation, or arithmetic could let positions obtain materially different exposure from their apparent parameters and create price-manipulation opportunities. EXIT CRITERIA: Trace every constructor, decoder, validator, and consumer of LiquidityChunk; establish the invariants for tick ordering, spacing, bounds, and liquidity amounts; verify malformed or boundary chunks cannot alter the effective price range or liquidity used in valuation and liquidation; record a price-manipulation finding only if a concrete exploitable path remains.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:14:25.522811",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:14:31.272173",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_462a8fa050ea": {
+      "frame_id": "frame_462a8fa050ea",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of Constants",
+      "artifact_refs": [
+        "Price and tick boundary constants used by valuation and liquidation",
+        "Sqrt-price bounds and fixed-point conversion assumptions",
+        "Whether boundary handling permits manipulated or invalid spot-price inputs to affect option pricing"
+      ],
+      "priority": 6,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:14:39.627294",
+      "updated_at": "2026-10-12T23:14:44.703524",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:14:39.627835",
+          "status": "planned",
+          "rationale": "WHY NOW: Core pool, collateral, math, and position components have already been investigated, while the shared Constants library remains uncompleted and directly defines the numerical bounds used by price-sensitive calculations. EXIT CRITERIA: Trace every price, tick, and sqrt-price constant into valuation and liquidation paths; verify boundary checks and conversion invariants; conclude whether any attacker-controlled market price can exploit constant mismatches or missing bounds, or document that no price-manipulation path exists.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:14:39.647766",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:14:44.703687",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_19d2ec2074a0": {
+      "frame_id": "frame_19d2ec2074a0",
+      "session_id": "sess_agent_20261012_230547",
+      "question": "Vulnerability analysis of ERC1155Minimal",
+      "artifact_refs": [
+        "Determine whether mint, burn, transfer, and balance accounting can be manipulated to misrepresent option-position exposure used by pricing, collateral, or liquidation logic",
+        "Check authorization and receiver-hook interactions for balance changes that bypass pool-scoped position assumptions and distort price-sensitive state",
+        "Trace whether malformed or duplicated token IDs can create inconsistent position quantities consumed by valuation functions"
+      ],
+      "priority": 3,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T23:14:55.414103",
+      "updated_at": "2026-10-12T23:15:16.325947",
+      "history": [
+        {
+          "timestamp": "2026-10-12T23:14:55.414641",
+          "status": "planned",
+          "rationale": "WHY NOW: ERC1155Minimal is an uncompleted state-bearing token component underlying tokenized option positions. Although its transfer logic is not itself a price oracle, incorrect or manipulable position balances could feed price-sensitive valuation and liquidation paths. EXIT CRITERIA: Confirm all balance-mutating and authorization paths, receiver-hook effects, and token-ID handling are reconciled with Panoptic position accounting; either identify a concrete path to price manipulation or rule out this component as a price-manipulation source.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T23:14:55.435130",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T23:15:16.326064",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 18,
+    "last_modified": "2026-10-12T23:15:16.326170"
+  }
+}

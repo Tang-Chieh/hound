@@ -1,0 +1,395 @@
+Running hypothesis finalization...
+╭─────────────── Finalization Summary ────────────────╮
+│ Hypothesis Finalization                             │
+│                                                     │
+│ Project: houndC-gpt56_20261012-direct-2021-12-vader │
+│ Total hypotheses: 23                                │
+│ Pending (not confirmed/rejected): 23                │
+│ Above threshold (50%): 19                           │
+│ To review: 19 hypotheses                            │
+╰─────────────────────────────────────────────────────╯
+Normal audits end; YOUR verdicts become precedent and the code falls in line.
+
+Hypotheses to review:
+┏━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Co… ┃ Type           ┃ Title                                                 ┃
+┡━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 90% │ slippage_cont… │ Liquidity add minimum amounts are ignored, enabling   │
+│     │                │ slippage and sandwich losses                          │
+│ 90% │ access_control │ V2 mintSynth lacks router access control and can      │
+│     │                │ spend arbitrary approved users' native assets         │
+│ 60% │ arithmetic     │ Pool reserve accounting can truncate balances above   │
+│     │                │ uint112 and desynchronize pricing                     │
+│ 90% │ logic_error    │ Daily mint limit is bypassed whenever a mint cycle    │
+│     │                │ rolls over                                            │
+│ 60% │ arithmetic     │ Hardcoded payout-token decimals can misprice bonds    │
+│ 90% │ logic_error    │ Swap queue operations are unimplemented and silently  │
+│     │                │ return default values                                 │
+│ 90% │ availability   │ Execution reimbursement is always zero and forced ETH │
+│     │                │ cannot be recovered                                   │
+│ 60% │ governance_se… │ Governor proposals can pass without a quorum          │
+│ 60% │ access_control │ Timelock administrator retains a direct privileged    │
+│     │                │ authorization path                                    │
+│ 60% │ economic_atta… │ XVader share-price donation attack enables zero-share │
+│     │                │ deposits                                              │
+└─────┴────────────────┴───────────────────────────────────────────────────────┘
+  ... and 9 more
+
+🧠 Reviewer openai-codex/gpt-5.6-luna enters the chamber...
+  ✓ CONFIRMED: Liquidity add minimum amounts are ignored, enabling slippage
+    Justification: Upon reviewing VaderRouter.addLiquidity and 
+VaderRouterV2.addLiquidity, I confirmed that the slippage controls exposed by 
+the Uniswap V2-compatible interfaces are ignored. In both external overloads, 
+amountAMin and amountBMin are unnamed parameters and are forwarded to overloads 
+that accept only desired amounts, without performing any validation. The legacy 
+router's _addLiquidity function simply returns amountADesired and 
+amountBDesired, transfers both exact amounts to the selected VaderPool, and 
+calls pool.mint(to). Likewise, VaderRouterV2 forwards the desired native and 
+foreign deposits directly to pool.mint, and BasePoolV2._mint transfers precisely
+those values before calculating liquidity using current reserves and total 
+supply. Consequently, a prior trade or liquidity operation can alter the reserve
+ratio and reduce the liquidity minted or worsen the economic value of the 
+position, while the caller's specified minimums cannot cause a revert. No 
+minimum-liquidity parameter or post-mint validation exists in either router. The
+deadline only limits execution time and does not protect against reserve 
+manipulation, so the stated slippage-control weakness is exploitable.
+  ✓ CONFIRMED: V2 mintSynth lacks router access control and can spend arbit
+    Justification: Upon reviewing VaderPoolV2.mintSynth in 
+contracts/dex-v2/pool/VaderPoolV2.sol, I confirmed that the access-control 
+vulnerability is exploitable. The function is external and protected only by 
+nonReentrant and supportedToken(foreignAsset); unlike mint, swap, and burn, it 
+has no onlyRouter modifier. It calls nativeAsset.safeTransferFrom(from, 
+address(this), nativeDeposit) using the arbitrary from parameter, without 
+requiring from == msg.sender or otherwise authenticating that address. It then 
+obtains or creates the synth through SynthFactory and invokes synth.mint(to, 
+amountSynth). SynthFactory is owned by the pool, and Synth.mint is restricted to
+that owner, so the pool can successfully mint synth tokens to an 
+attacker-controlled recipient during this call. Consequently, any victim who has
+directly approved the pool to spend nativeAsset can be targeted by an attacker 
+supplying the victim as from and themselves as to. The router’s access control 
+on other pool functions does not mitigate this independently callable entry 
+point.
+  ✗ REJECTED: Pool reserve accounting can truncate balances above uint112 
+    Reason: Upon reviewing the alleged reserve-truncation vulnerability in 
+BasePool._update and BasePoolV2._update, I determined this is a false positive. 
+Both implementations explicitly require balanceNative and balanceForeign to be 
+less than or equal to type(uint112).max before performing the uint112 
+assignments. In contracts/dex/pool/BasePool.sol, mint, burn, and swap all 
+eventually call _update, so balances exceeding the representable range cause the
+transaction to revert with "Balance Overflow" rather than being silently 
+truncated. The same guard exists in contracts/dex-v2/pool/BasePoolV2.sol, 
+covering mint, burn, swap, and doubleSwap updates for each supported pair. 
+Consequently, an oversized transfer or token rebase could potentially cause 
+update operations to fail, creating a denial-of-service concern depending on 
+token behavior, but it cannot produce the hypothesized truncated reserve or 
+pricing desynchronization through these functions. The stated root cause—that no
+upper-bound validation exists—is contradicted by the source code.
+  ✓ CONFIRMED: Daily mint limit is bypassed whenever a mint cycle rolls ove
+    Justification: Upon reviewing the USDV.mint function in 
+contracts/tokens/USDV.sol, I confirmed the reported daily-limit logic error. 
+After calculating uAmount from the current VADER price and the user-supplied 
+vAmount, the function enters the reset branch whenever cycleTimestamp is less 
+than or equal to block.timestamp. That branch sets cycleTimestamp to 
+block.timestamp + 24 hours and assigns cycleMints = uAmount without checking 
+uAmount against dailyLimit. The only require enforcing cycleMints <= dailyLimit 
+appears in the continuing-cycle branch, after cycleMints is incremented. 
+Consequently, a caller can submit a mint whose resulting USDV amount exceeds 
+dailyLimit immediately after deployment or after the 24-hour window expires, 
+subject only to ordinary transfer, burn, pricing, and token-balance constraints.
+The lock modifier does not impose a mint-size restriction, and Vader.mint/burn 
+access control does not enforce USDV's daily limit. The default dailyLimit is 
+also uint256.max, but whenever the owner configures a meaningful lower limit, 
+the rollover path remains exploitable.
+  ✗ REJECTED: Hardcoded payout-token decimals can misprice bonds
+    Reason: Upon reviewing Treasury.valueOfToken and VaderBond’s constructor and
+pricing functions, I determined this specific hardcoded-decimals hypothesis is a
+false positive. Treasury does not use a compile-time payout-token decimal 
+constant: its constructor stores PAYOUT_TOKEN_DECIMALS from 
+IERC20Metadata(_payoutToken).decimals(), and valueOfToken normalizes principal 
+amounts using that value and the principal token’s metadata decimals. VaderBond 
+does define PAYOUT_TOKEN_DECIMALS = 18, but this constant is used primarily for 
+MIN_PAYOUT, while payoutFor receives a value already denominated in the Treasury
+payout token’s native units; bondPrice and debtRatio use consistent 
+unit-independent scaling. Therefore, configuring both contracts with a payout 
+token having non-18 decimals does not by itself misprice bonds through 
+valueOfToken. The code does lack an explicit check that VaderBond.payoutToken 
+matches Treasury’s payout token, which could create a separate severe 
+misconfiguration involving transfers and redemption, but that is distinct from 
+the alleged hardcoded decimal valuation issue.
+  ✓ CONFIRMED: Swap queue operations are unimplemented and silently return 
+    Justification: Upon reviewing SwapQueue.sol, I confirmed the alleged logic 
+error in the queue primitives. The internal function _insertQueue(uint256) has 
+an empty body and therefore implicitly returns Solidity’s default bool value, 
+false, without modifying the public queue mapping or its linked-list fields. 
+Likewise, _executeQueue() has an empty body and implicitly returns zero. 
+executeQueue() externally invokes _executeQueue(), receives a zero 
+reimbursement, and calls Address.sendValue with that amount, so the transaction 
+can complete successfully while performing no queue processing and transferring 
+no reimbursement. There are no access controls, validation checks, reverts, or 
+other guards that compensate for these missing implementations. Although the 
+supplied contract exposes no public insertion function, meaning the shown code 
+alone does not demonstrate theft or creation of queued entries, any intended 
+workflow or integrating contract relying on these primitives will silently fail:
+insertion reports failure and execution is a no-op. The issue is therefore a 
+confirmed implementation-level availability and correctness vulnerability, while
+its ultimate economic impact depends on omitted integration code.
+  ✓ CONFIRMED: Execution reimbursement is always zero and forced ETH cannot
+    Justification: Upon reviewing SwapQueue.sol, particularly executeQueue(), 
+_executeQueue(), and the contract’s complete set of functions, I confirmed that 
+the alleged issue exists in the provided implementation. executeQueue() calls 
+_executeQueue() and forwards its returned value through Address.sendValue(), but
+_executeQueue() has an empty body and no named return variable or return 
+statement, so the uint256 result defaults to zero. Consequently, callers receive
+no execution reimbursement regardless of queue activity. The contract also 
+defines no payable receive or fallback function, administrator-controlled 
+withdrawal method, emergency recovery function, or other mechanism to transfer 
+ETH held by the contract. Although ordinary ETH transfers are not accepted, ETH 
+can still be forcibly deposited through mechanisms such as selfdestruct, leaving
+the balance permanently inaccessible through this contract’s exposed 
+functionality. No access-control or balance-handling logic mitigates either 
+condition. The related _insertQueue() function is also unimplemented, 
+reinforcing that this source is incomplete, but based on the supplied code the 
+zero reimbursement and unrecoverable forced ETH are directly demonstrable.
+  ✗ REJECTED: Governor proposals can pass without a quorum
+    Reason: Upon reviewing the alleged missing-quorum vulnerability in 
+GovernorAlpha, I determined this is a false positive. The implementation 
+explicitly defines quorumVotes(uint256 blockNumber) as 4% of 
+xVader.getPastTotalSupply(blockNumber). In state(uint256 proposalId), once 
+voting has ended, a proposal is marked Defeated whenever proposal.forVotes <= 
+proposal.againstVotes or proposal.forVotes < quorumVotes(proposal.startBlock). 
+Consequently, queue(uint256) can proceed only when state returns Succeeded, and 
+execute(uint256) requires the proposal to be queued, so ordinary proposals 
+cannot pass solely because legitimate voters abstain. Voting power is also 
+snapshot-based through xVader.getPastVotes(voter, proposal.startBlock), 
+consistently matching the quorum snapshot. The council veto path is an 
+intentional privileged mechanism: veto(..., true) queues a proposal directly and
+therefore bypasses normal voting quorum, but this is not an attacker-controlled 
+low-participation voting path because only the configured council may invoke it.
+Subject to the intended governance design and assuming XVader’s historical 
+supply functions are correct, the stated attack vector is not exploitable.
+  ? UNCERTAIN: Timelock administrator retains a direct privileged authoriza
+    Note: Upon reviewing Timelock.sol and GovernorAlpha.sol, I found that 
+Timelock grants exclusive queue, cancel, and execute authority to the address 
+stored in `admin` through `msg.sender == admin` checks in `queueTransaction`, 
+`cancelTransaction`, and `executeTransaction`. The constructor accepts an 
+arbitrary nonzero `admin_`, and the contract contains no invariant requiring 
+that address to be GovernorAlpha or automatically revoking an initial 
+administrator. GovernorAlpha provides a guardian-controlled handoff sequence 
+through `__queueSetTimelockPendingAdmin`, `__executeSetTimelockPendingAdmin`, 
+and `__acceptAdmin`, but these functions do not establish that the original 
+administrator was actually replaced; deployment and initialization code is not 
+included. Therefore, an administrator that remains assigned to `Timelock.admin` 
+would indeed have a direct path to schedule and execute arbitrary calls after 
+the delay, bypassing governance voting. However, the source does not establish 
+the deployed value of `admin` or prove that the handoff was omitted, so the 
+reported vulnerability is conditional on deployment state and cannot be 
+conclusively confirmed from the provided code alone.
+  ✓ CONFIRMED: XVader share-price donation attack enables zero-share deposi
+    Justification: Upon reviewing XVader.enter and XVader.leave, I confirmed 
+that the alleged donation and rounding vulnerability is exploitable. enter 
+derives the exchange rate from vader.balanceOf(address(this)) and totalSupply(),
+then computes xVADERToMint using integer division: (_amount * totalShares) / 
+totalVader. There is no internal asset accounting, virtual balance, 
+minimum-share requirement, or check that the minted amount is nonzero. An 
+attacker can obtain initial shares, transfer VADER directly to XVader to inflate
+totalVader without increasing totalSupply, and then cause a subsequent victim 
+deposit to mint zero or disproportionately few shares when the division rounds 
+down. The victim's VADER remains in the contract, while the attacker can call 
+leave and receive (_shares * vader.balanceOf(address(this))) / totalShares, 
+thereby capturing value attributable to the victim's deposit. The direct 
+transfer is unrestricted by XVader, and leave uses the same raw balance with no 
+protection against donated assets. ERC20 transfer and allowance mechanics do not
+mitigate this economic flaw.
+  ? UNCERTAIN: GasThrottle enforcement is ineffective because validation is
+    Note: Upon reviewing GasThrottle.sol, particularly the validateGas modifier,
+I confirmed that the intended enforcement is disabled: the require condition 
+checking gasThrottleEnabled, block.basefee, tx.gasprice, and the Chainlink 
+oracle’s latestAnswer() is entirely commented out, while the modifier 
+unconditionally executes the function body via _;. The gasThrottleEnabled 
+variable is initialized to true but is never consulted in the shown 
+implementation, so this contract alone provides no gas-threshold protection. 
+However, the supplied source does not include any contract that inherits from or
+applies validateGas to an externally callable operation. Consequently, the 
+existence of a directly exploitable availability impact cannot be established 
+from this evidence: if no production entry point uses the modifier, the issue is
+inert, whereas protected operations would clearly bypass the intended checks. A 
+definitive determination requires tracing all references to GasThrottle and 
+validateGas, identifying externally reachable guarded functions, and assessing 
+whether exceeding the intended gas conditions can cause meaningful resource 
+exhaustion or unsafe behavior. The finding is therefore plausible but not 
+conclusively demonstrated.
+  ✗ REJECTED: Reward notification can schedule rewards against pre-existin
+    Reason: Upon reviewing StakingRewards.notifyRewardAmount and the 
+onlyRewardsDistribution modifier in RewardsDistributionRecipient, I determined 
+this hypothesis is a false positive under the apparent funding model. 
+notifyRewardAmount is intentionally a notification-only function; it does not 
+claim to transfer tokens, and the authorized distributor is expected to fund the
+contract separately. The function calculates the new reward rate, includes any 
+unexpired leftover rewards, and then checks that rewardRate <= 
+rewardsToken.balanceOf(address(this)) / rewardsDuration. This is equivalent to 
+ensuring that the newly scheduled amount plus leftover obligations does not 
+exceed the contract’s current reward-token balance. Consequently, pre-existing 
+reward-token balances may be used, but the contract does not promise more tokens
+than it currently holds, and an unfunded notification fails unless sufficient 
+tokens were already deposited. The onlyRewardsDistribution restriction also 
+prevents arbitrary users from invoking the function. Although the implementation
+does not measure a balance delta, that is not required by this pre-funding 
+design and no exploitable insolvency path is shown. A compromised or 
+intentionally malicious distributor would represent an administrative trust 
+issue, not this vulnerability.
+  ✗ REJECTED: Vesting accrual is not capped at the vesting end time
+    Reason: Upon reviewing the alleged arithmetic vulnerability in 
+LinearVesting._getClaim and claim, I determined this is a false positive. 
+Although _getClaim references block.timestamp, it explicitly checks `if 
+(block.timestamp >= _end) return amount;`, thereby capping post-expiry claims to
+the beneficiary’s remaining unclaimed allocation. The claim function then 
+subtracts the returned vestedAmount from `vester.amount`, updates `lastClaim`, 
+stores the modified vesting record, and transfers only that amount of Vader. 
+Consequently, a beneficiary calling claim after the vesting end receives the 
+remaining allocation exactly once; subsequent calls return zero and fail the 
+`vestedAmount != 0` requirement. The same capped behavior applies to schedules 
+created by begin and vestFor because both assign a finite end timestamp. Before 
+expiry, the calculation distributes only a fraction of the current remaining 
+amount over the remaining vesting interval. No path was identified whereby 
+elapsed time after `_end` causes an amount greater than the recorded allocation 
+to be returned or transferred.
+  ✗ REJECTED: Converter conversion entry point lacks caller authorization
+    Reason: Upon reviewing the alleged access-control vulnerability in 
+Converter.convert in contracts/tokens/converter/Converter.sol, I determined this
+is a false positive. The function is intentionally callable by users rather than
+exclusively by Vader: it derives the Merkle leaf from msg.sender, amount, salt, 
+and the current chain ID, then requires a valid proof and an unused claimed 
+entry. The recipient is not caller-controlled; both the immediate Vader transfer
+and the vesting allocation target msg.sender. The conversion also requires a 
+nonzero requested amount, transfers Vether from the caller using their 
+allowance, and calculates Vader solely from the transferred amount. The vesting 
+contract independently protects vestFor with onlyConverter, and Converter is the
+configured converter address. Consequently, an arbitrary attacker cannot select 
+another recipient, mint an unauthorized allocation, or drain Converter-held 
+Vader without possessing a valid Merkle allocation and supplying the 
+corresponding Vether. Although Converter lacks an onlyVader check, that check 
+would contradict the documented and implemented user-facing conversion flow; 
+Vader does not invoke convert.
+  ✓ CONFIRMED: LiquidityBasedTWAP accepts stale or invalid Chainlink respon
+    Justification: Upon reviewing LiquidityBasedTWAP.getChainlinkPrice and its 
+callers, I confirmed a stale-oracle validation vulnerability. The function 
+invokes latestRoundData(), checks only answeredInRound >= roundID and price > 0,
+then returns the answer. It does not validate updatedAt, startedAt, roundID != 
+0, or any maximum age relative to block.timestamp. Consequently, a feed whose 
+latest answer is positive and internally complete but has not been updated for 
+an arbitrary period is still accepted. This value is consumed by 
+_updateVaderPrice, _updateUSDVPrice, _calculateVaderPrice, and 
+_calculateUSDVPrice, which are reached through getVaderPrice and getUSDVPrice. 
+Those public pricing paths are directly used by USDV.mint, USDV.burn, and 
+VaderReserve.reimburseImpermanentLoss, allowing operations to execute against an
+outdated valuation during a feed outage or stall. The existing positivity and 
+answeredInRound checks mitigate zero, negative, and some incomplete-round 
+responses, but they do not establish freshness. Therefore, the hypothesis is 
+valid, although its claim that all round completeness validation is absent is 
+overstated.
+  ✓ CONFIRMED: V2 pool accounting is vulnerable to fee-on-transfer or defla
+    Justification: Upon reviewing BasePoolV2._mint, BasePoolV2.swap, 
+BasePoolV2.doubleSwap, VaderPoolV2.mintFungible, and VaderRouterV2._swap, I 
+confirmed that supported fee-on-transfer or deflationary tokens can create an 
+accounting mismatch. Transfers are performed with SafeERC20 using the 
+user-supplied nominal amounts, but no pre/post balance delta is measured. _mint 
+records nativeDeposit and foreignDeposit in reserves, total liquidity 
+calculations, and Position data even if the pool receives less. Likewise, _swap 
+transfers amountIn to the pool and then passes the unchanged nominal value to 
+swap or doubleSwap; BasePoolV2 updates reserves using that value. Consequently, 
+a user can obtain swap output or LP units calculated against more tokens than 
+the pool actually received, while later withdrawals and pricing rely on inflated
+reserves. Outbound fee-on-transfer behavior is also unhandled: reserves are 
+reduced by the nominal transfer amount although the recipient may receive less, 
+leaving surplus or causing future insolvency; the unrestricted rescue function 
+may expose such surplus. No token-behavior rejection or normalization guard is 
+present in setTokenSupport or the transfer paths.
+  ✗ REJECTED: Legacy pool credits nominal token amounts for fee-on-transfe
+    Reason: Upon reviewing the alleged nominal-amount accounting flaw in 
+VaderRouter.addLiquidity, VaderRouter._swap, and BasePool.mint and swap, I 
+determined this is a false positive for the supplied implementation. Although 
+the router transfers the requested nominal amounts, BasePool.mint reads 
+nativeAsset.balanceOf(address(this)) and foreignAsset.balanceOf(address(this)) 
+after transfer, subtracts the stored reserves, and records those actual balance 
+deltas as deposits and position.original amounts. Consequently, a 
+fee-on-transfer token is not credited with its nominal transfer amount during 
+liquidity provision. For swaps, BasePool.swap requires the supplied amount to be
+no greater than balance minus reserve, so a fee-on-transfer input generally 
+causes the transaction to revert rather than allowing an inflated input to be 
+used. After transferring swap output, the pool rereads both token balances and 
+updates reserves through _update using those actual balances. A fee charged on 
+output may cause the recipient to receive less than the function’s reported 
+amount, but this is token-level behavior and does not demonstrate nominal 
+reserve over-crediting or an exploitable accounting path in the pool. No 
+relevant guard bypass is shown.
+  ✗ REJECTED: Unrestricted skim permits theft of unsolicited or residual p
+    Reason: Upon reviewing UniswapV2Pair.skim(address) in 
+contracts/external/UniswapV2Pair.sol, the function is intentionally 
+permissionless and transfers only token balances exceeding the recorded reserve 
+values; it cannot withdraw accounted liquidity or reserve-backed assets. The 
+implementation applies the pair's reentrancy lock and uses _safeTransfer, but 
+contains no caller authorization because Uniswap V2 semantics treat unsolicited 
+transfers, rounding dust, and residual balances as recoverable excess. Although 
+an attacker can observe an excess balance and call skim(attacker), this does not
+demonstrate unauthorized theft of protocol-owned or user-owned funds unless the 
+surrounding system deliberately deposits assets into the pair without 
+immediately minting liquidity or otherwise relies on the excess balance for 
+custody. The reviewed VaderRouterV2 routes liquidity through IVaderPoolV2.mint 
+and swaps through pool functions, and no code shown establishes such a reliance 
+on Uniswap pair balances above reserves. Therefore, the behavior is a known 
+design property rather than a demonstrated access-control vulnerability in this 
+codebase.
+  ✓ CONFIRMED: Zero-address distributor assignment can permanently disable 
+    Justification: Upon reviewing 
+RewardsDistributionRecipient.setRewardsDistribution and 
+StakingRewards.notifyRewardAmount, I confirmed the described availability 
+weakness. setRewardsDistribution is protected only by onlyOwner and assigns the 
+supplied address directly, without requiring a nonzero address or emitting a 
+change event. The StakingRewards notification entry point is guarded by 
+onlyRewardsDistribution, which requires msg.sender == rewardsDistribution. Once 
+rewardsDistribution is address(0), no practical transaction can satisfy this 
+condition because the zero address cannot originate a call, so 
+notifyRewardAmount becomes permanently unusable unless the owner restores a 
+valid distributor. The StakingRewards constructor also directly accepts and 
+stores a zero _rewardsDistribution, allowing deployment in this broken state. 
+Owned prevents setting owner to zero through its constructor, and this 
+implementation has no explicit renounceOwnership function, so the issue is not 
+automatically permanent after a normal owner action; however, it becomes 
+effectively permanent if the owner key or governing caller is unavailable. 
+Therefore, the hypothesis is a valid conditional availability vulnerability, 
+primarily involving unsafe configuration and lack of recovery safeguards.
+
+
+============================================================
+
+Finalization Complete:
+  ✓ Confirmed: 9
+  ✗ Rejected: 8
+  ? Uncertain: 2
+
+Total reviewed: 19
+
+Confirmed Vulnerabilities:
+  • Liquidity add minimum amounts are ignored, enabling slippage and sandwich 
+losses
+    Type: slippage_control | Severity: high
+  • V2 mintSynth lacks router access control and can spend arbitrary approved 
+users' native assets
+    Type: access_control | Severity: critical
+  • Daily mint limit is bypassed whenever a mint cycle rolls over
+    Type: logic_error | Severity: high
+  • Swap queue operations are unimplemented and silently return default values
+    Type: logic_error | Severity: high
+  • Execution reimbursement is always zero and forced ETH cannot be recovered
+    Type: availability | Severity: medium
+  • XVader share-price donation attack enables zero-share deposits
+    Type: economic_attack | Severity: high
+  • LiquidityBasedTWAP accepts stale or invalid Chainlink responses
+    Type: oracle_validation | Severity: high
+  • V2 pool accounting is vulnerable to fee-on-transfer or deflationary 
+supported tokens
+    Type: economic_attack | Severity: high
+  • Zero-address distributor assignment can permanently disable reward 
+notifications
+    Type: availability | Severity: medium
+

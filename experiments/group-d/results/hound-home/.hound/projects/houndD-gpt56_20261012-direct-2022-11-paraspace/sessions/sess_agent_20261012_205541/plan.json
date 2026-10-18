@@ -1,0 +1,164 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_8912efea7c8d": {
+      "frame_id": "frame_8912efea7c8d",
+      "session_id": "sess_agent_20261012_205541",
+      "question": "Vulnerability analysis of PoolCore",
+      "artifact_refs": [
+        "Oracle resolution and asset-price consumption in supply, borrow, repay, liquidation, and finalize flows",
+        "Whether stale, expired, configurable, or manipulable oracle values are accepted",
+        "xToken-gated finalize paths and any caller-controlled parameters affecting valuation",
+        "Consistency of oracle identifiers, decimals, and price bounds across pool operations"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:55:46.702792",
+      "updated_at": "2026-10-12T20:56:13.892150",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:55:46.703032",
+          "status": "planned",
+          "rationale": "WHY NOW: PoolCore is the central permissioned state-transition component and explicitly resolves price oracles, making it the highest-leverage unvisited component for identifying price manipulation that could affect collateral valuation, borrowing capacity, or liquidation. EXIT CRITERIA: Trace every PoolCore path that reads or propagates prices; identify the oracle source and validation applied at each use; verify freshness, deviation, decimals, bounds, and caller/parameter controls; conclude whether an attacker can influence accepted prices or obtain an economically favorable state transition, or document that all relevant paths enforce robust protections.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:55:46.712843",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:56:13.892277",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_a20b202cf3a2": {
+      "frame_id": "frame_a20b202cf3a2",
+      "session_id": "sess_agent_20261012_205541",
+      "question": "Vulnerability analysis of WETH",
+      "artifact_refs": [
+        "Assess whether WETH balance, wrapping, unwrapping, or transfer semantics can alter protocol price inputs or collateral valuation",
+        "Trace any price-dependent accounting that relies on WETH denomination or exchange assumptions",
+        "Check whether rebasing, donation, or conversion behavior could create a manipulable reference value"
+      ],
+      "priority": 3,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:56:21.808067",
+      "updated_at": "2026-10-12T20:56:50.653117",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:56:21.808542",
+          "status": "planned",
+          "rationale": "WHY NOW: WETH is one of the remaining unvisited components and may underpin asset denomination or gateway-mediated valuation flows. Although standard WETH is generally non-price-bearing, confirming that no protocol price path trusts mutable token balances or conversion assumptions closes a remaining coverage gap. EXIT CRITERIA: Review the complete WETH implementation and all statically visible integrations relevant to pricing; conclude whether any attacker-controlled WETH state can influence oracle inputs, collateral valuation, liquidation thresholds, or other price-sensitive calculations, and record evidence for either a concrete manipulation path or a clean result.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:56:21.826391",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:56:50.653299",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_cdd09255dfa0": {
+      "frame_id": "frame_cdd09255dfa0",
+      "session_id": "sess_agent_20261012_205541",
+      "question": "Vulnerability analysis of NFTFloorOracle",
+      "artifact_refs": [
+        "Role-gated price update paths and administrator validation bypasses",
+        "Configurable deviation bounds and expiry enforcement",
+        "Staleness, initialization, and fallback behavior for NFT floor prices",
+        "Whether manipulable oracle values affect collateral valuation, borrowing, liquidation, or repayment"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:56:58.821447",
+      "updated_at": "2026-10-12T20:57:02.826795",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:56:58.821913",
+          "status": "planned",
+          "rationale": "WHY NOW: NFTFloorOracle is a primary price source for NFT-backed positions and its annotations identify privileged update paths, an administrator bypass of validation, and configurable deviation and expiry controls. These mechanisms are directly capable of introducing stale or arbitrarily manipulated prices into critical pool actions, making this the highest-value uncompleted component for the price-manipulation sweep. EXIT CRITERIA: Trace every price write and read path, establish the exact authorization and validation invariants for each updater, verify deviation and expiry checks cannot be bypassed or weakened into unsafe states, and map whether any accepted stale or manipulated value can change collateral valuation, borrowing capacity, liquidation outcomes, or other protocol pricing decisions. Conclude with a concrete hypothesis and evidence, or document that all paths enforce bounded, fresh, correctly initialized prices.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:56:58.840234",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:57:02.826994",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_7c412a5210b8": {
+      "frame_id": "frame_7c412a5210b8",
+      "session_id": "sess_agent_20261012_205541",
+      "question": "Vulnerability analysis of UniswapV3OracleWrapper",
+      "artifact_refs": [
+        "Current pool price usage and manipulation resistance",
+        "Liquidity-derived NFT valuation inputs",
+        "TWAP, observation-window, and freshness enforcement",
+        "Token ordering, decimal normalization, and quote-side handling"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:57:13.056430",
+      "updated_at": "2026-10-12T20:57:17.569898",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:57:13.056908",
+          "status": "planned",
+          "rationale": "WHY NOW: This is a critical price-producing component that derives valuation data from an external Uniswap V3 pool, and it has not been listed among completed investigations. Reading the current pool price or insufficiently constrained liquidity-derived amounts may allow short-term pool manipulation to influence collateral or borrowing valuations. EXIT CRITERIA: Trace every public and internal price/amount path into consuming pool logic; verify whether observations are time-weighted and sufficiently fresh, whether attacker-controlled spot state can affect outputs, and whether liquidity, decimals, token ordering, and boundary conditions can produce manipulable prices. Conclude with either a concrete price-manipulation vulnerability and exploit path or documented evidence that all relevant paths enforce robust manipulation resistance.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:57:13.076127",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:57:17.570087",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 4,
+    "last_modified": "2026-10-12T20:57:17.570287"
+  }
+}

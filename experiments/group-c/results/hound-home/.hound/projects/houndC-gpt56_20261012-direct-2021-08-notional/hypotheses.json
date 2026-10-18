@@ -1,0 +1,776 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_8bd4b6bef412": {
+      "title": "Stale Chainlink prices are accepted during collateral checks and trade settlement",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: Missing freshness and round-validity validation for external oracle responses.\nATTACK VECTOR: During an oracle outage or delayed update, an account borrows or executes trades using an obsolete inflated collateral price, or liquidation uses an obsolete depressed price.\nAFFECTED NODES: action_TradingAction, library_FreeCollateral, library_ExchangeRate, oracle_AggregatorV2V3Interface\nAFFECTED CODE: contracts/internal/valuation/ExchangeRate.sol:ExchangeRate.buildExchangeRate, contracts/internal/valuation/FreeCollateral.sol:FreeCollateral._updateNetETHValue\nSEVERITY: high\nREASONING: The loaded implementation destructures latestRoundData but ignores timestamp and round metadata, while the resulting rate is used by FreeCollateral for account solvency checks on trade paths.\nSUGGESTED MITIGATION: Require a nonzero updatedAt, enforce an acceptable maximum oracle age, validate answeredInRound against roundId where applicable, and reject incomplete or otherwise invalid rounds before using the price.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "action_TradingAction",
+        "library_FreeCollateral",
+        "library_ExchangeRate",
+        "oracle_AggregatorV2V3Interface"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation destructures latestRoundData but ignores timestamp and round metadata, while the resulting rate is used by FreeCollateral for account solvency checks on trade paths.",
+      "mitigation": "Require a nonzero updatedAt, enforce an acceptable maximum oracle age, validate answeredInRound against roundId where applicable, and reject incomplete or otherwise invalid rounds before using the price.",
+      "finding_description": "ExchangeRate.buildExchangeRate reads latestRoundData and checks only that the returned rate is positive. It does not validate updatedAt, answeredInRound, or round completeness. If the oracle is stale during an outage or delayed update, TradingAction's free-collateral and debt checks can use obsolete collateral valuations.",
+      "impact": "Accounts may incur undercollateralized debt, or liquidators and users may receive materially incorrect settlement and liquidation prices, causing protocol losses.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/internal/valuation/ExchangeRate.sol",
+          "contract": "ExchangeRate",
+          "function": "buildExchangeRate"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/external/actions/TradingAction.sol",
+          "contracts/internal/valuation/FreeCollateral.sol",
+          "interfaces/chainlink/AggregatorV2V3Interface.sol",
+          "contracts/internal/valuation/ExchangeRate.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:01:17.428906",
+      "id": "hyp_8bd4b6bef412",
+      "qa_comment": "Upon reviewing ExchangeRate.buildExchangeRate in contracts/internal/valuation/ExchangeRate.sol and its callers in FreeCollateral._updateNetETHValue, I confirmed the oracle-validation vulnerability. For every non-ETH currency, buildExchangeRate calls AggregatorV2V3Interface.latestRoundData() but discards roundId, startedAt, updatedAt, and answeredInRound, retaining only the answer and requiring merely that rate > 0. Consequently, a valid but obsolete Chainlink answer remains acceptable indefinitely when the feed is delayed, paused, or otherwise not updating. The resulting rate is applied by FreeCollateral.getFreeCollateralStateful, getFreeCollateralView, and getLiquidationFactors to convert balances and portfolio values into ETH, affecting solvency checks, borrowing/trading eligibility, and liquidation decisions. No maximum-age, nonzero-updatedAt, round-consistency, or incomplete-round validation is present in the reviewed code. ETH itself is hardcoded and is not relevant to this issue. Although external Chainlink infrastructure or governance may monitor feeds, those controls do not prevent the contract from accepting stale data, so the stated attack path is technically exploitable during an oracle outage or delayed update."
+    },
+    "hyp_c45f684136d9": {
+      "title": "Currency rate view returns the asset token as the underlying token",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Incorrect boolean argument when loading the underlying token configuration.\nATTACK VECTOR: An integration or user relying on getCurrencyAndRates to select the underlying token uses the returned asset token address for deposits, withdrawals, approvals, or risk calculations.\nAFFECTED NODES: action_Views, token_TokenHandlerTokens, library_TokenHandler\nAFFECTED CODE: contracts/external/Views.sol:Views.getCurrencyAndRates, contracts/internal/balances/TokenHandler.sol:TokenHandler.getToken\nSEVERITY: medium\nREASONING: The loaded code assigns assetToken and underlyingToken using the identical false selector despite TokenHandler.getToken explicitly distinguishing underlying and asset storage.\nSUGGESTED MITIGATION: Load underlyingToken with TokenHandler.getToken(currencyId, true), and add regression tests asserting distinct configured asset and underlying addresses for currencies that have both.",
+      "vulnerability_type": "logic_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "action_Views",
+        "token_TokenHandlerTokens",
+        "library_TokenHandler"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded code assigns assetToken and underlyingToken using the identical false selector despite TokenHandler.getToken explicitly distinguishing underlying and asset storage.",
+      "mitigation": "Load underlyingToken with TokenHandler.getToken(currencyId, true), and add regression tests asserting distinct configured asset and underlying addresses for currencies that have both.",
+      "finding_description": "Views.getCurrencyAndRates calls TokenHandler.getToken(currencyId, false) for both assetToken and underlyingToken. The second call should use the underlying=true selector, so callers receive the asset address in both fields.",
+      "impact": "Integrations can approve or transfer the wrong token, causing failed operations or funds to be sent to an unintended token contract; systems that use the response for valuation can also mis-account collateral.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/external/Views.sol",
+          "contract": "Views",
+          "function": "getCurrencyAndRates"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/external/Views.sol",
+          "contracts/internal/balances/TokenHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:01:17.449274",
+      "id": "hyp_c45f684136d9",
+      "qa_comment": "Upon reviewing Views.getCurrencyAndRates in contracts/external/Views.sol, I confirmed the reported logic error. The function loads assetToken with TokenHandler.getToken(currencyId, false), which correctly selects the asset-token storage slot, but then loads underlyingToken using the same false selector rather than true. TokenHandler.getToken and its _getSlot implementation in contracts/internal/balances/TokenHandler.sol explicitly use the boolean argument to select separate asset and underlying configurations. Consequently, for currencies such as cToken-based markets where the configured asset and underlying addresses differ, getCurrencyAndRates returns the asset token twice and misrepresents the underlying token. There are no checks or guards correcting this result; the function is an external view consumed by integrations and users, who may use the returned underlyingToken for approvals, transfers, deposits, withdrawals, or calculations. This is primarily an integrity and integration-risk issue rather than a direct unauthorized-funds exploit, but the incorrect output is demonstrably present and exploitable by dependent callers. The analogous getCurrency function correctly uses true, further indicating the getCurrencyAndRates call is erroneous."
+    },
+    "hyp_b2e187e0ebd6": {
+      "title": "Annualized supply-rate validation is ineffective and permits unbounded oracle output",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: A non-negativity check is applied to an unsigned value and no maximum supply-rate validation exists.\nATTACK VECTOR: A compromised, misconfigured, or maliciously upgraded asset-rate adapter returns an extreme supply rate, causing materially incorrect implied rates or arithmetic reverts for trades involving the currency.\nAFFECTED NODES: action_TradingAction, library_AssetRate, oracle_AssetRateAdapter, library_Market\nAFFECTED CODE: contracts/internal/markets/AssetRate.sol:AssetRate.getSupplyRate, contracts/internal/markets/AssetRate.sol:AssetRate._getAssetRateStateful\nSEVERITY: medium\nREASONING: The check shown in the loaded code cannot reject any uint256 value, and the adapter is an external dependency whose output feeds market oracle-rate calculations.\nSUGGESTED MITIGATION: Define and enforce a governance-approved maximum annualized supply rate, reject values outside the supported protocol range, and validate adapter identity and returned rates before using them in market calculations.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "action_TradingAction",
+        "library_AssetRate",
+        "oracle_AssetRateAdapter",
+        "library_Market"
+      ],
+      "evidence": [],
+      "reasoning": "The check shown in the loaded code cannot reject any uint256 value, and the adapter is an external dependency whose output feeds market oracle-rate calculations.",
+      "mitigation": "Define and enforce a governance-approved maximum annualized supply rate, reject values outside the supported protocol range, and validate adapter identity and returned rates before using them in market calculations.",
+      "finding_description": "AssetRate.getSupplyRate obtains a uint256 from the external AssetRateAdapter and then checks require(rate >= 0), which is always true for uint256. No upper bound or sanity range is applied before the value is used in rate calculations for idiosyncratic maturities.",
+      "impact": "The protocol can calculate incorrect trade prices or become unable to execute trades, settle assets, or value positions for the affected currency; extreme values can also create denial of service through arithmetic failure.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/internal/markets/AssetRate.sol",
+          "contract": "AssetRate",
+          "function": "getSupplyRate"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/markets/Market.sol",
+          "contracts/internal/markets/AssetRate.sol",
+          "contracts/external/actions/TradingAction.sol",
+          "interfaces/notional/AssetRateAdapter.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:01:21.669422",
+      "id": "hyp_b2e187e0ebd6",
+      "qa_comment": "Upon reviewing AssetRate.getSupplyRate in contracts/internal/markets/AssetRate.sol, I confirmed that the alleged validation weakness exists. The function obtains an annualized supply rate from the externally configured AssetRateAdapter and applies require(rate >= 0), but rate is uint256, making this condition universally true. No upper bound, protocol-range check, or adapter-output sanity check is performed before the value is returned. The adapter address is loaded from storage and invoked directly, so a compromised, misconfigured, or maliciously upgraded adapter can return an arbitrarily large value. The returned rate is subsequently used by market/oracle calculations through the affected market and trading paths; extreme values can produce invalid exponentiation or arithmetic behavior in Market.getExchangeRateFromImpliedRate and related calculations, potentially causing trades or rate queries to revert or producing materially distorted rates. Existing checks on exchange rates and eventual uint32 market storage fields do not constrain the supply rate at the point it is consumed and may only convert the issue into a denial of service. Therefore, the hypothesis is valid, subject to adapter-control assumptions."
+    },
+    "hyp_2d27f8e4b37e": {
+      "title": "Liquidation entry point may be reentrant through collateral and incentive token transfers",
+      "description": "VULNERABILITY TYPE: reentrancy\nROOT CAUSE: External token-transfer callbacks are reachable from an externally callable liquidation function without visible reentrancy protection or an explicit checks-effects-interactions guarantee.\nATTACK VECTOR: A token contract configured as a currency or incentive token performs a callback during collateral withdrawal or incentive payment and invokes liquidation or another state-changing action before the outer liquidation completes.\nAFFECTED NODES: action_LiquidateCurrencyAction, library_LiquidateCurrency, library_Incentives, library_TokenHandler\nAFFECTED CODE: contracts/external/actions/LiquidateCurrencyAction.sol:liquidateCollateralCurrency, contracts/internal/liquidation/LiquidateCurrency.sol:collateral liquidation finalization, contracts/internal/balances/Incentives.sol:claimIncentives\nSEVERITY: high\nREASONING: The entry point is explicitly external and exposes withdrawal and incentive paths that ultimately perform token interactions. The loaded code does not show a reentrancy guard; the precise exploitability depends on whether an inherited router or dispatcher applies one and on the ordering of storage writes versus transfers.\nSUGGESTED MITIGATION: Apply a protocol-wide nonReentrant guard to liquidation entry points, or ensure all account, portfolio, nToken, and incentive state is committed before external transfers. Restrict configured tokens to non-callback-compatible standards where possible and test callback reentry across every withdrawal branch.",
+      "vulnerability_type": "reentrancy",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "action_LiquidateCurrencyAction",
+        "library_LiquidateCurrency",
+        "library_Incentives",
+        "library_TokenHandler"
+      ],
+      "evidence": [],
+      "reasoning": "The entry point is explicitly external and exposes withdrawal and incentive paths that ultimately perform token interactions. The loaded code does not show a reentrancy guard; the precise exploitability depends on whether an inherited router or dispatcher applies one and on the ordering of storage writes versus transfers.",
+      "mitigation": "Apply a protocol-wide nonReentrant guard to liquidation entry points, or ensure all account, portfolio, nToken, and incentive state is committed before external transfers. Restrict configured tokens to non-callback-compatible standards where possible and test callback reentry across every withdrawal branch.",
+      "finding_description": "liquidateCollateralCurrency is an external function and the liquidation flow supports withdrawing collateral to msg.sender and claiming incentives. These paths invoke configured token contracts, which can call back into the protocol if a malicious or non-standard ERC20 is configured. No nonReentrant protection is visible on the entry point, so the safety of the liquidation state depends entirely on all account, portfolio, and balance writes occurring before every external transfer.",
+      "impact": "A callback could process the same account or balances against partially updated state, potentially causing duplicate liquidation, inconsistent portfolio and cash accounting, or unauthorized asset extraction; at minimum it can make liquidation behavior dependent on token callback behavior.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/external/actions/LiquidateCurrencyAction.sol",
+          "contract": "LiquidateCurrencyAction",
+          "function": "liquidateCollateralCurrency"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/liquidation/LiquidateCurrency.sol",
+          "contracts/internal/balances/Incentives.sol",
+          "contracts/internal/balances/TokenHandler.sol",
+          "contracts/external/actions/LiquidateCurrencyAction.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:02:21.374842",
+      "id": "hyp_2d27f8e4b37e"
+    },
+    "hyp_71cd663d7558": {
+      "title": "Zero nToken haircut parameters can make currency liquidation permanently revert",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Liquidation arithmetic assumes nToken PV and liquidation haircut percentages are strictly positive, but the calculation path does not enforce that invariant locally.\nATTACK VECTOR: A governance configuration or malformed parameter update sets the nToken PV haircut percentage or liquidation haircut percentage to zero; a liquidator then attempts to liquidate collateral containing nTokens and the calculation reverts.\nAFFECTED NODES: library_LiquidateCurrency, action_LiquidateCurrencyAction, action_GovernanceAction\nAFFECTED CODE: contracts/internal/liquidation/LiquidateCurrency.sol:_calculateCollateralNTokenTransfer, contracts/external/actions/LiquidateCurrencyAction.sol:liquidateCollateralCurrency\nSEVERITY: medium\nREASONING: The loaded calculation explicitly derives nTokenLiquidationHaircut and nTokenHaircut from parameter bytes and uses them in the formula denominator. No nonzero check is present in the shown block. This is primarily a governance or configuration-induced availability issue unless an untrusted caller can influence those parameters.\nSUGGESTED MITIGATION: Enforce strictly positive PV and liquidation haircut percentages when parameters are created or updated, and add a defensive nonzero assertion before the division in _calculateCollateralNTokenTransfer. Provide a fallback that skips nToken liquidation rather than reverting the entire currency liquidation when parameters are invalid.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 0.9,
+      "status": "proposed",
+      "node_refs": [
+        "library_LiquidateCurrency",
+        "action_LiquidateCurrencyAction",
+        "action_GovernanceAction"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded calculation explicitly derives nTokenLiquidationHaircut and nTokenHaircut from parameter bytes and uses them in the formula denominator. No nonzero check is present in the shown block. This is primarily a governance or configuration-induced availability issue unless an untrusted caller can influence those parameters.",
+      "mitigation": "Enforce strictly positive PV and liquidation haircut percentages when parameters are created or updated, and add a defensive nonzero assertion before the division in _calculateCollateralNTokenTransfer. Provide a fallback that skips nToken liquidation rather than reverting the entire currency liquidation when parameters are invalid.",
+      "finding_description": "The nToken liquidation calculation converts governance-supplied PV and liquidation haircut percentages to integers and uses their product as a divisor. The shown code does not validate either parameter as nonzero before calculating the nToken amount. If either haircut is zero, liquidation involving an account's nTokens reaches a division-by-zero revert, preventing collateral currency liquidation for affected accounts.",
+      "impact": "Liquidators cannot liquidate otherwise eligible accounts through the currency path while the invalid parameter remains configured, allowing bad debt to persist and potentially blocking liquidations for an entire currency.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/internal/liquidation/LiquidateCurrency.sol",
+          "contract": "LiquidateCurrency",
+          "function": "_calculateCollateralNTokenTransfer"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/liquidation/LiquidateCurrency.sol",
+          "contracts/external/actions/LiquidateCurrencyAction.sol",
+          "contracts/external/actions/GovernanceAction.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:02:21.386195",
+      "id": "hyp_71cd663d7558"
+    },
+    "hyp_9d4ec98d0d6b": {
+      "title": "Transfer event is emitted even when delegated transfer fails",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: ERC20 event emission is not conditioned on the delegated operation succeeding.\nATTACK VECTOR: A caller invokes transferFrom with an unauthorized allowance, insufficient balance, or another failing condition that causes the backing proxy to return false. The adapter emits a Transfer event despite no token state change; event-driven indexers or integrations may treat the fabricated event as proof of payment.\nAFFECTED NODES: adapter_nTokenERC20Proxy, token_nTokenERC20\nAFFECTED CODE: contracts/external/adapters/nTokenERC20Proxy.sol:nTokenERC20Proxy.transferFrom\nSEVERITY: medium\nREASONING: The code captures the delegated success result but emits Transfer before returning it, with no conditional check or revert on failure. The interface defines a boolean success result, so false-returning failure is an explicitly supported execution path.\nSUGGESTED MITIGATION: Only emit Transfer after confirming success; alternatively revert whenever the delegated call reports false. Ensure all callers and wrappers consistently treat unsuccessful delegated transfers as failed operations.",
+      "vulnerability_type": "logic_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "adapter_nTokenERC20Proxy",
+        "token_nTokenERC20"
+      ],
+      "evidence": [],
+      "reasoning": "The code captures the delegated success result but emits Transfer before returning it, with no conditional check or revert on failure. The interface defines a boolean success result, so false-returning failure is an explicitly supported execution path.",
+      "mitigation": "Only emit Transfer after confirming success; alternatively revert whenever the delegated call reports false. Ensure all callers and wrappers consistently treat unsuccessful delegated transfers as failed operations.",
+      "finding_description": "transferFrom emits Transfer(from, to, amount) unconditionally after nTokenTransferFrom returns, without checking success. Because the interface explicitly returns a boolean, the backing proxy can report failure without reverting, while the adapter still publishes a successful-looking Transfer event.",
+      "impact": "Off-chain accounting, payment processors, bridges, or monitoring systems that trust Transfer logs can credit recipients or record settlement for transfers that never occurred, causing accounting discrepancies or potentially financial loss.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "interfaces/notional/nTokenERC20.sol",
+          "contracts/external/adapters/nTokenERC20Proxy.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:03:14.231009",
+      "id": "hyp_9d4ec98d0d6b",
+      "qa_comment": "Upon reviewing the nTokenERC20Proxy.transferFrom function in contracts/external/adapters/nTokenERC20Proxy.sol, I confirmed the reported logic error. The function calls proxy.nTokenTransferFrom(...) and stores its returned success flag, but it unconditionally emits Transfer(from, to, amount) before returning success. It also emits Approval regardless of whether the delegated transfer succeeded. Because the nTokenERC20 interface explicitly defines nTokenTransferFrom as returning (bool, uint256), a false-returning failure is a supported execution path rather than necessarily a transaction revert. In that case, the adapter transaction completes, the fabricated Transfer event remains in the receipt, and no corresponding token movement may have occurred. Any indexer, payment verifier, or integration relying on ERC20 Transfer events rather than the returned boolean can therefore incorrectly record the transfer as successful. A reverting delegated call would roll back the events, but there is no guard for the distinct false-return case. The related transfer function also emits before delegation, although transferFrom alone is sufficient to substantiate the hypothesis."
+    },
+    "hyp_eb675ae7f347": {
+      "title": "Approval event uses reversed owner and spender fields",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: The adapter maps the delegated allowance result to the ERC20 Approval event using msg.sender as owner and from as spender instead of from as owner and msg.sender as spender.\nATTACK VECTOR: A spender calls transferFrom and causes an Approval event with reversed indexed addresses. An attacker can also submit failing calls with arbitrary from values to inject misleading allowance events into indexers that reconstruct allowances from logs.\nAFFECTED NODES: adapter_nTokenERC20Proxy, token_nTokenERC20\nAFFECTED CODE: contracts/external/adapters/nTokenERC20Proxy.sol:nTokenERC20Proxy.transferFrom\nSEVERITY: medium\nREASONING: The event declaration follows the standard Approval(owner, spender, amount) ordering, while the implementation passes msg.sender first and from second. The interface separately identifies spender and owner in nTokenTransferFrom, confirming the expected roles.\nSUGGESTED MITIGATION: Emit Approval(from, msg.sender, newAllowance) only when the delegated allowance mutation succeeds, and ensure event consumers use on-chain allowance state where correctness is security-critical.",
+      "vulnerability_type": "logic_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "adapter_nTokenERC20Proxy",
+        "token_nTokenERC20"
+      ],
+      "evidence": [],
+      "reasoning": "The event declaration follows the standard Approval(owner, spender, amount) ordering, while the implementation passes msg.sender first and from second. The interface separately identifies spender and owner in nTokenTransferFrom, confirming the expected roles.",
+      "mitigation": "Emit Approval(from, msg.sender, newAllowance) only when the delegated allowance mutation succeeds, and ensure event consumers use on-chain allowance state where correctness is security-critical.",
+      "finding_description": "After transferFrom, the adapter emits Approval(msg.sender, from, newAllowance). The delegated allowance operation is for owner=from and spender=msg.sender, so the ERC20 Approval event arguments are reversed. This produces logs that do not describe the actual allowance state and can also be emitted for failed transfers.",
+      "impact": "Wallets, routers, compliance systems, and indexers that rely on Approval logs can track the wrong allowance relationship, potentially approve or reject transfers incorrectly and create exploitable off-chain accounting or authorization decisions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "interfaces/notional/nTokenERC20.sol",
+          "contracts/external/adapters/nTokenERC20Proxy.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:03:17.891203",
+      "id": "hyp_eb675ae7f347",
+      "qa_comment": "Upon reviewing the nTokenERC20Proxy.transferFrom implementation, I confirmed the alleged logic error. The function calls proxy.nTokenTransferFrom(currencyId, msg.sender, from, to, amount), where the interface explicitly defines msg.sender as the spender and from as the owner. However, after receiving the delegated allowance result, it emits Approval(msg.sender, from, newAllowance). Because the inherited IERC20 event follows Approval(owner, spender, amount), these indexed addresses are reversed: the spender is recorded as owner and the token owner is recorded as spender. This creates incorrect allowance data for event-based indexers and monitoring systems. The function also emits the event regardless of the returned success value, so if the router reports failure without reverting, a caller may potentially generate misleading Approval logs, subject to the router's internal validation behavior. No guard in the adapter corrects the ordering or suppresses the event on failure. The source therefore clearly demonstrates the role-mapping vulnerability, although the impact is primarily integrity and interoperability of off-chain allowance reconstruction rather than unauthorized token spending."
+    },
+    "hyp_24f37f373164": {
+      "title": "ERC1155 transfers can move debt positions without recipient solvency validation",
+      "description": "VULNERABILITY TYPE: financial_logic\nROOT CAUSE: The transfer flow validates transfer authorization but does not appear to validate the recipient's ability to assume liability positions or prevent unsolicited transfers of debt.\nATTACK VECTOR: An attacker transfers negative fCash or another liability-bearing ERC1155 position to an arbitrary undercollateralized address, including an address controlled by the attacker or an unrelated account, then leaves the recipient insolvent or causes protocol bad debt.\nAFFECTED NODES: action_ERC1155Action, library_TransferAssets, portfolio_AccountPortfolio, state_AccountContext\nAFFECTED CODE: action_ERC1155Action transfer entry points, library_TransferAssets portfolio and account-context updates\nSEVERITY: high\nREASONING: The architecture records authorization validation and direct portfolio/context writes for ERC1155Action and TransferAssets, but no collateral or free-collateral validation edge. This is exploitable if the asset identifier can represent negative positions, as is typical for Notional fCash portfolios.\nSUGGESTED MITIGATION: Before committing a transfer, distinguish asset and liability positions, require explicit recipient acceptance for liabilities or enforce recipient solvency after the transfer, and perform the required settlement and free-collateral checks for both accounts.",
+      "vulnerability_type": "financial_logic",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "action_ERC1155Action",
+        "library_TransferAssets",
+        "portfolio_AccountPortfolio",
+        "state_AccountContext"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture records authorization validation and direct portfolio/context writes for ERC1155Action and TransferAssets, but no collateral or free-collateral validation edge. This is exploitable if the asset identifier can represent negative positions, as is typical for Notional fCash portfolios.",
+      "mitigation": "Before committing a transfer, distinguish asset and liability positions, require explicit recipient acceptance for liabilities or enforce recipient solvency after the transfer, and perform the required settlement and free-collateral checks for both accounts.",
+      "finding_description": "ERC1155Action delegates position movement to TransferAssets, which updates portfolio and account-context state but has no indicated free-collateral or recipient solvency check. If negative fCash or other liability positions are transferable through this path, an account can transfer its liabilities to an arbitrary address without that account consenting or demonstrating sufficient collateral.",
+      "impact": "Liability positions can be dumped onto accounts that cannot satisfy collateral requirements, potentially creating uncollectible protocol debt and enabling avoidance of liquidation or repayment obligations.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/external/actions/ERC1155Action.sol",
+          "contracts/internal/portfolio/TransferAssets.sol",
+          "contracts/external/Views.sol",
+          "contracts/global/Types.sol",
+          "contracts/internal/portfolio/BitmapAssetsHandler.sol",
+          "contracts/internal/portfolio/PortfolioHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:06:20.068351",
+      "id": "hyp_24f37f373164",
+      "qa_comment": "Upon reviewing the ERC1155Action transfer paths and TransferAssets portfolio updates, I determined this is a false positive. A single safeTransferFrom constructs a positive asset amount for the recipient and applies the negated amount to the sender, so it cannot directly assign a liability to an arbitrary recipient. Batch transfers can intentionally encode negative notionals, but _decodeToAssets marks these with toTransferNegative, and safeBatchTransferFrom requires isApprovedForAll(to, msg.sender), preventing unsolicited liability transfers. After _transfer updates both portfolios and contexts, _checkPostTransferEvent invokes FreeCollateralExternal.checkFreeCollateralAndRevert(to) whenever the recipient takes a negative fCash position and has debt; the sender is similarly checked when relevant. TransferAssets and BitmapAssetsHandler also update hasDebt based on negative positions and enforce portfolio bounds and valid asset types. Consequently, an undercollateralized recipient cannot retain a transferred liability because the transaction reverts, while permitted trade callbacks are separately responsible for their own collateral checks."
+    },
+    "hyp_9ecbaeed5831": {
+      "title": "ERC1155 amount conversion may permit signed portfolio amount manipulation",
+      "description": "VULNERABILITY TYPE: integer_validation\nROOT CAUSE: Missing explicit upper-bound validation when converting externally supplied uint256 ERC1155 amounts into signed internal portfolio amounts.\nATTACK VECTOR: A caller submits an ERC1155 transfer with an amount greater than type(int256).max. If the value is narrowed or cast without rejection, the resulting negative amount can credit the sender, debit the recipient, or otherwise corrupt portfolio accounting.\nAFFECTED NODES: action_ERC1155Action, library_TransferAssets, portfolio_AccountPortfolio\nAFFECTED CODE: action_ERC1155Action transfer amount handling, library_TransferAssets signed portfolio amount accounting\nSEVERITY: high\nREASONING: The external ERC1155 interface necessarily accepts unsigned amounts, while the connected portfolio model supports signed positions. No amount-range validation is exposed in the available observations, so the signed conversion must be audited specifically; this finding depends on an unchecked narrowing conversion being present in the unloaded source.\nSUGGESTED MITIGATION: Reject amounts greater than type(int256).max before any conversion, use checked conversions, and add tests covering boundary values, zero, and oversized uint256 amounts for both single and batch transfers.",
+      "vulnerability_type": "integer_validation",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "action_ERC1155Action",
+        "library_TransferAssets",
+        "portfolio_AccountPortfolio"
+      ],
+      "evidence": [],
+      "reasoning": "The external ERC1155 interface necessarily accepts unsigned amounts, while the connected portfolio model supports signed positions. No amount-range validation is exposed in the available observations, so the signed conversion must be audited specifically; this finding depends on an unchecked narrowing conversion being present in the unloaded source.",
+      "mitigation": "Reject amounts greater than type(int256).max before any conversion, use checked conversions, and add tests covering boundary values, zero, and oversized uint256 amounts for both single and batch transfers.",
+      "finding_description": "ERC1155 amounts are unsigned uint256 values, while portfolio balances and transfer accounting commonly use signed int256 amounts. The loaded architecture does not indicate a bounds check before TransferAssets applies the amount to portfolio state. If the implementation converts an amount above int256.max to a signed value, a caller may cause the transfer amount to become negative and reverse the intended balance movement.",
+      "impact": "Malformed transfers could create unauthorized portfolio credits, drain or corrupt account balances, or make accounting inconsistent across sender and recipient accounts.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/external/actions/ERC1155Action.sol",
+          "contracts/internal/portfolio/TransferAssets.sol",
+          "contracts/external/Views.sol",
+          "contracts/internal/portfolio/BitmapAssetsHandler.sol",
+          "contracts/internal/portfolio/PortfolioHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:06:20.080124",
+      "id": "hyp_9ecbaeed5831"
+    },
+    "hyp_15c3d07ec76b": {
+      "title": "AssetRateAdapter may use stale cached external asset exchange rates",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: The adapter does not demonstrably enforce freshness or synchronize the external cash-market exchange rate before returning it through the view rate path.\nATTACK VECTOR: An attacker waits for the external market rate to diverge from its cached value, then performs collateral, settlement, mint, or redemption operations that consume the stale AssetRate value; if the stale value overstates collateral, the attacker can borrow or withdraw more value than supported.\nAFFECTED NODES: oracle_AssetRateAdapter, library_AssetRate, external_CashMarketInterface\nAFFECTED CODE: AssetRateAdapter external exchange-rate methods, AssetRate.getExchangeRate consumer, CashMarketInterface exchange-rate and accrual calls\nSEVERITY: medium\nREASONING: The architecture identifies separate view and stateful adapter rate methods and an external cash-market dependency, but does not show freshness or accrual validation. This is distinct from the existing Chainlink-staleness hypothesis because the affected source is the external cash-market asset-rate adapter.\nSUGGESTED MITIGATION: Ensure every rate used for accounting either obtains an accrued/current external-market rate or verifies a bounded update timestamp and maximum age. Reject stale or unavailable rates, and use a consistently synchronized stateful path for collateral and settlement calculations.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "medium",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_AssetRateAdapter",
+        "library_AssetRate",
+        "external_CashMarketInterface"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies separate view and stateful adapter rate methods and an external cash-market dependency, but does not show freshness or accrual validation. This is distinct from the existing Chainlink-staleness hypothesis because the affected source is the external cash-market asset-rate adapter.",
+      "mitigation": "Ensure every rate used for accounting either obtains an accrued/current external-market rate or verifies a bounded update timestamp and maximum age. Reject stale or unavailable rates, and use a consistently synchronized stateful path for collateral and settlement calculations.",
+      "finding_description": "The adapter exposes both view and stateful rate paths while obtaining rates from an external cash market. If the view path reads a cached exchange rate without requiring interest accrual or validating an update timestamp, prolonged inactivity or external-market state changes can leave the rate stale when AssetRate consumes it.",
+      "impact": "Collateral can be overvalued, allowing undercollateralized borrowing or excess redemption and leaving the protocol with bad debt or a direct asset shortfall.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/markets/AssetRate.sol",
+          "interfaces/notional/AssetRateAdapter.sol",
+          "interfaces/notional/CashMarketInterface.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:08:44.681536",
+      "id": "hyp_15c3d07ec76b"
+    },
+    "hyp_c279898758d8": {
+      "title": "fCash liquidation may accept invalid or already-settled maturities",
+      "description": "VULNERABILITY TYPE: validation_error\nROOT CAUSE: Missing or insufficient maturity validation at the fCash liquidation boundary before liquidation calculations and portfolio writes.\nATTACK VECTOR: Call the permissionless fCash liquidation entry point with an invalid, expired, or already-settled maturity and a crafted liquidation amount, then exploit incorrect asset lookup or portfolio mutation.\nAFFECTED NODES: action_LiquidatefCashAction, library_LiquidatefCash, library_LiquidationHelpers, portfolio_AccountPortfolio\nAFFECTED CODE: action_LiquidatefCashAction -> library_LiquidatefCash, library_LiquidatefCash -> library_LiquidationHelpers, library_LiquidatefCash -> portfolio_AccountPortfolio\nSEVERITY: high\nREASONING: The architecture explicitly records maturity validation for TradingAction but provides no corresponding validation observation for LiquidatefCashAction. The loaded context is insufficient to prove that LiquidatefCash performs the required validity and settlement checks, so this finding requires source-level confirmation.\nSUGGESTED MITIGATION: Require the maturity to be nonzero, valid for the currency and market, and unsettled before any liquidation calculation or state write; reject settled bitmap and portfolio assets through the same canonical settlement checks used elsewhere.",
+      "vulnerability_type": "validation_error",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "action_LiquidatefCashAction",
+        "library_LiquidatefCash",
+        "library_LiquidationHelpers",
+        "portfolio_AccountPortfolio"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records maturity validation for TradingAction but provides no corresponding validation observation for LiquidatefCashAction. The loaded context is insufficient to prove that LiquidatefCash performs the required validity and settlement checks, so this finding requires source-level confirmation.",
+      "mitigation": "Require the maturity to be nonzero, valid for the currency and market, and unsettled before any liquidation calculation or state write; reject settled bitmap and portfolio assets through the same canonical settlement checks used elsewhere.",
+      "finding_description": "The fCash liquidation entry point and library are shown as performing liquidation calculations and portfolio finalization, but the available component context does not establish an explicit check that the requested maturity is valid, nonzero, and still unsettled before mutating the account portfolio. If arbitrary or settled maturities are accepted, a liquidator may invoke liquidation against an incompatible asset representation or cause inconsistent portfolio state.",
+      "impact": "Invalid liquidation requests could corrupt the liquidated account's portfolio, strand positions, or transfer collateral/fCash using settlement assumptions that no longer apply.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/external/actions/LiquidatefCashAction.sol",
+          "contracts/internal/liquidation/LiquidatefCash.sol",
+          "contracts/external/Views.sol",
+          "contracts/internal/portfolio/BitmapAssetsHandler.sol",
+          "contracts/internal/liquidation/LiquidationHelpers.sol",
+          "contracts/internal/portfolio/PortfolioHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:10:24.399641",
+      "id": "hyp_c279898758d8"
+    },
+    "hyp_64a19dbb204c": {
+      "title": "fCash liquidation may not verify that the account remains undercollateralized",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Liquidation eligibility and liquidation-capacity checks are not demonstrably enforced at the fCash liquidation boundary.\nATTACK VECTOR: Submit a permissionless liquidation request against a solvent or insufficiently distressed account, selecting an fCash amount and collateral amount that produces a discounted transfer.\nAFFECTED NODES: action_LiquidatefCashAction, library_LiquidatefCash, library_LiquidationHelpers, library_FreeCollateral, portfolio_AccountPortfolio, state_AccountBalances\nAFFECTED CODE: action_LiquidatefCashAction -> library_LiquidatefCash, library_LiquidatefCash -> library_LiquidationHelpers, liquidation eligibility -> account collateral state\nSEVERITY: high\nREASONING: The investigation guidance specifically identifies verification that the account remains undercollateralized after liquidation as an unresolved check. No node observation confirms such a check for the fCash path, unlike the documented explicit maturity validation on TradingAction; source review is required to confirm exploitability.\nSUGGESTED MITIGATION: Compute free collateral using current account state and enforce both liquidation eligibility before the transfer and a post-liquidation solvency/capacity bound; reject requests that exceed the account's permitted liquidation amount.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "action_LiquidatefCashAction",
+        "library_LiquidatefCash",
+        "library_LiquidationHelpers",
+        "library_FreeCollateral",
+        "portfolio_AccountPortfolio",
+        "state_AccountBalances"
+      ],
+      "evidence": [],
+      "reasoning": "The investigation guidance specifically identifies verification that the account remains undercollateralized after liquidation as an unresolved check. No node observation confirms such a check for the fCash path, unlike the documented explicit maturity validation on TradingAction; source review is required to confirm exploitability.",
+      "mitigation": "Compute free collateral using current account state and enforce both liquidation eligibility before the transfer and a post-liquidation solvency/capacity bound; reject requests that exceed the account's permitted liquidation amount.",
+      "finding_description": "LiquidatefCashAction is an external liquidation entry point, while the available context only states that LiquidatefCash performs liquidation logic and calls liquidation helpers. It does not establish a precondition that the target account is undercollateralized or a postcondition that the requested liquidation is limited to the account's liquidation capacity. If that check is absent or uses stale collateral state, anyone may force a solvent account to sell fCash at a liquidation discount.",
+      "impact": "An attacker could force solvent users to surrender fCash or collateral below fair value, causing direct financial loss and potentially draining collateral through repeated liquidation calls.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/external/actions/LiquidatefCashAction.sol",
+          "contracts/internal/valuation/FreeCollateral.sol",
+          "contracts/internal/liquidation/LiquidatefCash.sol",
+          "contracts/external/Views.sol",
+          "contracts/internal/portfolio/BitmapAssetsHandler.sol",
+          "contracts/internal/balances/BalanceHandler.sol",
+          "contracts/internal/liquidation/LiquidationHelpers.sol",
+          "contracts/internal/portfolio/PortfolioHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:10:24.413947",
+      "id": "hyp_64a19dbb204c"
+    },
+    "hyp_3bdd69409b9a": {
+      "title": "ExchangeRate may fail to normalize oracle decimals before collateral valuation",
+      "description": "VULNERABILITY TYPE: financial_logic\nROOT CAUSE: The exchange-rate path may treat an oracle answer as already normalized without validating or converting its decimal precision.\nATTACK VECTOR: Governance configures a feed with an incompatible decimal scale, or an adapter/feed implementation returns a differently scaled answer; users then perform borrowing, liquidation, or collateral checks using the mis-scaled valuation.\nAFFECTED NODES: library_ExchangeRate, oracle_AggregatorV2V3Interface, library_FreeCollateral, portfolio_AccountPortfolio\nAFFECTED CODE: library_ExchangeRate: oracle price retrieval and return value, library_FreeCollateral: collateral valuation using ExchangeRate, portfolio_AccountPortfolio: oracle-based present-value and risk-adjusted valuation\nSEVERITY: high\nREASONING: The architecture shows ExchangeRate reading an AggregatorV2V3Interface price and feeding collateral valuation, but provides no evidence of decimal normalization or a scale invariant. This is distinct from stale-price validation: even a fresh, positive answer can be materially wrong when feed precision differs.\nSUGGESTED MITIGATION: Define the required exchange-rate scale, read and validate the oracle's decimals or adapter metadata, normalize answers explicitly with checked arithmetic, and reject feeds whose precision or scale is incompatible with the valuation formula.",
+      "vulnerability_type": "financial_logic",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "library_ExchangeRate",
+        "oracle_AggregatorV2V3Interface",
+        "library_FreeCollateral",
+        "portfolio_AccountPortfolio"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture shows ExchangeRate reading an AggregatorV2V3Interface price and feeding collateral valuation, but provides no evidence of decimal normalization or a scale invariant. This is distinct from stale-price validation: even a fresh, positive answer can be materially wrong when feed precision differs.",
+      "mitigation": "Define the required exchange-rate scale, read and validate the oracle's decimals or adapter metadata, normalize answers explicitly with checked arithmetic, and reject feeds whose precision or scale is incompatible with the valuation formula.",
+      "finding_description": "ExchangeRate consumes the oracle price while the available evidence does not show any use of the feed's decimals metadata or an explicit fixed-point normalization. If a configured feed uses a decimal precision different from the valuation convention, the raw answer is interpreted at the wrong scale.",
+      "impact": "Collateral can be overvalued or undervalued by orders of magnitude, allowing excessive borrowing and insolvency or causing legitimate positions to be liquidated incorrectly.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "interfaces/chainlink/AggregatorV2V3Interface.sol",
+          "contracts/internal/valuation/FreeCollateral.sol",
+          "contracts/external/Views.sol",
+          "contracts/internal/portfolio/BitmapAssetsHandler.sol",
+          "contracts/internal/valuation/ExchangeRate.sol",
+          "contracts/internal/portfolio/PortfolioHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:12:15.320877",
+      "id": "hyp_3bdd69409b9a",
+      "qa_comment": "Upon reviewing ExchangeRate.buildExchangeRate in contracts/internal/valuation/ExchangeRate.sol, I confirmed that oracle precision is assumed rather than validated or normalized. For non-ETH currencies, the function obtains only the signed answer from latestRoundData(), requires that it is positive, and independently derives rateDecimals from the packed governance field rateDecimalPlaces using 10**rateDecimalPlaces. It never calls AggregatorV2V3Interface.decimals(), compares the feed\u2019s declared precision with the configured precision, or rescales the returned answer. Consequently, a fresh positive answer from a feed with a different decimal scale is interpreted at the configured scale, and the same incorrect scale propagates through convertToETH, convertETHTo, and exchangeRate. The inversion branch also assumes the configured scale matches the oracle scale. FreeCollateral._updateNetETHValue invokes this path for collateral and debt valuation, while liquidation calculations use it as well. The positive-rate check and haircut/buffer logic do not prevent a systematic decimal-factor error. Exploitation requires governance or an oracle configuration path to select an incompatible feed, but the missing invariant is clearly present."
+    },
+    "hyp_ff2e0ce3c398": {
+      "title": "Nominal ERC20 transfer amounts may be credited without validating actual tokens received",
+      "description": "VULNERABILITY TYPE: financial_logic\nROOT CAUSE: Transfer logic assumes ERC20 transferFrom delivers the exact requested amount and does not enforce or reconcile the actual balance delta.\nATTACK VECTOR: A governance-listed fee-on-transfer or adversarial ERC20 is deposited or used in settlement. The protocol credits the nominal amount while receiving less, allowing withdrawals, collateral valuation, or settlement against unbacked balances.\nAFFECTED NODES: library_TokenHandler, state_AccountBalances, action_AccountAction, action_SettleAssetsExternal, library_Incentives\nAFFECTED CODE: library_TokenHandler token transfer and balance-accounting paths, action_AccountAction asset settlement calls, action_SettleAssetsExternal balance writes\nSEVERITY: high\nREASONING: The architecture shows TokenHandler as the common token-transfer component while balance and settlement modules separately write nominal account amounts. No evidence is provided that transfer paths reconcile pre- and post-transfer balances or restrict supported tokens to exact-transfer ERC20s.\nSUGGESTED MITIGATION: For inbound transfers, measure the recipient balance before and after transferFrom and credit only the actual received amount, or explicitly restrict currency listings to tokens with exact-transfer behavior and enforce that invariant during governance configuration.",
+      "vulnerability_type": "financial_logic",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "library_TokenHandler",
+        "state_AccountBalances",
+        "action_AccountAction",
+        "action_SettleAssetsExternal",
+        "library_Incentives"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture shows TokenHandler as the common token-transfer component while balance and settlement modules separately write nominal account amounts. No evidence is provided that transfer paths reconcile pre- and post-transfer balances or restrict supported tokens to exact-transfer ERC20s.",
+      "mitigation": "For inbound transfers, measure the recipient balance before and after transferFrom and credit only the actual received amount, or explicitly restrict currency listings to tokens with exact-transfer behavior and enforce that invariant during governance configuration.",
+      "finding_description": "TokenHandler is the shared transfer primitive for balances, settlement, incentives, and token actions. If inbound accounting records the requested amount after transferFrom rather than measuring the recipient balance delta, fee-on-transfer, deflationary, or malicious ERC20 tokens can cause the protocol to credit more assets than it received.",
+      "impact": "The protocol can become undercollateralized and attackers may withdraw assets or borrow against balances that were never received, creating direct losses for the protocol or depositors.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/balances/TokenHandler.sol",
+          "contracts/external/Views.sol",
+          "contracts/internal/balances/BalanceHandler.sol",
+          "contracts/internal/balances/Incentives.sol",
+          "contracts/external/SettleAssetsExternal.sol",
+          "contracts/external/actions/AccountAction.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:18:21.995300",
+      "id": "hyp_ff2e0ce3c398",
+      "qa_comment": "Upon reviewing TokenHandler.setToken, _deposit, transfer, and BalanceHandler.depositAssetToken, I confirmed that nominal-credit accounting remains possible for supported tokens whose actual receipt differs from the requested amount. Although _deposit measures the contract balance delta when token.hasTransferFee is true, setToken accepts arbitrary nonzero ERC20 addresses and only records a governance-supplied boolean; it does not verify exact-transfer behavior or enforce the flag. When hasTransferFee is false, _deposit calls safeTransferIn and returns int256(amount) without checking the contract's pre- and post-transfer balances. AccountAction.depositAssetToken invokes depositAssetToken with forceTransfer=true, which reaches this path and causes the returned nominal amount to be added to balanceState.netCashChange and ultimately stored as cash credit. An ERC20 that returns success while transferring fewer tokens, or whose behavior changes after listing, can therefore create unbacked account balances that may later be withdrawn or used as collateral. The fee-aware path mitigates correctly configured fee tokens, but it is only a configuration convention and not a protocol-enforced invariant."
+    },
+    "hyp_52354e9ea1e7": {
+      "title": "Proxy can be permanently hijacked when deployed without initialization calldata",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Proxy construction does not demonstrably require successful one-time initialization before becoming externally reachable.\nATTACK VECTOR: After deployment, an attacker calls the exposed initializer through nProxy before the intended administrator does, setting ownership, governance, or other privileged state in proxy storage and subsequently invoking privileged operations or upgrades.\nAFFECTED NODES: proxy_nProxy, proxy_ERC1967Proxy, implementation_UUPSUpgradeable, storage_StorageLayoutV1\nAFFECTED CODE: nProxy deployment and ERC1967Proxy initialization path, UUPSUpgradeable initializer and authorization state\nSEVERITY: high\nREASONING: ERC1967Proxy relies on constructor-supplied initialization calldata; the graph does not establish that calldata is mandatory, that the initializer is guaranteed to succeed, or that deployment is atomically rejected otherwise. This is exploitable whenever a deployment leaves the proxy uninitialized or exposes it before initialization.\nSUGGESTED MITIGATION: Require non-empty initialization calldata for production deployments, execute initialization atomically in the proxy constructor, revert on failed initialization, and verify post-deployment owner/governance state before exposing the proxy. Disable initializers in the implementation constructor where applicable.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "proxy_nProxy",
+        "proxy_ERC1967Proxy",
+        "implementation_UUPSUpgradeable",
+        "storage_StorageLayoutV1"
+      ],
+      "evidence": [],
+      "reasoning": "ERC1967Proxy relies on constructor-supplied initialization calldata; the graph does not establish that calldata is mandatory, that the initializer is guaranteed to succeed, or that deployment is atomically rejected otherwise. This is exploitable whenever a deployment leaves the proxy uninitialized or exposes it before initialization.",
+      "mitigation": "Require non-empty initialization calldata for production deployments, execute initialization atomically in the proxy constructor, revert on failed initialization, and verify post-deployment owner/governance state before exposing the proxy. Disable initializers in the implementation constructor where applicable.",
+      "finding_description": "The nProxy/ ERC1967Proxy deployment path accepts initialization calldata but the architecture does not show enforcement that it is non-empty or that initialization succeeds. If deployed with empty calldata or an initializer that is not executed successfully, the proxy remains uninitialized in its proxy storage. An attacker can then call the implementation's initializer through the proxy and become the owner or governance authority.",
+      "impact": "An attacker may seize administrative control of the proxy, upgrade it to malicious code, drain protocol-held assets, or alter collateral and market parameters.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "interfaces/IERC1155TokenReceiver.sol",
+          "contracts/proxy/utils/UUPSUpgradeable.sol",
+          "contracts/proxy/nProxy.sol",
+          "contracts/global/StorageLayoutV1.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:21:33.986564",
+      "id": "hyp_52354e9ea1e7"
+    },
+    "hyp_58d15d9adeda": {
+      "title": "AssetRate accepts economically implausible positive exchange rates",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: Insufficient validation of externally sourced asset exchange rates; positivity is treated as sufficient validity.\nATTACK VECTOR: Cause the configured AssetRateAdapter or external cash market to return an extreme positive exchange rate, or exploit a rate-manipulation condition in that external market, then perform borrowing, collateral, settlement, or redemption operations using the incorrect valuation.\nAFFECTED NODES: library_AssetRate, oracle_AssetRateAdapter, external_CashMarketInterface, library_SettlePortfolioAssets, library_FreeCollateral\nAFFECTED CODE: AssetRate exchange-rate retrieval and validation, SettlePortfolioAssets asset-rate conversion, FreeCollateral collateral valuation\nSEVERITY: high\nREASONING: The architecture identifies AssetRate as an external rate oracle and explicitly records only positive exchange-rate validation. Downstream settlement and collateral valuation consume this rate, so an arbitrary positive but incorrect value has direct financial consequences. This is distinct from stale-rate and annualized-supply-rate validation issues already recorded.\nSUGGESTED MITIGATION: Validate the returned rate against configured bounds, expected decimal scale, prior-rate deviation limits, and any available underlying-market invariants. Reject abnormal values and pause or fall back safely when the rate exceeds those limits; ensure downstream arithmetic cannot overflow on accepted rates.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "library_AssetRate",
+        "oracle_AssetRateAdapter",
+        "external_CashMarketInterface",
+        "library_SettlePortfolioAssets",
+        "library_FreeCollateral"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies AssetRate as an external rate oracle and explicitly records only positive exchange-rate validation. Downstream settlement and collateral valuation consume this rate, so an arbitrary positive but incorrect value has direct financial consequences. This is distinct from stale-rate and annualized-supply-rate validation issues already recorded.",
+      "mitigation": "Validate the returned rate against configured bounds, expected decimal scale, prior-rate deviation limits, and any available underlying-market invariants. Reject abnormal values and pause or fall back safely when the rate exceeds those limits; ensure downstream arithmetic cannot overflow on accepted rates.",
+      "finding_description": "AssetRate validation is described as checking only that the externally returned exchange rate is positive. There is no visible upper bound, deviation check, or sanity validation before the rate is used by settlement and collateral valuation. A manipulated or malfunctioning AssetRateAdapter or external cash market can therefore return an extreme but positive rate that the protocol accepts.",
+      "impact": "An inflated rate can overvalue collateral or settled assets and allow undercollateralized borrowing or excessive redemption; a severely deflated or extreme rate can misvalue user positions, trigger unjustified liquidations, or cause arithmetic reverts that disrupt settlement.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "interfaces/notional/CashMarketInterface.sol",
+          "interfaces/notional/AssetRateAdapter.sol",
+          "contracts/internal/valuation/FreeCollateral.sol",
+          "contracts/internal/settlement/SettlePortfolioAssets.sol",
+          "contracts/internal/markets/AssetRate.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:22:48.747764",
+      "id": "hyp_58d15d9adeda",
+      "qa_comment": "Upon reviewing the AssetRate library, I confirmed an oracle-validation weakness. In _getAssetRateView and _getAssetRateStateful in contracts/internal/markets/AssetRate.sol, externally returned exchange rates are accepted solely through require(rate > 0); there are no bounds, decimal-scale checks, deviation limits, or underlying-market invariant checks. The only upper-bound validation appears in buildSettlementRateStateful, and it applies only when first persisting a settlement rate, not to ordinary valuation paths. Consequently, a compromised, misconfigured, or manipulable AssetRateAdapter can provide an economically implausible but positive rate. That value is consumed by convertToUnderlying and convertFromUnderlying and propagated into FreeCollateral valuation, liquidation calculations, and SettlePortfolioAssets settlement conversions. SafeInt256 protects against arithmetic overflow by reverting, but it does not detect moderate incorrect rates and may instead create denial of service for extreme values. The attack requires influence over the configured adapter or its underlying market, so it is not universally permissionless, but the code clearly treats positivity as sufficient validity and lacks the proposed economic safeguards."
+    },
+    "hyp_0018c5295d46": {
+      "title": "Previous token approvals remain active after Compound adapter approval changes",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Approval management does not appear to enforce revocation of superseded allowances or restrict approvals to an immutable, validated spender set.\nATTACK VECTOR: An owner approves spender A, later changes configuration to spender B without setting A's allowance to zero, and the compromised spender A calls transferFrom against tokens held by the integration contract.\nAFFECTED NODES: external_CompoundToNotionalV2, action_BatchAction, token_TokenHandlerTokens\nAFFECTED CODE: external_CompoundToNotionalV2: owner-only token approval, external_CompoundToNotionalV2 -> action_BatchAction: Compound integration asset flow\nSEVERITY: high\nREASONING: The graph explicitly identifies owner-only token approval in the Compound integration, but does not show allowance revocation, spender validation, or an approval lifecycle. ERC20 allowances persist independently of later configuration changes, so this is exploitable if the adapter retains balances and approvals are rotated or revoked incompletely.\nSUGGESTED MITIGATION: When changing an approved spender, first set the previous spender's allowance to zero and verify the operation before granting the new allowance. Prefer immutable, allowlisted spenders, exact per-operation approvals, and explicit revoke functions; use safe-approval handling for tokens that require zero-before-nonzero updates.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "external_CompoundToNotionalV2",
+        "action_BatchAction",
+        "token_TokenHandlerTokens"
+      ],
+      "evidence": [],
+      "reasoning": "The graph explicitly identifies owner-only token approval in the Compound integration, but does not show allowance revocation, spender validation, or an approval lifecycle. ERC20 allowances persist independently of later configuration changes, so this is exploitable if the adapter retains balances and approvals are rotated or revoked incompletely.",
+      "mitigation": "When changing an approved spender, first set the previous spender's allowance to zero and verify the operation before granting the new allowance. Prefer immutable, allowlisted spenders, exact per-operation approvals, and explicit revoke functions; use safe-approval handling for tokens that require zero-before-nonzero updates.",
+      "finding_description": "The CompoundToNotionalV2 integration exposes owner-only token approval functionality, but the architecture provides no evidence that changing or removing an approval first revokes allowances granted to prior spenders. If an old spender is compromised, deprecated, or misconfigured, it may retain permission to transfer tokens subsequently held by the adapter.",
+      "impact": "A former or compromised spender can drain ERC20 assets held by CompoundToNotionalV2, including tokens received during later operations, causing direct protocol or user fund loss.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/external/Views.sol",
+          "contracts/external/actions/BatchAction.sol",
+          "contracts/external/adapters/CompoundToNotionalV2.sol",
+          "contracts/internal/balances/TokenHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:24:46.811658",
+      "id": "hyp_0018c5295d46",
+      "qa_comment": "Upon reviewing CompoundToNotionalV2.enableToken and the token-transfer flows, I confirmed that the approval lifecycle is insufficiently controlled and can leave superseded allowances exploitable. enableToken is owner-only, but it directly calls CTokenInterface(token).approve(spender, type(uint256).max) without recording the spender, validating it against an allowlist, or revoking any previously approved spender. Consequently, if the owner first approves spender A and later approves spender B, the ERC20 allowance for A remains active because changing or adding an approval for B does not modify A's allowance. A compromised spender A can then call transferFrom on the relevant cToken and drain any cTokens held by the adapter, including balances retained because of operational dust or interrupted workflows. The owner-only check protects only the approval-setting operation and does not restrict an already approved spender's later use. The adapter's notionalCallback authentication does not affect direct ERC20 allowance exploitation. TokenHandler.setToken also grants effectively unlimited approvals, although those token addresses are immutable after configuration and are a separate risk. No revoke function or zero-before-rotation logic exists."
+    },
+    "hyp_ee65e87cee43": {
+      "title": "nToken redemption may bypass account solvency validation",
+      "description": "VULNERABILITY TYPE: financial_logic\nROOT CAUSE: Missing or unenforced free-collateral validation before reducing an account's nToken balance and paying out underlying assets.\nATTACK VECTOR: An account with outstanding liabilities invokes the nToken redemption entry point, burns or reduces its nToken balance, and withdraws the backing assets until the account becomes undercollateralized.\nAFFECTED NODES: action_nTokenRedeem, library_BalanceHandler, state_AccountBalances, library_FreeCollateralExternal\nAFFECTED CODE: action_nTokenRedeem -> library_BalanceHandler balance update, nToken redemption collateral withdrawal and solvency validation\nSEVERITY: high\nREASONING: The architecture explicitly links nToken redemption to BalanceHandler but does not show a FreeCollateral check on that path, while other account operations expose explicit collateral-validation components. This should be confirmed in the redemption implementation and any router wrapper.\nSUGGESTED MITIGATION: Require a post-redemption free-collateral check using the same valuation and risk parameters applied to other collateral-withdrawing operations, and revert unless the account remains solvent. Ensure every externally reachable redemption wrapper enforces the check.",
+      "vulnerability_type": "financial_logic",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "proposed",
+      "node_refs": [
+        "action_nTokenRedeem",
+        "library_BalanceHandler",
+        "state_AccountBalances",
+        "library_FreeCollateralExternal"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly links nToken redemption to BalanceHandler but does not show a FreeCollateral check on that path, while other account operations expose explicit collateral-validation components. This should be confirmed in the redemption implementation and any router wrapper.",
+      "mitigation": "Require a post-redemption free-collateral check using the same valuation and risk parameters applied to other collateral-withdrawing operations, and revert unless the account remains solvent. Ensure every externally reachable redemption wrapper enforces the check.",
+      "finding_description": "The nToken redemption path is shown as calling BalanceHandler directly, with no connection to FreeCollateral or another solvency check. If the exposed redemption function does not independently validate free collateral, an account can redeem nTokens and withdraw collateral while retaining debt or other liabilities.",
+      "impact": "An attacker can extract collateral from an undercollateralized account, leaving bad debt for the protocol and potentially making liquidation unable to recover the outstanding liability.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/external/Views.sol",
+          "contracts/external/FreeCollateralExternal.sol",
+          "contracts/internal/balances/BalanceHandler.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:25:37.474635",
+      "id": "hyp_ee65e87cee43"
+    },
+    "hyp_481a2959beb0": {
+      "title": "ERC20 token callbacks can reenter state-changing account operations",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: External token calls are performed from a shared internal transfer library without evidence of a protocol-wide reentrancy guard or atomic accounting protection.\nATTACK VECTOR: A supported token with a transfer or transferFrom callback reenters a state-changing Notional entry point during TokenHandler execution and observes or mutates partially updated balances, portfolios, or account context.\nAFFECTED NODES: library_TokenHandler, token_TokenHandlerTokens, action_AccountAction, action_BatchAction, action_SettleAssetsExternal, library_Incentives\nAFFECTED CODE: TokenHandler currency-token transfer routines, TokenHandler underlying-token transfer routines\nSEVERITY: high\nREASONING: The architecture explicitly routes external currency and underlying token transfers through TokenHandler, and those calls can execute arbitrary token code. The loaded graph does not establish that all callers are guarded or that accounting is finalized before the external call; confirmation requires reviewing the transfer routines and caller ordering.\nSUGGESTED MITIGATION: Use a protocol-wide reentrancy guard on every externally reachable state-changing path that can invoke TokenHandler, finalize and validate accounting before external transfers where possible, and add callback-capable token tests including ERC777 and malicious ERC20 implementations.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "library_TokenHandler",
+        "token_TokenHandlerTokens",
+        "action_AccountAction",
+        "action_BatchAction",
+        "action_SettleAssetsExternal",
+        "library_Incentives"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly routes external currency and underlying token transfers through TokenHandler, and those calls can execute arbitrary token code. The loaded graph does not establish that all callers are guarded or that accounting is finalized before the external call; confirmation requires reviewing the transfer routines and caller ordering.",
+      "mitigation": "Use a protocol-wide reentrancy guard on every externally reachable state-changing path that can invoke TokenHandler, finalize and validate accounting before external transfers where possible, and add callback-capable token tests including ERC777 and malicious ERC20 implementations.",
+      "finding_description": "TokenHandler invokes external token contracts for currency and underlying transfers. Tokens implementing ERC777-style hooks or malicious ERC20 callbacks can call back into exposed account, settlement, trading, or incentive flows while the caller's accounting updates are incomplete, unless every relevant entry point is protected by a reentrancy guard and checks-effects-interactions ordering.",
+      "impact": "An attacker may perform duplicate withdrawals, manipulate intermediate account state, or cause inconsistent balance and portfolio accounting, potentially resulting in loss of protocol-held assets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/internal/balances/TokenHandler.sol",
+          "contracts/external/actions/BatchAction.sol",
+          "contracts/external/Views.sol",
+          "contracts/internal/balances/Incentives.sol",
+          "contracts/external/SettleAssetsExternal.sol",
+          "contracts/external/actions/AccountAction.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_195919",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:26:45.700479",
+      "id": "hyp_481a2959beb0"
+    }
+  },
+  "metadata": {
+    "total": 19,
+    "confirmed": 9,
+    "last_modified": "2026-10-12T20:26:45.705151"
+  }
+}

@@ -1,0 +1,649 @@
+{
+  "session_id": "sess_agent_20261013_003324",
+  "start_time": "2026-10-13T00:33:25.030185",
+  "status": "completed",
+  "models": {
+    "scout": "OpenAI/openai-codex/gpt-5.6-luna",
+    "strategist": "OpenAI/openai-codex/gpt-5.6-luna"
+  },
+  "investigations": [
+    {
+      "timestamp": "2026-10-13T00:34:18.884861",
+      "goal": "Vulnerability analysis of WooRouterV2",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_4729a3115baa",
+      "planned_batch": 1,
+      "planned_index": 1,
+      "started_at": "2026-10-13T00:33:33.189455",
+      "ended_at": "2026-10-13T00:34:18.884747",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 2,
+        "confirmed": 1,
+        "rejected": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "timestamp": "2026-10-13T00:35:09.545311",
+      "goal": "Vulnerability analysis of WooPPV3",
+      "priority": 10,
+      "category": "aspect",
+      "frame_id": "frame_7942792e9959",
+      "planned_batch": 2,
+      "planned_index": 1,
+      "started_at": "2026-10-13T00:34:23.072287",
+      "ended_at": "2026-10-13T00:35:09.545188",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 4,
+        "confirmed": 3,
+        "rejected": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "timestamp": "2026-10-13T00:36:11.093689",
+      "goal": "Vulnerability analysis of MasterChefWoo",
+      "priority": 9,
+      "category": "aspect",
+      "frame_id": "frame_aac12d163d86",
+      "planned_batch": 3,
+      "planned_index": 1,
+      "started_at": "2026-10-13T00:35:14.783894",
+      "ended_at": "2026-10-13T00:36:11.093371",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 4,
+        "confirmed": 3,
+        "rejected": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "timestamp": "2026-10-13T00:37:36.306609",
+      "goal": "Vulnerability analysis of WooCrossFee",
+      "priority": 8,
+      "category": "aspect",
+      "frame_id": "frame_4833e408f17d",
+      "planned_batch": 4,
+      "planned_index": 1,
+      "started_at": "2026-10-13T00:36:14.939600",
+      "ended_at": "2026-10-13T00:37:36.306499",
+      "iterations_completed": 5,
+      "hypotheses": {
+        "total": 6,
+        "confirmed": 3,
+        "rejected": 0,
+        "uncertain": 3
+      }
+    }
+  ],
+  "planning_history": [
+    {
+      "timestamp": "2026-10-13T00:33:33.178366",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of WooRouterV2",
+          "focus_areas": [
+            "Access control for owner-configured pools and whitelisted fallback targets",
+            "Token and native-asset routing, including callback and reentrancy behavior",
+            "Quote validation, minimum-output enforcement, and slippage handling",
+            "Approval, recipient, and balance accounting across external pool interactions"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: WooRouterV2 is an unvisited core routing component handling user funds and owner-controlled fallback targets, making authorization and external-call flows high-impact priorities for broad initial coverage. EXIT CRITERIA: Trace every externally callable state-changing path and its modifiers; verify pool/fallback allowlists, recipient validation, asset and amount accounting, slippage checks, approvals, and reentrancy protections; document any exploitable issue or conclude that these invariants hold for all paths.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-13T00:34:23.048517",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of WooPPV3",
+          "focus_areas": [
+            "Oracle-backed quote calculation and price freshness validation",
+            "Token-in/token-out accounting, fee deductions, and rounding",
+            "Access control for oracle, liquidity, and administrative configuration",
+            "Callback, transfer, and reentrancy behavior during swaps"
+          ],
+          "priority": 10,
+          "reasoning": "WHY NOW: WooPPV3 is an unvisited pricing and liquidity component that directly determines swap execution amounts and depends on administrator-controlled oracle configuration, making it a high-impact target and a likely location for oracle-integrity or accounting flaws. EXIT CRITERIA: Trace every externally callable state-changing path and all oracle, token-transfer, fee, and callback flows; verify authorization, freshness and consistency checks, conservation of balances, slippage behavior, and reentrancy safety; document any exploitable issue or conclude no material vulnerability is identified.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-13T00:35:14.762540",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of MasterChefWoo",
+          "focus_areas": [
+            "Pool creation and owner-controlled pool metadata",
+            "Reward accrual, emission accounting, and per-user debt calculations",
+            "Deposit and withdrawal balance invariants",
+            "Rewarder callback behavior and external-call reentrancy",
+            "Token balance sanity checks and emergency recovery permissions"
+          ],
+          "priority": 9,
+          "reasoning": "WHY NOW: MasterChefWoo is an unvisited stateful accounting contract that controls pool configuration and reward distribution, with owner-only pool creation and callbacks into external rewarders. It is a high-value component where authorization, token accounting, and reward calculations can produce direct fund loss or denial of service, complementing the already analyzed router and lending components. EXIT CRITERIA: Trace every external and administrative entry point, establish deposit/withdraw/reward invariants across pool and user state, verify rewarder callback and token-balance assumptions, and determine whether any exploitable accounting, authorization, reentrancy, or availability issue exists; conclude with no issue or one concrete vulnerability hypothesis backed by code paths.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-13T00:36:14.915214",
+      "items": [
+        {
+          "goal": "Vulnerability analysis of WooCrossFee",
+          "focus_areas": [
+            "Admin and owner authorization for fee configuration and withdrawals",
+            "Ingress and outgress fee accounting, including underflow and balance consistency",
+            "Tier selection, fee-rate bounds, and cumulative fee deductions",
+            "Cross-chain fee handling and token/native-asset edge cases"
+          ],
+          "priority": 8,
+          "reasoning": "WHY NOW: WooCrossFee is an unvisited stateful permissioned component that directly controls fees applied to cross-chain transfers, making it a high-value coverage target and potentially related to the existing accounting-integrity hypotheses. EXIT CRITERIA: Confirm all externally callable state-changing paths, authorization checks, fee calculations, tier transitions, token/native-asset handling, and withdrawal/accounting invariants; document any exploitable issue or conclude no vulnerability is evident from static analysis.",
+          "category": "aspect",
+          "expected_impact": "high"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-10-13T00:37:38.602590",
+      "items": [
+        {
+          "goal": "System component review: Protocol users and administrators (user_admin)",
+          "focus_areas": [
+            "user_admin@SystemArchitecture"
+          ],
+          "priority": 7,
+          "reasoning": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+          "category": "aspect",
+          "expected_impact": "medium"
+        }
+      ]
+    }
+  ],
+  "token_usage": {
+    "total_usage": {
+      "input_tokens": 262667,
+      "output_tokens": 15778,
+      "total_tokens": 278445,
+      "call_count": 31
+    },
+    "by_model": {
+      "OpenAI:openai-codex/gpt-5.6-luna": {
+        "input_tokens": 262667,
+        "output_tokens": 15778,
+        "total_tokens": 278445,
+        "call_count": 31
+      }
+    },
+    "history": [
+      {
+        "timestamp": "2026-10-13T00:33:33.178077",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2125,
+        "output_tokens": 235,
+        "total_tokens": 2360,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:33:35.710684",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4688,
+        "output_tokens": 174,
+        "total_tokens": 4862,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:33:39.752352",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8195,
+        "output_tokens": 218,
+        "total_tokens": 8413,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:33:47.032573",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 15474,
+        "output_tokens": 286,
+        "total_tokens": 15760,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:33:55.745505",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 19337,
+        "output_tokens": 414,
+        "total_tokens": 19751,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:34:12.428044",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 18336,
+        "output_tokens": 1666,
+        "total_tokens": 20002,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:34:18.836599",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 20972,
+        "output_tokens": 459,
+        "total_tokens": 21431,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:34:23.047846",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2313,
+        "output_tokens": 314,
+        "total_tokens": 2627,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:34:25.942209",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 4962,
+        "output_tokens": 155,
+        "total_tokens": 5117,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:34:30.168779",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 8504,
+        "output_tokens": 334,
+        "total_tokens": 8838,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:34:37.417982",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 12249,
+        "output_tokens": 294,
+        "total_tokens": 12543,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:34:45.566522",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 16647,
+        "output_tokens": 354,
+        "total_tokens": 17001,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:34:53.923244",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 16758,
+        "output_tokens": 233,
+        "total_tokens": 16991,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:35:09.491602",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 15815,
+        "output_tokens": 1924,
+        "total_tokens": 17739,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:35:14.761540",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2340,
+        "output_tokens": 289,
+        "total_tokens": 2629,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:35:19.496576",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5189,
+        "output_tokens": 154,
+        "total_tokens": 5343,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:35:23.574882",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6699,
+        "output_tokens": 192,
+        "total_tokens": 6891,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:35:36.193306",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6783,
+        "output_tokens": 185,
+        "total_tokens": 6968,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:35:46.204250",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5885,
+        "output_tokens": 1073,
+        "total_tokens": 6958,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:35:53.332439",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7092,
+        "output_tokens": 577,
+        "total_tokens": 7669,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:36:07.537932",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6203,
+        "output_tokens": 1437,
+        "total_tokens": 7640,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:36:11.074570",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7417,
+        "output_tokens": 248,
+        "total_tokens": 7665,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:36:14.914518",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2325,
+        "output_tokens": 220,
+        "total_tokens": 2545,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:36:20.333242",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5221,
+        "output_tokens": 194,
+        "total_tokens": 5415,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:36:28.237264",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6137,
+        "output_tokens": 276,
+        "total_tokens": 6413,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:36:33.805988",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6203,
+        "output_tokens": 255,
+        "total_tokens": 6458,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:36:50.273025",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 5320,
+        "output_tokens": 811,
+        "total_tokens": 6131,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:36:56.503997",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6970,
+        "output_tokens": 579,
+        "total_tokens": 7549,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:37:30.992239",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 6117,
+        "output_tokens": 1732,
+        "total_tokens": 7849,
+        "profile": "strategist"
+      },
+      {
+        "timestamp": "2026-10-13T00:37:36.269129",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 7972,
+        "output_tokens": 416,
+        "total_tokens": 8388,
+        "profile": "agent"
+      },
+      {
+        "timestamp": "2026-10-13T00:37:38.601085",
+        "provider": "OpenAI",
+        "model": "openai-codex/gpt-5.6-luna",
+        "input_tokens": 2419,
+        "output_tokens": 80,
+        "total_tokens": 2499,
+        "profile": "strategist"
+      }
+    ]
+  },
+  "coverage": {
+    "nodes": {
+      "visited": 49,
+      "total": 60,
+      "percent": 81.7
+    },
+    "cards": {
+      "visited": 62,
+      "total": 485,
+      "percent": 12.8
+    },
+    "visited_node_ids": [
+      "cross_router_v2",
+      "cross_router_v3",
+      "rewarder_interface",
+      "woo_usd_oft",
+      "wooracle_v3",
+      "woofi_dex_depositor",
+      "stargate_receiver_interface",
+      "woo_router_v2",
+      "lending_manager",
+      "i_lending_manager",
+      "woofi_dex_vault",
+      "nonce_counter",
+      "simple_rewarder",
+      "i_cross_fee",
+      "wooracle_v2_1",
+      "cross_router_v4",
+      "i_woo_router_v2",
+      "i_vault_v2",
+      "woo_fee_manager",
+      "woo_usd_oft_router",
+      "widget_cross_router",
+      "i_wooracle_v3",
+      "i_weth",
+      "wooracle_v2",
+      "lending_manager_v1_2",
+      "sg_info",
+      "woo_vault_manager",
+      "i_master_chef_reward",
+      "cross_fee",
+      "base_strategy",
+      "i_woo_pp_v3",
+      "woo_pp_v3",
+      "data_provider",
+      "i_woofi_dex_cross_router",
+      "wooracle_v2_zksync",
+      "vault_v2",
+      "i_usd_oft_cross_router",
+      "woo_access_manager",
+      "woo_pp_base",
+      "woo_rebate_manager",
+      "woo_pp_v2",
+      "i_cross_router_v3",
+      "i_woo_fee_manager",
+      "woofi_dex_cross_router",
+      "i_strategy",
+      "i_woo_pp_v2",
+      "woo_router_v3",
+      "master_chef_woo",
+      "supercharger_vault"
+    ],
+    "visited_card_ids": [
+      "card_33ff651b9b61",
+      "card_7ea7778f4c7c",
+      "card_13581badb245",
+      "card_54c15d5e28a0",
+      "card_e669d37fc59a",
+      "card_b79af1ed7e0b",
+      "card_7df2db90739a",
+      "card_74805cebd226",
+      "card_72b9e99ed1b3",
+      "card_afcc10b1ac87",
+      "card_101af00cd5d3",
+      "card_d00338fce6e0",
+      "card_b5481d5501df",
+      "card_7abfd728c901",
+      "card_f796e594fbe8",
+      "card_a0bc5f317c2f",
+      "card_8aeb7abd95ab",
+      "card_44081bd53542",
+      "card_c7aa9779f0e5",
+      "card_69e124a1a66c",
+      "card_eeef953e1017",
+      "card_4936024028f7",
+      "card_f76d90c1e1aa",
+      "card_473e269d0461",
+      "card_b213f3157efa",
+      "card_1e5c003f39a1",
+      "card_a14b75720866",
+      "card_ae66353416b7",
+      "card_90539a6b030c",
+      "card_e0201aed1e62",
+      "card_a8c48ea4c2df",
+      "card_3e1a073e3a91",
+      "card_1c90063d6d84",
+      "card_23b5c9538a68",
+      "card_41f14d41d6ed",
+      "card_09316108cf89",
+      "card_8ed55c68ddaa",
+      "card_dc4f1c597f41",
+      "card_75639b818e1f",
+      "card_f2e6c90cb3de",
+      "card_64617d708b21",
+      "card_757cf59f9249",
+      "card_e9704c48f778",
+      "card_50a1a20af52f",
+      "card_75cc63e1678a",
+      "card_3a3ebb4de381",
+      "card_95b84a535386",
+      "card_8d62db6982ba",
+      "card_918173fa813f",
+      "card_237f86c19943",
+      "card_0b18c842b33a",
+      "card_0c1f6a66e46e",
+      "card_8c83ab9feada",
+      "card_557bbd760f2b",
+      "card_48f30b0e4724",
+      "card_73921eda5116",
+      "card_7644f0b12db9",
+      "card_d53c490446c9",
+      "card_17c05a70fc10",
+      "card_40b270860e6c",
+      "card_689ed0deed64",
+      "card_9ebd2fd45cdb"
+    ],
+    "node_visit_counts": {
+      "woo_router_v2": 1,
+      "i_woo_router_v2": 1,
+      "woo_pp_v2": 1,
+      "wooracle_v2": 1,
+      "i_woo_pp_v2": 1,
+      "woofi_dex_depositor": 1,
+      "cross_router_v2": 1,
+      "cross_router_v3": 1,
+      "cross_router_v4": 1,
+      "woofi_dex_cross_router": 1,
+      "widget_cross_router": 1,
+      "woo_usd_oft_router": 1,
+      "nonce_counter": 1,
+      "woofi_dex_vault": 1,
+      "woo_access_manager": 1,
+      "wooracle_v2_1": 1,
+      "wooracle_v2_zksync": 1,
+      "sg_info": 1,
+      "stargate_receiver_interface": 1,
+      "woo_pp_base": 1,
+      "woo_pp_v3": 1,
+      "woo_router_v3": 1,
+      "wooracle_v3": 1,
+      "i_woo_pp_v3": 1,
+      "lending_manager": 1,
+      "woo_fee_manager": 1,
+      "woo_vault_manager": 1,
+      "supercharger_vault": 1,
+      "i_lending_manager": 1,
+      "i_wooracle_v3": 1,
+      "lending_manager_v1_2": 1,
+      "woo_rebate_manager": 1,
+      "vault_v2": 1,
+      "i_vault_v2": 1,
+      "base_strategy": 1,
+      "i_strategy": 1,
+      "i_woo_fee_manager": 1,
+      "master_chef_woo": 1,
+      "i_master_chef_reward": 1,
+      "simple_rewarder": 1,
+      "rewarder_interface": 1,
+      "data_provider": 1,
+      "cross_fee": 1,
+      "i_cross_fee": 1,
+      "i_cross_router_v3": 1,
+      "i_usd_oft_cross_router": 1,
+      "i_woofi_dex_cross_router": 1,
+      "woo_usd_oft": 1,
+      "i_weth": 1
+    }
+  },
+  "end_time": "2026-10-13T00:37:38.623214"
+}

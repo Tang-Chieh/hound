@@ -1,0 +1,24 @@
+{
+  "repo_id": "2022-11-telcoin",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_328ae686dd0d",
+      "title": "FeeBuyback swap is exposed to sandwich and price manipulation due to missing slippage enforcement",
+      "description": "FeeBuyback forwards caller-supplied swapData to the immutable aggregator after transferring the safe's tokens and approving the requested amount, but it does not enforce a minimum TEL output, maximum execution price, deadline, or balance-delta check. An attacker can manipulate the underlying market before or during the owner-submitted transaction, causing the buyback to execute at an unfavorable price. The contract then credits the entire TEL balance to the referral recipient without validating the output attributable to this swap.",
+      "impact": "The fee-rewards safe can lose substantial value through adverse execution, while referral recipients receive fewer TEL tokens than expected; repeated sandwiching can materially drain buyback funds and reduce recorded rewards.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/fee-buyback/FeeBuyback.sol",
+          "contract": "FeeBuyback",
+          "function": "submit(address,address,bytes,address,address,uint256,bytes)"
+        }
+      ],
+      "mitigation": "Require and enforce a minimum TEL output derived from an off-chain quote or trusted oracle, include a deadline and route-specific validation, and credit only the positive TEL balance delta produced by the current swap. Prefer aggregator calldata that embeds a checked minimum return amount and reject execution when the realized price is outside approved bounds.",
+      "severity": "high"
+    }
+  ]
+}

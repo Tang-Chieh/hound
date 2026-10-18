@@ -1,0 +1,137 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_4eb720cc3e0a": {
+      "title": "Stale or manipulable last-price oracle can misprice options and LP share value",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Using a last-price reference as a valuation floor and vault pricing input instead of a manipulation-resistant, freshness-checked aggregate at every pricing decision.\nATTACK VECTOR: An attacker moves the underlying market or exploits a stale oracle update, then purchases options or deposits/withdraws LP shares while the vault uses the distorted last price; the position can be unwound after the price normalizes.\nAFFECTED NODES: perp_vault, perp_vault_lp, option_pricing_simple, black_scholes, dpx_eth_oracle, asset_price_data\nAFFECTED CODE: Perpetual Atlantic Vault: option pricing and share valuation, OptionPricingSimple: minimum-price-floor calculation, DpxEthOracle: last-price publication and heartbeat validation\nSEVERITY: high\nREASONING: The architecture explicitly identifies a last-price oracle and a pricing floor based on that last price. Heartbeat validation limits age but does not by itself prevent a fresh manipulated spot value or ensure that all consumers reject stale data before valuation.\nSUGGESTED MITIGATION: Require freshness and validity checks at every vault pricing path, use a manipulation-resistant TWAP or bounded multi-source price, reject prices outside deviation limits, and apply consistent pricing snapshots for option purchase, settlement, deposit, and withdrawal operations.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "perp_vault",
+        "perp_vault_lp",
+        "option_pricing_simple",
+        "black_scholes",
+        "dpx_eth_oracle",
+        "asset_price_data"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies a last-price oracle and a pricing floor based on that last price. Heartbeat validation limits age but does not by itself prevent a fresh manipulated spot value or ensure that all consumers reject stale data before valuation.",
+      "mitigation": "Require freshness and validity checks at every vault pricing path, use a manipulation-resistant TWAP or bounded multi-source price, reject prices outside deviation limits, and apply consistent pricing snapshots for option purchase, settlement, deposit, and withdrawal operations.",
+      "finding_description": "OptionPricingSimple applies a minimum price floor derived from the oracle's last price, while the vault and BlackScholes valuation depend on the same asset-price data. A rapidly moved or stale last-price value can therefore alter option premiums and the value attributed to LP shares before the oracle heartbeat rejects the data, allowing adversarial purchases, deposits, or withdrawals at distorted prices.",
+      "impact": "Attackers can obtain underpriced options or redeem more assets than their fair share, transferring rDPX and other collateral losses to the vault and remaining LPs.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/libraries/OptionPricingSimple.sol",
+          "contracts/libraries/BlackScholes.sol",
+          "contracts/perp-vault/PerpetualAtlanticVaultLP.sol",
+          "contracts/oracles/DpxEthOracle.sol",
+          "contracts/perp-vault/PerpetualAtlanticVault.sol",
+          "contracts/interfaces/IRdpxEthOracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000912",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:10:12.896796",
+      "id": "hyp_4eb720cc3e0a"
+    },
+    "hyp_aa1f3f26a7fc": {
+      "title": "Vault-only collateral updates can leave LP accounting stale across settlement and liquidity flows",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: Collateral state is maintained through a restricted update pathway rather than being derived from or atomically synchronized with all token transfers and settlement events.\nATTACK VECTOR: An attacker observes a settlement, funding, or token transfer that changes LP-held assets without a completed collateral update, then deposits or withdraws shares using the stale exchange rate before synchronization.\nAFFECTED NODES: perp_vault_lp, perp_vault, option_settlement_flow, core_rdpxv2, liquidity_asset_flow\nAFFECTED CODE: Perpetual Atlantic Vault LP: collateral accounting and share valuation, Perpetual Atlantic Vault: settlement and LP update calls, Option settlement flow: asset transfers to LP\nSEVERITY: high\nREASONING: The architecture explicitly states that collateral updates are vault-only and that share value includes rDPX, while settlement transfers assets into the LP. This creates a concrete synchronization boundary that must be proven atomic on every balance-changing path.\nSUGGESTED MITIGATION: Make balance-affecting operations and collateral-account updates atomic, derive managed assets from verified token balances where practical, and block deposits and withdrawals whenever the accounting state is stale or an update is pending.",
+      "vulnerability_type": "accounting_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "perp_vault_lp",
+        "perp_vault",
+        "option_settlement_flow",
+        "core_rdpxv2",
+        "liquidity_asset_flow"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly states that collateral updates are vault-only and that share value includes rDPX, while settlement transfers assets into the LP. This creates a concrete synchronization boundary that must be proven atomic on every balance-changing path.",
+      "mitigation": "Make balance-affecting operations and collateral-account updates atomic, derive managed assets from verified token balances where practical, and block deposits and withdrawals whenever the accounting state is stale or an update is pending.",
+      "finding_description": "The LP component is marked as having vault-only collateral updates, while option settlement transfers assets to the LP and the share value includes rDPX. If every asset-changing path does not synchronously invoke the authorized update, LP total collateral and per-share value can diverge from actual token balances. Deposits or withdrawals executed during that divergence can be priced against stale accounting.",
+      "impact": "The attacker can acquire undervalued shares or redeem overvalued shares, causing direct loss of rDPX and other vault assets to honest LPs.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/core/RdpxV2Core.sol",
+          "contracts/reLP/ReLPContract.sol",
+          "contracts/perp-vault/PerpetualAtlanticVaultLP.sol",
+          "contracts/amo/UniV3LiquidityAmo.sol",
+          "contracts/perp-vault/IPerpetualAtlanticVault.sol",
+          "contracts/perp-vault/PerpetualAtlanticVault.sol",
+          "contracts/amo/UniV2LiquidityAmo.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000912",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:10:12.916473",
+      "id": "hyp_aa1f3f26a7fc",
+      "qa_comment": "Upon reviewing the deposit and funding paths in PerpetualAtlanticVaultLP and PerpetualAtlanticVault, I confirmed an exploitable accounting-ordering flaw. PerpetualAtlanticVaultLP.deposit() calculates shares through previewDeposit() before calling perpetualAtlanticVault.updateFunding(). previewDeposit() uses totalCollateral() and _rdpxCollateral to determine the exchange rate, while updateFunding() may subsequently transfer accrued funding into the LP and call addProceeds(), increasing _totalCollateral. A depositor can therefore submit a deposit immediately before accrued funding is recognized and receive shares calculated against the lower pre-funding collateral value; after funding is added, those shares represent more than the depositor\u2019s fair portion and dilute existing LP holders. The redeem() path is safer because it calls updateFunding() before redeemPreview(). Settlement itself is largely atomic: settle() calls updateFunding(), performs transfers, and then updates LP accounting in the same nonReentrant transaction, so it does not create a persistent cross-transaction stale window. Nevertheless, the deposit ordering provides a concrete and exploitable accounting vulnerability consistent with the hypothesis."
+    },
+    "hyp_e19bbe41e6af": {
+      "title": "Caller-controlled Uniswap V3 minimum output exposes vault swaps to adverse execution",
+      "description": "VULNERABILITY TYPE: slippage_or_mev\nROOT CAUSE: Swap protection is supplied by the caller at execution time rather than enforced by a validated protocol-level slippage bound, oracle check, or transaction-specific quote.\nATTACK VECTOR: An MEV searcher sandwiches an administrator's swap, moving the pool price before and after execution; if the caller-selected minimum output is low, the transaction succeeds at an unfavorable rate and the attacker captures the difference.\nAFFECTED NODES: univ3_amo, univ3_router_interface, core_rdpxv2, liquidity_asset_flow, univ3_pool_interface\nAFFECTED CODE: UniV3LiquidityAmo: token swap execution with caller-set minimum output, Liquidity-manager asset flow: transfer of assets to and from the AMO\nSEVERITY: medium\nREASONING: The architecture explicitly records caller-set minimum output for the Uniswap V3 AMO and admin-controlled swaps. A low minimum output permits normal sandwich and adverse-price execution even without unauthorized contract access.\nSUGGESTED MITIGATION: Compute and enforce minimum output from a bounded oracle/TWAP quote and configured maximum slippage, require deadline and pool-parameter validation, and reject swaps whose realized price deviates beyond the protocol limit.",
+      "vulnerability_type": "slippage_or_mev",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "univ3_amo",
+        "univ3_router_interface",
+        "core_rdpxv2",
+        "liquidity_asset_flow",
+        "univ3_pool_interface"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records caller-set minimum output for the Uniswap V3 AMO and admin-controlled swaps. A low minimum output permits normal sandwich and adverse-price execution even without unauthorized contract access.",
+      "mitigation": "Compute and enforce minimum output from a bounded oracle/TWAP quote and configured maximum slippage, require deadline and pool-parameter validation, and reject swaps whose realized price deviates beyond the protocol limit.",
+      "finding_description": "The Uniswap V3 AMO is described as using a caller-set minimum output while returning swap tokens to the core. Even if only an administrator can initiate the swap, an attacker can observe the pending transaction and manipulate the pool price around execution when the supplied minimum is too permissive, causing the vault to receive materially less value.",
+      "impact": "Vault liquidity can be exchanged for substantially fewer assets, reducing collateral backing and LP share value; repeated swaps can produce significant financial loss.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/uniswap_V3/ISwapRouter.sol",
+          "contracts/core/RdpxV2Core.sol",
+          "contracts/reLP/ReLPContract.sol",
+          "contracts/amo/UniV3LiquidityAmo.sol",
+          "contracts/uniswap_V3/IUniswapV3Pool.sol",
+          "contracts/amo/UniV2LiquidityAmo.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000912",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:10:12.931621",
+      "id": "hyp_e19bbe41e6af",
+      "qa_comment": "Upon reviewing UniV3LiquidityAMO.sol, specifically the admin-only swap function, I confirmed the slippage/MEV vulnerability exists. The function accepts _amountOutMinimum and _sqrtPriceLimitX96 directly from the authorized caller, transfers tokens from rdpxV2Core, and forwards both values unchanged to ISwapRouter.exactInputSingle through ExactInputSingleParams. There is no protocol-enforced minimum derived from an oracle, TWAP, reference quote, or configured slippageTolerance, and zero is not rejected as a minimum output. The deadline is hardcoded to 2105300114 rather than being transaction-specific, providing an unusually long execution window. Although only DEFAULT_ADMIN_ROLE can invoke the function, an authorized administrator or automation system can submit a transaction with a permissive minimum output, allowing an MEV searcher to sandwich the swap and cause adverse execution while still satisfying the supplied bound. The administrator trust boundary prevents unauthorized direct invocation but does not mitigate the stated execution-risk vulnerability."
+    }
+  },
+  "metadata": {
+    "total": 3,
+    "confirmed": 2,
+    "last_modified": "2026-10-13T00:10:12.931998"
+  }
+}

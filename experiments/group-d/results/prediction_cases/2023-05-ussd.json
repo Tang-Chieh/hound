@@ -1,0 +1,158 @@
+{
+  "repo_id": "2023-05-ussd",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_5d621db93995",
+      "title": "Flash-loan manipulation of Uniswap spot price controls rebalancing trades",
+      "description": "USSDRebalancer.rebalance derives its trigger price directly from uniPool.slot0() through getOwnValuation(), without a TWAP or external price validation. An attacker can temporarily move the USSD pool spot price and publicly call rebalance while the manipulated price is observed. The rebalancer then executes trades through USSD.UniV3SwapInput with amountOutMinimum set to zero, so execution is not protected against the manipulated pool price.",
+      "impact": "The attacker can cause USSD collateral to be sold or USSD to be minted and sold at unfavorable prices, draining collateral value from USSD or causing rebalancer losses that are realized by the protocol.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/USSDRebalancer.sol",
+          "contract": "USSDRebalancer",
+          "function": "getOwnValuation"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSDRebalancer.sol",
+          "contract": "USSDRebalancer",
+          "function": "rebalance"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "UniV3SwapInput"
+        }
+      ],
+      "mitigation": "Use a sufficiently long-horizon TWAP or independent oracle for the trigger and sizing, enforce bounded price deviation, and pass nonzero amountOutMinimum values derived from a protected reference price with a deadline.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_dc4ddb33f489",
+      "title": "Public SimOracle setter permits arbitrary collateral price manipulation",
+      "description": "SimOracle.setPriceUSD is externally callable without access control. If a SimOracle instance is configured for a collateral, its arbitrary price directly feeds USSD.calculateMint, USSD.collateralFactor, and rebalancer collateral valuation. An attacker can set an inflated price before minting or set a distorted price before rebalancing.",
+      "impact": "An attacker can receive excess USSD for deposited collateral or induce the rebalancer to sell and buy collateral using false valuations, potentially creating unbacked USSD and draining protocol collateral.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/oracles/SimOracle.sol",
+          "contract": "SimOracle",
+          "function": "setPriceUSD"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "calculateMint"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "collateralFactor"
+        }
+      ],
+      "mitigation": "Do not use SimOracle in production; if it must exist, restrict updates to a controlled oracle role, add timelocks and bounds, and validate the configured oracle addresses during deployment.",
+      "severity": "critical"
+    },
+    {
+      "finding_id": "hyp_3fe23d59f480",
+      "title": "WBTC oracle uses the WETH/USD Chainlink feed",
+      "description": "StableOracleWBTC initializes its feed to address 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419, which is also the feed configured by StableOracleWETH and is identified in the source comments as the WETH/USD feed. Consequently, WBTC collateral is valued at the ETH/USD price rather than the BTC/USD price.",
+      "impact": "USSD can become undercollateralized when WBTC is overvalued relative to ETH, and users can extract excess USSD by depositing WBTC or cause economically incorrect rebalancing transactions.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWBTC.sol",
+          "contract": "StableOracleWBTC",
+          "function": "constructor"
+        },
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWBTC.sol",
+          "contract": "StableOracleWBTC",
+          "function": "getPriceUSD"
+        }
+      ],
+      "mitigation": "Configure the verified BTC/USD feed for WBTC, make feed addresses immutable and deployment-validated, and add tests asserting that each collateral oracle references the expected asset feed.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_a75fac599eda",
+      "title": "Single-pool 10-minute TWAP remains manipulable for collateral valuation",
+      "description": "StableOracleDAI and StableOracleWBGL derive collateral prices from a single Uniswap V3 pool using a 600-second TWAP. The oracle does not combine multiple independent pools or enforce a maximum deviation from a trusted reference. An attacker able to sustain liquidity and volume manipulation for the observation period can distort the collateral price used by minting, collateralFactor, and rebalancing.",
+      "impact": "The attacker can obtain excess USSD against overvalued DAI/WBGL collateral or induce the protocol to trade collateral at prices that transfer value to the attacker, causing undercollateralization or treasury loss.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleDAI.sol",
+          "contract": "StableOracleDAI",
+          "function": "getPriceUSD"
+        },
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWBGL.sol",
+          "contract": "StableOracleWBGL",
+          "function": "getPriceUSD"
+        },
+        {
+          "file": "ussd-contracts/contracts/oracles/UniswapV3StaticOracle.sol",
+          "contract": "StaticOracle",
+          "function": "_quote"
+        }
+      ],
+      "mitigation": "Use longer and liquidity-aware TWAPs, aggregate independent markets, reject low-liquidity or excessive-deviation observations, and compare the result with a trusted external reference before using it for minting or rebalancing.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_ddcf5ddb4737",
+      "title": "Stale WETH/USD Chainlink answers can overvalue collateral during feed outages",
+      "description": "StableOracleWETH reads the latest Chainlink price and scales it without validating updatedAt, round completeness, or an application-specific maximum age. USSD.calculateMint and collateralFactor consume this value directly, so a stale WETH/USD answer can remain usable after the market price has materially declined. An attacker can deposit WETH while the stale answer is high and mint excess USSD against collateral worth substantially less than the issuance amount.",
+      "impact": "The attacker can receive more USSD than the deposited WETH is worth, causing protocol undercollateralization and losses for USSD holders or other collateral providers.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/StableOracleWETH.sol",
+          "contract": "StableOracleWETH",
+          "function": "getPriceUSD()"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "calculateMint(address,uint256)"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "mintForToken(address,uint256,address)"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "collateralFactor()"
+        }
+      ],
+      "mitigation": "Require a valid positive answer, completed round, and updatedAt within a configured maximum age in StableOracleWETH. Add protocol-level stale-price checks and pause or reject minting when the feed is stale; consider a bounded secondary oracle or deviation circuit breaker.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_cac569cc7d1d",
+      "title": "Negative Chainlink answer is cast into an enormous positive collateral price",
+      "description": "StableOracleWBTC reads a signed Chainlink answer and casts it to uint256 without validating that the answer is positive. If the feed returns a negative answer, the cast produces a near-maximum uint256 value, which is then consumed by USSD collateral valuation and mint calculations. Depending on the operand sizes, this can either let a very small WBTC deposit produce an excessive USSD amount or trigger arithmetic failures that disable WBTC-priced operations.",
+      "impact": "A negative or otherwise invalid WBTC/USD oracle answer can overvalue deposited WBTC, enabling undercollateralized USSD issuance, or cause minting and collateral-factor calculations to revert and freeze that collateral path.",
+      "vulnerable_code": [],
+      "mitigation": "Require the Chainlink answer to be strictly greater than zero before casting, validate round completeness and freshness, and reject values outside reasonable protocol bounds before using them in collateral valuation.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_6b6b9adff754",
+      "title": "Stale WBTC Chainlink answer accepted without freshness validation",
+      "description": "StableOracleWBTC uses latestRoundData but discards updatedAt and answeredInRound, accepting an arbitrarily old positive answer. If WBTC's market value falls or the feed stops updating, the stale price can continue to overvalue collateral when USSD calculates mint capacity.",
+      "impact": "Attackers can mint excess USSD against overvalued WBTC collateral, producing protocol bad debt and potential loss of stablecoin reserves when the collateral is liquidated or withdrawn.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWBTC.sol",
+          "contract": "StableOracleWBTC",
+          "function": "getPriceUSD"
+        }
+      ],
+      "mitigation": "Require price > 0, updatedAt != 0, answeredInRound >= roundId, and updatedAt within a configured maximum age before accepting the answer; revert or disable minting when the feed is stale, incomplete, or invalid.",
+      "severity": "high"
+    }
+  ]
+}

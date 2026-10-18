@@ -1,0 +1,82 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_2797f3444591": {
+      "title": "Spot-price manipulation of concentrated LP collateral passes oracle validation",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: LP amount valuation uses the manipulable current pool price, while the purported anti-manipulation check compares the oracle-derived price against that same manipulable spot price and permits a configurable deviation.\nATTACK VECTOR: Use a flash swap or temporary liquidity to move the Uniswap V3 position pool price toward a favorable tick, keeping the movement below maxPoolPriceDifference; call borrow or otherwise rely on the inflated collateral valuation, then restore the pool price in the same transaction or before the next block.\nAFFECTED NODES: contract_v3oracle, oracle_get_value, oracle_position_breakdown, vault_collateral_checks, vault_borrow, vault_loan_info, vault_liquidate\nAFFECTED CODE: src/V3Oracle.sol: V3Oracle.getValue, src/V3Oracle.sol: V3Oracle._checkPoolPrice, src/V3Oracle.sol: V3Oracle._getAmounts, src/V3Vault.sol: V3Vault._checkLoanIsHealthy, src/V3Vault.sol: V3Vault.borrow, src/V3Vault.sol: V3Vault.loanInfo\nSEVERITY: high\nREASONING: The position composition is explicitly derived from the live pool price, and the validation call passes 0 seconds to the pool-price helper, indicating spot-price validation. A price displacement below the allowed threshold may be economically significant for narrow-range positions even when the ratio check succeeds. Exploitability and profitability depend on configured maxPoolPriceDifference, liquidity depth, range geometry, and vault collateral parameters.\nSUGGESTED MITIGATION: Value LP amounts using a sufficiently long, manipulation-resistant TWAP or an independently observed position price, and validate the position pool's price against an independent TWAP before using it for borrowing or liquidation. Add conservative valuation haircuts and reject or pause valuation when spot/TWAP deviation exceeds a strict bound; do not use the same spot observation as both the valuation input and verification source.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_v3oracle",
+        "oracle_get_value",
+        "oracle_position_breakdown",
+        "vault_collateral_checks",
+        "vault_borrow",
+        "vault_loan_info",
+        "vault_liquidate"
+      ],
+      "evidence": [],
+      "reasoning": "The position composition is explicitly derived from the live pool price, and the validation call passes 0 seconds to the pool-price helper, indicating spot-price validation. A price displacement below the allowed threshold may be economically significant for narrow-range positions even when the ratio check succeeds. Exploitability and profitability depend on configured maxPoolPriceDifference, liquidity depth, range geometry, and vault collateral parameters.",
+      "mitigation": "Value LP amounts using a sufficiently long, manipulation-resistant TWAP or an independently observed position price, and validate the position pool's price against an independent TWAP before using it for borrowing or liquidation. Add conservative valuation haircuts and reject or pause valuation when spot/TWAP deviation exceeds a strict bound; do not use the same spot observation as both the valuation input and verification source.",
+      "finding_description": "V3Oracle computes a position's token amounts from the pool's current spot sqrtPrice, then validates the derived oracle ratio against the same pool's spot price using _getReferencePoolPriceX96(pool, 0). Because the secondary check is also spot-based rather than an independent TWAP, an attacker can temporarily move the position pool price within maxPoolPriceDifference and change the concentrated position's token composition and reported value without causing a revert. V3Vault then uses that value for borrow health checks and liquidation decisions.",
+      "impact": "An attacker can obtain excess asset borrowing against an LP NFT or make an undercollateralized loan appear healthy, potentially creating bad debt for lenders and delaying liquidation while the manipulated price is active.",
+      "vulnerable_code": [
+        {
+          "file": "src/V3Oracle.sol",
+          "contract": "V3Oracle",
+          "function": "getValue(uint256,address)"
+        },
+        {
+          "file": "src/V3Oracle.sol",
+          "contract": "V3Oracle",
+          "function": "_checkPoolPrice(address,address,uint24,uint256)"
+        },
+        {
+          "file": "src/V3Oracle.sol",
+          "contract": "V3Oracle",
+          "function": "_getAmounts(PositionState memory)"
+        },
+        {
+          "file": "src/V3Vault.sol",
+          "contract": "V3Vault",
+          "function": "_checkLoanIsHealthy(uint256,uint256)"
+        },
+        {
+          "file": "src/V3Vault.sol",
+          "contract": "V3Vault",
+          "function": "borrow(uint256,uint256)"
+        },
+        {
+          "file": "src/V3Vault.sol",
+          "contract": "V3Vault",
+          "function": "loanInfo(uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/interfaces/IVault.sol",
+          "src/V3Vault.sol",
+          "src/V3Oracle.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_225454",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:57:25.391895",
+      "id": "hyp_2797f3444591",
+      "qa_comment": "Upon reviewing V3Oracle.getValue, V3Oracle._getAmounts, V3Oracle._checkPoolPrice, and V3Vault._checkLoanIsHealthy/borrow, I confirmed that the hypothesized spot-price manipulation path exists. In V3Oracle._initializeState and _getAmounts, the position\u2019s token amounts are calculated from pool.slot0().sqrtPriceX96, making collateral composition dependent on the current Uniswap V3 spot price. Although getValue obtains token prices from configured Chainlink/TWAP sources, its anti-manipulation check derives an oracle pool price from those same prices and compares it against _getReferencePoolPriceX96(pool, 0), which explicitly reads the manipulable current slot0 price rather than a TWAP. _requireMaxDifference only rejects deviations at or above the configurable maxPoolPriceDifference, with a minimum configuration of 2%, so a temporary price movement below the threshold is accepted while still changing the LP amounts and resulting collateral valuation. V3Vault.borrow invokes _requireLoanIsHealthy using this valuation, allowing debt to be increased during the manipulated state. Restoring the pool price afterward does not undo the debt, and no independent spot/TWAP guard or valuation haircut prevents this path."
+    }
+  },
+  "metadata": {
+    "total": 1,
+    "confirmed": 1,
+    "last_modified": "2026-10-12T22:57:25.395138"
+  }
+}

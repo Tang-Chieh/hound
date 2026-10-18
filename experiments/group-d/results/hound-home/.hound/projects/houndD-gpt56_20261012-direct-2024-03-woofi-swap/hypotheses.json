@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_c98dbe4e89a7": {
+      "title": "Unsolicited asset donation can manipulate vault share price and dilute deposits",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Share issuance uses a manipulable raw token balance as the denominator and lacks ERC-4626-style virtual liquidity or deposit slippage protection.\nATTACK VECTOR: Direct want-token donation followed by a victim deposit and attacker withdrawal.\nAFFECTED NODES: vault_v2\nAFFECTED CODE: WooPoolV2/contracts/earn/VaultV2.sol:WOOFiVaultV2.deposit(uint256), WooPoolV2/contracts/earn/VaultV2.sol:WOOFiVaultV2.balance(), WooPoolV2/contracts/earn/VaultV2.sol:WOOFiVaultV2.withdraw(uint256)\nSEVERITY: high\nREASONING: The loaded deposit implementation explicitly computes shares from balanceBefore and totalSupply, while the vault is an ERC20 token holder whose want balance can be increased by direct transfers. The only shown validation is shares > 0; there is no minimum-share parameter, virtual offset, or exclusion of unsolicited balances. This is the standard donation/inflation attack against share-price vaults.\nSUGGESTED MITIGATION: Use virtual assets and virtual shares or another ERC-4626 inflation-attack defense; alternatively maintain internally accounted assets rather than using the raw token balance, and expose deposit minimum-shares/max-price parameters so users can reject manipulated issuance rates.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "vault_v2"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded deposit implementation explicitly computes shares from balanceBefore and totalSupply, while the vault is an ERC20 token holder whose want balance can be increased by direct transfers. The only shown validation is shares > 0; there is no minimum-share parameter, virtual offset, or exclusion of unsolicited balances. This is the standard donation/inflation attack against share-price vaults.",
+      "mitigation": "Use virtual assets and virtual shares or another ERC-4626 inflation-attack defense; alternatively maintain internally accounted assets rather than using the raw token balance, and expose deposit minimum-shares/max-price parameters so users can reject manipulated issuance rates.",
+      "finding_description": "WOOFiVaultV2 calculates new shares as amount * totalSupply / balanceBefore, where balanceBefore is the vault's current want balance immediately before the user's transfer. Because unsolicited want-token transfers can increase balanceBefore without increasing totalSupply, an attacker can acquire shares, donate want tokens directly to the vault, and front-run a victim deposit. The victim receives materially fewer shares, while the attacker can later withdraw a disproportionate share of the donated assets and the victim's deposit. The deposit path has no virtual assets/shares protection and no user-provided minimum-share or maximum-price constraint.",
+      "impact": "Victim deposits can be substantially diluted or reduced to a near-zero share amount, allowing the attacker to extract part or all of the victim's deposited want assets and any donated assets through withdrawal.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/earn/VaultV2.sol",
+          "contract": "WOOFiVaultV2",
+          "function": "deposit(uint256)"
+        },
+        {
+          "file": "WooPoolV2/contracts/earn/VaultV2.sol",
+          "contract": "WOOFiVaultV2",
+          "function": "balance()"
+        },
+        {
+          "file": "WooPoolV2/contracts/earn/VaultV2.sol",
+          "contract": "WOOFiVaultV2",
+          "function": "withdraw(uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "WooPoolV2/contracts/earn/VaultV2.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_230058",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:02:06.260910",
+      "id": "hyp_c98dbe4e89a7",
+      "qa_comment": "Upon reviewing WOOFiVaultV2.deposit(), balance(), and withdraw() in VaultV2.sol, I confirmed that the vault is vulnerable to donation-based share-price manipulation. deposit() records balanceBefore using balance(), which includes the vault's raw want-token balance returned by available() and any strategy balance. An attacker can therefore transfer want tokens directly to the vault, increasing balanceBefore without receiving shares. For an existing nonzero totalSupply, shares are then calculated as (amount * totalSupply()) / balanceBefore, with only a shares > 0 check and no minimum-share or slippage parameter. A sufficiently large donation can cause a victim's deposit to mint disproportionately few shares or revert at the zero-share check; with rounding, it can mint zero shares while the victim's assets remain in the vault. withdraw() calculates redemption from the manipulated balance and totalSupply, allowing the attacker to redeem their shares for assets that include the victim's deposit. The nonReentrant guard and amount-transfer validation do not prevent unsolicited transfers or protect the exchange rate, and no virtual liquidity or internal asset accounting is implemented."
+    }
+  },
+  "metadata": {
+    "total": 1,
+    "confirmed": 1,
+    "last_modified": "2026-10-12T23:02:06.263429"
+  }
+}

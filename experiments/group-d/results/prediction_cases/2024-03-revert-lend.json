@@ -1,0 +1,49 @@
+{
+  "repo_id": "2024-03-revert-lend",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_2797f3444591",
+      "title": "Spot-price manipulation of concentrated LP collateral passes oracle validation",
+      "description": "V3Oracle computes a position's token amounts from the pool's current spot sqrtPrice, then validates the derived oracle ratio against the same pool's spot price using _getReferencePoolPriceX96(pool, 0). Because the secondary check is also spot-based rather than an independent TWAP, an attacker can temporarily move the position pool price within maxPoolPriceDifference and change the concentrated position's token composition and reported value without causing a revert. V3Vault then uses that value for borrow health checks and liquidation decisions.",
+      "impact": "An attacker can obtain excess asset borrowing against an LP NFT or make an undercollateralized loan appear healthy, potentially creating bad debt for lenders and delaying liquidation while the manipulated price is active.",
+      "vulnerable_code": [
+        {
+          "file": "src/V3Oracle.sol",
+          "contract": "V3Oracle",
+          "function": "getValue(uint256,address)"
+        },
+        {
+          "file": "src/V3Oracle.sol",
+          "contract": "V3Oracle",
+          "function": "_checkPoolPrice(address,address,uint24,uint256)"
+        },
+        {
+          "file": "src/V3Oracle.sol",
+          "contract": "V3Oracle",
+          "function": "_getAmounts(PositionState memory)"
+        },
+        {
+          "file": "src/V3Vault.sol",
+          "contract": "V3Vault",
+          "function": "_checkLoanIsHealthy(uint256,uint256)"
+        },
+        {
+          "file": "src/V3Vault.sol",
+          "contract": "V3Vault",
+          "function": "borrow(uint256,uint256)"
+        },
+        {
+          "file": "src/V3Vault.sol",
+          "contract": "V3Vault",
+          "function": "loanInfo(uint256)"
+        }
+      ],
+      "mitigation": "Value LP amounts using a sufficiently long, manipulation-resistant TWAP or an independently observed position price, and validate the position pool's price against an independent TWAP before using it for borrowing or liquidation. Add conservative valuation haircuts and reject or pause valuation when spot/TWAP deviation exceeds a strict bound; do not use the same spot observation as both the valuation input and verification source.",
+      "severity": "high"
+    }
+  ]
+}

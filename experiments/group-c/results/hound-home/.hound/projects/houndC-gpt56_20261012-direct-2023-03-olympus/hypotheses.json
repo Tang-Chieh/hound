@@ -1,0 +1,281 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_088a4b857015": {
+      "title": "Oracle pricing can accept stale or otherwise invalid Chainlink data",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Trusting latestRoundData-derived values without enforcing complete feed validity and freshness checks, combined with governance-adjustable freshness thresholds.\nATTACK VECTOR: An attacker waits for an oracle outage or stale round, or exploits an improperly configured threshold, then deposits or withdraws through a vault while the stale price is used for minting, pool entry, or redemption calculations.\nAFFECTED NODES: manager_oracle_config, manager_price_reads, vault_deposit, vault_withdraw, bl_manager_policy\nAFFECTED CODE: BLVaultManagerLido oracle feed configuration and price-read functions, BLVaultLido.deposit, BLVaultLido.withdraw\nSEVERITY: high\nREASONING: The manager explicitly uses Chainlink feeds for valuation and permits threshold changes through a role. The loaded excerpts do not include the complete price-read implementation, so the finding depends on whether standard freshness, positivity, and round-consistency checks are actually present there.\nSUGGESTED MITIGATION: For every feed response, require answer > 0, updatedAt != 0, answeredInRound >= roundId, and updatedAt within a bounded nonzero freshness interval. Enforce safe minimum and maximum threshold values and fail closed when validation fails.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "manager_oracle_config",
+        "manager_price_reads",
+        "vault_deposit",
+        "vault_withdraw",
+        "bl_manager_policy"
+      ],
+      "evidence": [],
+      "reasoning": "The manager explicitly uses Chainlink feeds for valuation and permits threshold changes through a role. The loaded excerpts do not include the complete price-read implementation, so the finding depends on whether standard freshness, positivity, and round-consistency checks are actually present there.",
+      "mitigation": "For every feed response, require answer > 0, updatedAt != 0, answeredInRound >= roundId, and updatedAt within a bounded nonzero freshness interval. Enforce safe minimum and maximum threshold values and fail closed when validation fails.",
+      "finding_description": "BLVaultManagerLido derives mint and withdrawal valuations from Chainlink OHM/ETH and stETH/ETH feeds. The loaded implementation exposes configurable update thresholds, but the supplied code does not demonstrate validation of answer positivity, round completeness, timestamp freshness, or answeredInRound consistency before prices are used. If any of these checks are absent, a stale or invalid feed response can determine the OHM amount minted or the wstETH amount returned.",
+      "impact": "Vault users or the protocol can receive materially mispriced OHM or wstETH, enabling undercollateralized OHM minting, excess redemptions, or treasury losses.",
+      "vulnerable_code": [
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "contract": "BLVaultManagerLido",
+          "function": "getOhmTknPrice"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "contract": "BLVaultManagerLido",
+          "function": "getTknOhmPrice"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "contract": "BLVaultManagerLido",
+          "function": "changeUpdateThresholds"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultManagerLido.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_225402",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:54:59.687792",
+      "id": "hyp_088a4b857015",
+      "qa_comment": "Upon reviewing BLVaultManagerLido._validatePrice, getOhmTknPrice, getTknOhmPrice, and BLVaultLido.deposit/withdraw, I confirmed a stale-price vulnerability caused by an unbounded, governance-controlled freshness threshold. _validatePrice correctly requires a positive answer and enforces updatedAt against block.timestamp - updateThreshold_, while answeredInRound != roundId is stricter than the usual minimum consistency check. However, changeUpdateThresholds permits the liquidityvault_admin role to set either threshold to any uint48 value, including a very large interval, without a safe maximum or a nonzero bounded policy. Consequently, after an oracle outage, a previously valid Chainlink answer can remain accepted for the configured interval and influence OHM minting in deposit, as well as wstETH retention and treasury diversion in withdraw. updatedAt == 0 and nonpositive answers are generally rejected by the existing checks, so the issue is specifically stale-data acceptance rather than total absence of validation. Exploitation requires a permissive configuration or compromised/misconfigured admin role, but the code clearly permits that unsafe state."
+    },
+    "hyp_f4283b9b2d19": {
+      "title": "Unbounded Aura extra-reward processing can block reward claims and withdrawals",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Reliance on an externally configured, unbounded extra-reward list during user-triggered state-changing flows.\nATTACK VECTOR: A malicious or compromised Aura/reward-pool administrator adds many extra reward pools or a reverting pool. Vault owners then call claimRewards or withdraw with reward claiming enabled, causing the transaction to exceed gas limits or revert during iteration.\nAFFECTED NODES: vault_claim_rewards, vault_withdraw, bl_vault, aura_claim\nAFFECTED CODE: BLVaultLido.getOutstandingRewards, BLVaultLido._sendRewards, BLVaultLido.withdraw\nSEVERITY: medium\nREASONING: The code directly derives the loop bound from the external Aura pool and performs external calls inside each iteration. The issue is primarily an availability risk and depends on whether the referenced Aura deployment can expand or poison its extra-reward list.\nSUGGESTED MITIGATION: Bound the number of processed extra reward pools, maintain an allowlisted and capped reward-token configuration, and provide paginated or independently callable reward-claim processing so a single bad or expensive pool cannot block withdrawals or all claims.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "vault_claim_rewards",
+        "vault_withdraw",
+        "bl_vault",
+        "aura_claim"
+      ],
+      "evidence": [],
+      "reasoning": "The code directly derives the loop bound from the external Aura pool and performs external calls inside each iteration. The issue is primarily an availability risk and depends on whether the referenced Aura deployment can expand or poison its extra-reward list.",
+      "mitigation": "Bound the number of processed extra reward pools, maintain an allowlisted and capped reward-token configuration, and provide paginated or independently callable reward-claim processing so a single bad or expensive pool cannot block withdrawals or all claims.",
+      "finding_description": "BLVaultLido.getOutstandingRewards and _sendRewards iterate over auraRewardPool().extraRewardsLength() and make external calls for every configured extra reward pool. The vault does not impose a local maximum on the number of pools or a bounded processing mechanism. If the configured Aura reward pool contains sufficiently many entries, or one entry becomes reverting or excessively expensive, claimRewards and withdrawals with claim_=true can run out of gas or revert persistently.",
+      "impact": "Users can be unable to claim accumulated rewards and may be unable to complete withdrawals that request reward claims; accumulated rewards can remain trapped in the vault until the external configuration is repaired.",
+      "vulnerable_code": [
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "contract": "BLVaultLido",
+          "function": "getOutstandingRewards"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "contract": "BLVaultLido",
+          "function": "claimRewards"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "contract": "BLVaultLido",
+          "function": "withdraw"
+        },
+        {
+          "file": "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "contract": "BLVaultLido",
+          "function": "_sendRewards"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_225402",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:54:59.709832",
+      "id": "hyp_f4283b9b2d19",
+      "qa_comment": "Upon reviewing BLVaultLido.claimRewards, withdraw, getOutstandingRewards, and _sendRewards, I confirmed an externally controlled iteration-based denial-of-service risk. getOutstandingRewards allocates an array using auraRewardPool().extraRewardsLength() and invokes extraRewards(i), rewardToken(), and earned() for every entry without any bound, pagination, or failure isolation. More importantly, _sendRewards performs the same unbounded iteration during claimRewards and during withdraw when claim_ is true, calling each extra pool's rewardToken() and each token's balanceOf() and safeTransfer(). A sufficiently large list can exhaust the transaction gas limit, while a malformed or reverting extra reward pool or token can cause the entire operation to revert. The nonReentrant and onlyOwner modifiers do not constrain the list or isolate failures. Withdrawals with claim_ set to false avoid _sendRewards, so the issue does not block every withdrawal, but it can block reward claims and claim-enabled withdrawals. Exploitability depends on the configured Aura reward pool administrator being able to add or poison extra rewards, which is external to this source, but the vulnerable integration and missing safeguards are clear."
+    },
+    "hyp_b0abb01498c0": {
+      "title": "Unchecked Aura booster deposit result can leave vault liquidity unstaked",
+      "description": "VULNERABILITY TYPE: integration_failure\nROOT CAUSE: The result of the external Aura booster deposit operation is not enforced before recording or relying on the staked position.\nATTACK VECTOR: Trigger a deposit while the configured Aura booster rejects the deposit or returns false, including during an integration failure or after an externally controlled protocol configuration change.\nAFFECTED NODES: vault_deposit, aura_stake, aura_protocol, lp_token\nAFFECTED CODE: BLVaultLido deposit flow, Aura boosted LP deposit/stake\nSEVERITY: medium\nREASONING: The architecture explicitly models Aura booster deposit as returning bool, while the deposit flow proceeds into the staking-dependent vault lifecycle. Unless the implementation checks this value and reverts, a non-reverting failed stake creates inconsistent asset state.\nSUGGESTED MITIGATION: Require the Aura booster deposit call to return true and revert otherwise; only update registry or staking-related state after successful staking, and provide a recovery path for LP tokens held directly by the vault.",
+      "vulnerability_type": "integration_failure",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "vault_deposit",
+        "aura_stake",
+        "aura_protocol",
+        "lp_token"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly models Aura booster deposit as returning bool, while the deposit flow proceeds into the staking-dependent vault lifecycle. Unless the implementation checks this value and reverts, a non-reverting failed stake creates inconsistent asset state.",
+      "mitigation": "Require the Aura booster deposit call to return true and revert otherwise; only update registry or staking-related state after successful staking, and provide a recovery path for LP tokens held directly by the vault.",
+      "finding_description": "The Aura staking integration relies on a booster deposit operation that returns a boolean. If the return value is not checked, a false return can allow the deposit flow to continue after LP tokens remain in the vault rather than being staked. Subsequent withdrawal or reward operations may assume the LP is held by Aura and revert or permanently strand the vault's liquidity.",
+      "impact": "Deposited LP tokens can remain idle or become inaccessible through the normal withdrawal path, causing denial of service and potentially locking user funds in the vault.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBalancer.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IAura.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_225402",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:57:58.926127",
+      "id": "hyp_b0abb01498c0",
+      "qa_comment": "Upon reviewing the alleged integration failure in BLVaultLido.deposit, I determined this is a false positive. After joining the Balancer pool and calculating lpAmountOut, the function calls auraBooster.deposit(pid(), lpAmountOut, true) and immediately evaluates its returned boolean. If the booster returns false, the contract reverts with BLVaultLido_AuraDepositFailed(). Because the revert occurs within the same transaction, the preceding token transfers, OHM mint, Balancer join, and manager.increaseTotalLp(lpAmountOut) state update are all reverted atomically; therefore, the vault cannot persist a recorded position while retaining unstaked LP tokens through this failure mode. The deposit function is also protected by onlyWhileActive, onlyOwner, and nonReentrant. A malicious or misconfigured booster that falsely returns true without staking could represent a separate trust or configuration issue, but the stated hypothesis concerns an unchecked false result, which is explicitly checked. The suggested mitigation is already implemented for the return value and state consistency."
+    },
+    "hyp_7e75074590c0": {
+      "title": "Insufficient Balancer join and exit slippage protection",
+      "description": "VULNERABILITY TYPE: slippage_failure\nROOT CAUSE: Balancer operations accept caller-specified bounds, but the vault call paths may permit unconstrained or ineffective bounds instead of enforcing transaction-specific slippage limits.\nATTACK VECTOR: Monitor a pending vault deposit or withdrawal, temporarily manipulate the Balancer pool composition or price, and allow the vault transaction to execute with permissive bounds.\nAFFECTED NODES: vault_deposit, vault_withdraw, balancer_join, balancer_exit, balancer_protocol\nAFFECTED CODE: BLVaultLido deposit flow, BLVaultLido withdrawal flow, Balancer pool join, Balancer pool exit\nSEVERITY: medium\nREASONING: The architecture explicitly models caller-specified Balancer bounds and identifies slippage enforcement as a required review point. Without strict call-site validation, the external pool determines the executed exchange amounts and exposes users to sandwiching or adverse pool movement.\nSUGGESTED MITIGATION: Require and validate user-provided minimum output and maximum input amounts for every Balancer join and exit; reject zero or otherwise unsafe bounds where appropriate, and ensure the bounds are applied to the actual token amounts returned by Balancer.",
+      "vulnerability_type": "slippage_failure",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "vault_deposit",
+        "vault_withdraw",
+        "balancer_join",
+        "balancer_exit",
+        "balancer_protocol"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly models caller-specified Balancer bounds and identifies slippage enforcement as a required review point. Without strict call-site validation, the external pool determines the executed exchange amounts and exposes users to sandwiching or adverse pool movement.",
+      "mitigation": "Require and validate user-provided minimum output and maximum input amounts for every Balancer join and exit; reject zero or otherwise unsafe bounds where appropriate, and ensure the bounds are applied to the actual token amounts returned by Balancer.",
+      "finding_description": "The vault relies on Balancer join and exit requests with caller-supplied bounds, but the available implementation context does not establish that deposit and withdrawal call sites enforce nonzero, economically meaningful minimum amounts. If permissive bounds such as zero are accepted, an attacker can manipulate the Balancer pool before execution and cause the vault to receive fewer assets on deposit or return fewer assets on withdrawal than expected.",
+      "impact": "MEV or pool-manipulation transactions can cause users or the vault to suffer material value loss during deposits and withdrawals, including receiving substantially less wstETH or OHM than the transaction initiator intended.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBalancer.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_225402",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:58:36.727179",
+      "id": "hyp_7e75074590c0",
+      "qa_comment": "Upon reviewing the alleged slippage failure in BLVaultLido.deposit, _joinBalancerPool, withdraw, and _exitBalancerPool, I determined this is a false positive. The deposit function accepts minLpAmount_ and encodes it in the Balancer join userData alongside the exact token amounts, while maxAmountsIn limits the OHM and wstETH that Balancer may consume. The withdrawal function accepts minTokenAmounts_ and forwards it directly as ExitPoolRequest.minAmountsOut, with the requested LP amount encoded as the exit parameters. Balancer\u2019s Vault therefore performs the relevant minimum-output and maximum-input checks atomically during joinPool and exitPool; the code does not replace these values with zero or otherwise discard them. Although callers can intentionally supply permissive bounds, that is caller-controlled configuration rather than an implementation-level bypass, and the owner-only restriction further limits who can initiate operations. No exploitable path is shown whereby an attacker can alter bounds or cause Balancer to ignore them."
+    },
+    "hyp_2d51dd8f9e5c": {
+      "title": "Withdrawal flow lacks demonstrated reentrancy protection",
+      "description": "VULNERABILITY TYPE: reentrancy\nROOT CAUSE: External calls occur during withdrawal, but the architecture only explicitly establishes reentrancy protection for deposit and does not establish protection or checks-effects-interactions ordering for withdrawal.\nATTACK VECTOR: Invoke withdrawal while a configured token or external integration performs a callback into the vault during Aura exit, Balancer exit, or asset transfer, then reenter withdrawal before the original operation finalizes.\nAFFECTED NODES: vault_withdraw, bl_vault, aura_protocol, balancer_protocol, manager_burn_vault\nAFFECTED CODE: BLVaultLido withdrawal flow, Aura boosted LP withdrawal, Balancer pool exit, BL manager burnOhmFromVault\nSEVERITY: high\nREASONING: The available graph explicitly labels deposit as nonReentrant but provides no corresponding withdrawal guard, while withdrawal crosses several external boundaries. Exploitability depends on whether the concrete implementation lacks a guard and whether any configured token or integration can invoke a callback; this requires source-level confirmation.\nSUGGESTED MITIGATION: Add and test reentrancy protection on withdrawal and claim functions, finalize internal position/accounting state before external calls, and use narrowly trusted token and protocol configurations.",
+      "vulnerability_type": "reentrancy",
+      "severity": "high",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "vault_withdraw",
+        "bl_vault",
+        "aura_protocol",
+        "balancer_protocol",
+        "manager_burn_vault"
+      ],
+      "evidence": [],
+      "reasoning": "The available graph explicitly labels deposit as nonReentrant but provides no corresponding withdrawal guard, while withdrawal crosses several external boundaries. Exploitability depends on whether the concrete implementation lacks a guard and whether any configured token or integration can invoke a callback; this requires source-level confirmation.",
+      "mitigation": "Add and test reentrancy protection on withdrawal and claim functions, finalize internal position/accounting state before external calls, and use narrowly trusted token and protocol configurations.",
+      "finding_description": "The deposit path is explicitly marked nonReentrant, while the withdrawal path performs external Aura withdrawal, Balancer exit, token transfers, and manager burn calls without an equivalent protection shown in the available implementation context. If withdrawal is externally callable without a guard, a callback-capable configured token or integration could reenter before the vault position and registry/accounting state are finalized.",
+      "impact": "A reentrant withdrawal could execute multiple withdrawals against one vault position, cause inconsistent registry or accounting state, or drain assets beyond the caller's intended entitlement.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultManagerLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IAura.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBalancer.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_225402",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:58:51.941387",
+      "id": "hyp_2d51dd8f9e5c"
+    },
+    "hyp_27a81dd90c28": {
+      "title": "BLREG swap-and-pop removal can corrupt vault indexes",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Registry removal relies on an array index without atomically maintaining the reverse mapping and validating membership.\nATTACK VECTOR: During normal vault decommissioning, or through a permissioned manager call using a stale or unregistered vault address, invoke the registry removal path. Subsequent removals or manager operations use corrupted indexes and target another registered vault.\nAFFECTED NODES: blreg_module, manager_vault_registry, bl_manager_policy\nAFFECTED CODE: BLREG vault registration/removal and swap-and-pop index maintenance\nSEVERITY: medium\nREASONING: The architecture explicitly identifies swap-and-pop removal in BLREG and a manager-facing registry integration. This pattern is unsafe unless the reverse index for the swapped element is updated and membership is checked before removal.\nSUGGESTED MITIGATION: Maintain an explicit membership mapping or sentinel index, require the vault to be registered before removal, update the moved vault's index before deleting the removed vault's entry, and add invariant tests covering removal of the first, middle, last, duplicate, and unregistered vaults.",
+      "vulnerability_type": "security_issue",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "blreg_module",
+        "manager_vault_registry",
+        "bl_manager_policy"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies swap-and-pop removal in BLREG and a manager-facing registry integration. This pattern is unsafe unless the reverse index for the swapped element is updated and membership is checked before removal.",
+      "mitigation": "Maintain an explicit membership mapping or sentinel index, require the vault to be registered before removal, update the moved vault's index before deleting the removed vault's entry, and add invariant tests covering removal of the first, middle, last, duplicate, and unregistered vaults.",
+      "finding_description": "The registry uses swap-and-pop removal, but the moved vault must have its index mapping updated and the target must be verified as registered. If either check is absent, removing a vault can leave a stale index for the moved vault or treat an unregistered vault as index zero, causing later removals and registry lookups to affect the wrong vault.",
+      "impact": "A legitimate vault can be unintentionally removed or become orphaned in the registry, causing incorrect lifecycle authorization, inability to manage the affected vault, or operations to be directed at the wrong vault.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultManagerLido.sol",
+          "sherlock-olympus/src/modules/BLREG/OlympusBoostedLiquidityRegistry.sol",
+          "sherlock-olympus/src/modules/BLREG/BLREG.v1.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_225402",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:00:10.150400",
+      "id": "hyp_27a81dd90c28",
+      "qa_comment": "Upon reviewing the BLREG registry implementation, I determined this hypothesis is a false positive. The removeVault function in OlympusBoostedLiquidityRegistry.sol does not rely on a stored index or reverse mapping; it linearly searches activeVaults from index zero through activeVaultCount. It performs swap-and-pop only when an array element exactly matches the supplied vault address, then decrements activeVaultCount. Consequently, a stale or unregistered address causes no array mutation because the loop completes without entering the removal branch, although VaultRemoved is still emitted misleadingly. For a registered vault, the replacement element is copied into the removed position and the final element is popped, which is correct for this array representation and does not require index maintenance because no index mapping exists. BLVaultManagerLido.deactivate also guards repeated deactivation with isLidoBLVaultActive, and its permissioned registry call does not create an alternate stale-index path. Duplicate registrations are not independently prevented by BLREG, but the shown manager lifecycle prevents duplicate activation and this does not establish the alleged corruption vulnerability."
+    }
+  },
+  "metadata": {
+    "total": 6,
+    "confirmed": 2,
+    "last_modified": "2026-10-12T23:00:10.151171"
+  }
+}

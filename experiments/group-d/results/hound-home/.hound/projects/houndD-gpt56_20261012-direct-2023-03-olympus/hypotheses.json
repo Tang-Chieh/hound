@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_235812518e5d": {
+      "title": "Balancer pool manipulation can make vault deposits execute at an unfavorable rate",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The Balancer join is not demonstrably protected by a meaningful minimum-BPT-out bound tied to the expected pool valuation, while the deposited asset amounts are fixed using an independent oracle price.\nATTACK VECTOR: An attacker front-runs a vault deposit, uses a flash loan or other liquidity to move the OHM-wstETH Balancer pool price, allows the exact-token join to execute at the distorted invariant, and then reverses the manipulation and arbitrages the resulting imbalance.\nAFFECTED NODES: vault_deposit, manager_price_reads, balancer_join, balancer_protocol, lp_token\nAFFECTED CODE: vault_deposit -> manager_price_reads, vault_deposit -> balancer_join, balancer_join -> balancer_protocol\nSEVERITY: high\nREASONING: The deposit path combines oracle-priced asset quantities with an external Balancer join, and the architecture explicitly describes caller-specified Balancer bounds while only identifying input bounds for joins. Without a minimum BPT-out check or an equivalent atomic fair-value check, Balancer spot-state manipulation can determine the amount of LP exposure received for the oracle-valued assets. Exact source locations were not available in the loaded context, so the finding should be confirmed against the join request's userData and minBptAmount fields.\nSUGGESTED MITIGATION: Require a nonzero minimum BPT output calculated from a trusted, manipulation-resistant valuation and enforce it in the same transaction; additionally impose a short deadline and consider validating the pool composition and oracle-to-pool price deviation before joining. Apply equivalent minimum-output protections to exits.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "vault_deposit",
+        "manager_price_reads",
+        "balancer_join",
+        "balancer_protocol",
+        "lp_token"
+      ],
+      "evidence": [],
+      "reasoning": "The deposit path combines oracle-priced asset quantities with an external Balancer join, and the architecture explicitly describes caller-specified Balancer bounds while only identifying input bounds for joins. Without a minimum BPT-out check or an equivalent atomic fair-value check, Balancer spot-state manipulation can determine the amount of LP exposure received for the oracle-valued assets. Exact source locations were not available in the loaded context, so the finding should be confirmed against the join request's userData and minBptAmount fields.",
+      "mitigation": "Require a nonzero minimum BPT output calculated from a trusted, manipulation-resistant valuation and enforce it in the same transaction; additionally impose a short deadline and consider validating the pool composition and oracle-to-pool price deviation before joining. Apply equivalent minimum-output protections to exits.",
+      "finding_description": "The vault deposit flow derives the OHM amount from Chainlink-based pricing, then performs an exact-token Balancer join. The available component evidence identifies bounds on Balancer join inputs but does not evidence a caller- or oracle-derived minimum BPT output. An attacker can sandwich the deposit or temporarily skew the pool balances before execution, causing the vault to receive materially fewer LP tokens than fair value while still minting and depositing the precomputed OHM and wstETH amounts.",
+      "impact": "The vault can receive substantially less BPT for its deposited OHM and wstETH, transferring value to the manipulator and reducing depositor or treasury backing; repeated attacks can cause material loss during deposits.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "sherlock-olympus/src/policies/BoostedLiquidity/BLVaultLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBalancer.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultLido.sol",
+          "sherlock-olympus/src/policies/BoostedLiquidity/interfaces/IBLVaultManagerLido.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_210023",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:05:00.908198",
+      "id": "hyp_235812518e5d",
+      "qa_comment": "Upon reviewing BLVaultLido.deposit and _joinBalancerPool, I determined this hypothesis is not established by the provided implementation. The deposit function explicitly accepts minLpAmount_ and forwards it in the Balancer join userData as abi.encode(1, maxAmountsIn, minLpAmount_), where join kind 1 is the exact-tokens-in-for-BPT-out operation and the third parameter is the minimum BPT output enforced by the Balancer pool. Consequently, a pool-price manipulation that produces fewer BPTs causes the join to revert whenever the caller supplies a meaningful bound. The vault also uses maxAmountsIn, so Balancer cannot consume more than the oracle-derived OHM and wstETH amounts. Although the code does not itself calculate minLpAmount_ from the oracle, deposit is restricted by onlyOwner, and the supplied source does not demonstrate that the owner or calling system always passes zero or an otherwise inadequate value. This is therefore a configuration or caller-discipline concern, not a clearly exploitable vulnerability in the shown code. Withdrawals likewise forward caller-specified minimum token amounts."
+    }
+  },
+  "metadata": {
+    "total": 1,
+    "confirmed": 0,
+    "last_modified": "2026-10-12T21:05:00.909182"
+  }
+}

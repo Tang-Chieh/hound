@@ -1,0 +1,388 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_48d7aad369ac": {
+      "title": "Stale oracle price is trusted during oracle failure, enabling undercollateralized borrowing",
+      "description": "VULNERABILITY TYPE: oracle_failure\nROOT CAUSE: The protocol treats a failed oracle update as a valid valuation and reuses an unboundedly stale cached exchange rate for solvency decisions.\nATTACK VECTOR: After a collateral price decline, an attacker borrows or increases an existing loan while oracle.get() returns updated=false, relying on the stale higher exchangeRate to pass the solvency check. The resulting debt can become unrecoverable before liquidation is possible.\nAFFECTED NODES: function_cauldron_oracle_rate, function_cauldron_borrow_repay, contract_cauldron_v4\nAFFECTED CODE: src/cauldrons/CauldronV4.sol:updateExchangeRate, src/cauldrons/CauldronV4.sol:_isSolvent, src/cauldrons/CauldronV4.sol:solvent\nSEVERITY: high\nREASONING: The loaded implementation explicitly assigns rate=exchangeRate when oracle.get() is unsuccessful, while the solvency path uses the returned rate for borrow-related checks. No freshness bound, circuit breaker, or borrowing pause is shown.\nSUGGESTED MITIGATION: Track the timestamp or validity window of the cached rate and reject new borrowing or other risk-increasing operations when the rate is stale. Alternatively, use a conservative fallback valuation and preserve liquidation availability without allowing additional debt under an invalid price.",
+      "vulnerability_type": "oracle_failure",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "function_cauldron_oracle_rate",
+        "function_cauldron_borrow_repay",
+        "contract_cauldron_v4"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation explicitly assigns rate=exchangeRate when oracle.get() is unsuccessful, while the solvency path uses the returned rate for borrow-related checks. No freshness bound, circuit breaker, or borrowing pause is shown.",
+      "mitigation": "Track the timestamp or validity window of the cached rate and reject new borrowing or other risk-increasing operations when the rate is stale. Alternatively, use a conservative fallback valuation and preserve liquidation availability without allowing additional debt under an invalid price.",
+      "finding_description": "updateExchangeRate() falls back to the previously cached exchangeRate whenever oracle.get() reports updated=false. Borrowing and the solvent modifier then use that stale rate for collateralization checks. If the collateral price falls while the oracle is unavailable or returns an unsuccessful update, borrowers can remain classified as solvent and borrow additional MIM against insufficient collateral; liquidators may also be unable to liquidate those positions until the oracle recovers.",
+      "impact": "Cauldron reserves can incur bad debt because borrowers can extract MIM against collateral whose current value is materially below the cached valuation; liquidation protection can remain ineffective during the oracle outage.",
+      "vulnerable_code": [
+        {
+          "file": "src/cauldrons/CauldronV4.sol",
+          "contract": "CauldronV4",
+          "function": "updateExchangeRate()"
+        },
+        {
+          "file": "src/cauldrons/CauldronV4.sol",
+          "contract": "CauldronV4",
+          "function": "_isSolvent(address,uint256)"
+        },
+        {
+          "file": "src/cauldrons/CauldronV4.sol",
+          "contract": "CauldronV4",
+          "function": "solvent"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/interfaces/ICauldronV2.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:12:57.045051",
+      "id": "hyp_48d7aad369ac",
+      "qa_comment": "Upon reviewing CauldronV4.sol, I confirmed the oracle-failure vulnerability is exploitable. In updateExchangeRate(), the contract assigns the oracle result to (updated, rate), but when updated is false it explicitly replaces rate with the cached exchangeRate without recording freshness, imposing a validity window, or disabling risk-increasing actions. The borrow() function uses the solvent modifier, which executes the borrow first and then calls updateExchangeRate() before checking _isSolvent(msg.sender, _exchangeRate). Consequently, if the oracle fails after a collateral price decline, borrowing is evaluated against the stale, higher cached rate and can increase an already undercollateralized position. The same issue affects cook() when ACTION_BORROW is used, because its final solvency check also accepts the fallback rate. isSolvent() independently relies on the cached exchangeRate. Although liquidations intentionally support oracle failure, the implementation provides no equivalent guard preventing borrowing during that condition. Therefore, an oracle outage combined with a price decline creates a clear path to undercollateralized debt."
+    },
+    "hyp_8347ecf7f45b": {
+      "title": "MagicLP collateral oracle is manipulable through spot reserves and direct donations",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: The collateral price is calculated from manipulable spot reserves using min underlying prices multiplied by the pool reserve sum, with no temporal or manipulation-resistant validation.\nATTACK VECTOR: Acquire or control LP tokens, manipulate MagicLP reserves through swaps or donations, invoke Cauldron exchange-rate update, and borrow MIM against the inflated collateral valuation before the pool state normalizes.\nAFFECTED NODES: contract_magiclp_aggregator, contract_cauldron_v4, function_cauldron_oracle_rate, storage_cauldron_position\nAFFECTED CODE: src/oracles/aggregators/MagicLpAggregator.sol:MagicLpAggregator.latestAnswer, src/cauldrons/CauldronV4.sol:CauldronV4.updateExchangeRate, src/cauldrons/CauldronV4.sol:CauldronV4._isSolvent\nSEVERITY: high\nREASONING: The displayed pricing formula uses live pair reserves and totalSupply. These values are state variables affected by trades and token transfers, while Cauldron uses the resulting rate directly for collateral solvency and borrowing decisions.\nSUGGESTED MITIGATION: Use a manipulation-resistant valuation such as a sufficiently long TWAP or independently verified reserves, enforce bounds on reserve and price changes, and assess LP collateral using conservative exit-liquidity limits rather than an unbounded spot reserve sum.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_magiclp_aggregator",
+        "contract_cauldron_v4",
+        "function_cauldron_oracle_rate",
+        "storage_cauldron_position"
+      ],
+      "evidence": [],
+      "reasoning": "The displayed pricing formula uses live pair reserves and totalSupply. These values are state variables affected by trades and token transfers, while Cauldron uses the resulting rate directly for collateral solvency and borrowing decisions.",
+      "mitigation": "Use a manipulation-resistant valuation such as a sufficiently long TWAP or independently verified reserves, enforce bounds on reserve and price changes, and assess LP collateral using conservative exit-liquidity limits rather than an unbounded spot reserve sum.",
+      "finding_description": "MagicLpAggregator.latestAnswer derives the LP token value directly from the current pool reserves and totalSupply, without a TWAP, reserve-change bounds, or protection against direct reserve donations. An attacker can trade or donate assets to alter the pool state immediately before Cauldron solvency and borrow checks, causing LP collateral to be valued above its economically realizable value.",
+      "impact": "The attacker may obtain undercollateralized MIM loans, leaving the Cauldron with bad debt when the LP valuation returns to normal.",
+      "vulnerable_code": [
+        {
+          "file": "src/oracles/aggregators/MagicLpAggregator.sol",
+          "contract": "MagicLpAggregator",
+          "function": "latestAnswer"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/oracles/aggregators/MagicLpAggregator.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:14:08.181208",
+      "id": "hyp_8347ecf7f45b",
+      "qa_comment": "Upon reviewing the alleged spot-reserve oracle manipulation in MagicLpAggregator.latestAnswer and CauldronV4.updateExchangeRate, I determined that the hypothesis is not accurate as stated. The internal _getReserves function calls pair.getReserves() but never returns the retrieved values; because its return parameters are unnamed, it yields default zero values. Consequently, latestAnswer() computes a zero collateral exchange rate rather than a reserve-derived, manipulable valuation. CauldronV4.updateExchangeRate then caches this zero rate, and _isSolvent() multiplies debt by that rate, potentially allowing borrowing against insufficient collateral, but this is a separate critical oracle implementation defect\u2014not an inflation attack involving swaps or direct donations. The reviewed code also provides no TWAP or rate bounds, but those omissions are immaterial while reserves are always returned as zero. Confirming the stated hypothesis would require a corrected _getReserves implementation and the MagicLP contract to establish whether swaps or donations can inflate the returned reserves. As supplied, the claimed attack path cannot operate because the aggregator does not consume the pool reserves."
+    },
+    "hyp_699e5cdd35b8": {
+      "title": "Malformed MagicLP aggregator responses can permanently block oracle-dependent Cauldron operations",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: The aggregator lacks validation for signed feed answers, zero total supply, valid decimals, and arithmetic bounds before constructing the LP price.\nATTACK VECTOR: Cause or wait for an underlying feed to return a negative/invalid answer, target an uninitialized or depleted pool with zero totalSupply, or otherwise produce values that overflow the scaling arithmetic; then trigger Cauldron exchange-rate updates, borrowing, liquidation, or solvency checks.\nAFFECTED NODES: contract_magiclp_aggregator, function_cauldron_oracle_rate, contract_cauldron_v4\nAFFECTED CODE: src/oracles/aggregators/MagicLpAggregator.sol:MagicLpAggregator.latestAnswer, src/cauldrons/CauldronV4.sol:CauldronV4.updateExchangeRate\nSEVERITY: medium\nREASONING: The code explicitly converts signed answers to uint256, performs unchecked-by-validation scaling, and divides by pair.totalSupply(). Each invalid condition can revert under Solidity 0.8 and propagate through the oracle call.\nSUGGESTED MITIGATION: Require positive and fresh underlying answers, validate decimals and bounded magnitudes, reject zero totalSupply before division, use checked intermediate bounds, and define a non-reverting fallback or emergency oracle path for invalid pool/feed states.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_magiclp_aggregator",
+        "function_cauldron_oracle_rate",
+        "contract_cauldron_v4"
+      ],
+      "evidence": [],
+      "reasoning": "The code explicitly converts signed answers to uint256, performs unchecked-by-validation scaling, and divides by pair.totalSupply(). Each invalid condition can revert under Solidity 0.8 and propagate through the oracle call.",
+      "mitigation": "Require positive and fresh underlying answers, validate decimals and bounded magnitudes, reject zero totalSupply before division, use checked intermediate bounds, and define a non-reverting fallback or emergency oracle path for invalid pool/feed states.",
+      "finding_description": "MagicLpAggregator.latestAnswer casts oracle.latestAnswer() values to uint256 without checking that they are positive, scales them and the reserves without overflow guards beyond Solidity reverts, and divides by pair.totalSupply() without checking for zero. A negative feed answer, zero-supply pool, zero-decimal mismatch, or excessive values can make the aggregator revert whenever the Cauldron queries the oracle.",
+      "impact": "Oracle updates can revert and prevent borrowing, liquidation, and other risk-management operations for the affected Cauldron, potentially trapping collateral and allowing bad debt to persist.",
+      "vulnerable_code": [
+        {
+          "file": "src/oracles/aggregators/MagicLpAggregator.sol",
+          "contract": "MagicLpAggregator",
+          "function": "latestAnswer"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/oracles/aggregators/MagicLpAggregator.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:14:08.198663",
+      "id": "hyp_699e5cdd35b8",
+      "qa_comment": "Upon reviewing MagicLpAggregator.latestAnswer and CauldronV4.updateExchangeRate, I confirmed a denial-of-service path when the configured oracle or MagicLP pair enters an invalid state. latestAnswer explicitly casts baseOracle.latestAnswer() and quoteOracle.latestAnswer() from int256 to uint256 without checking positivity; a negative answer reverts under Solidity 0.8. The expressions 10 ** (WAD - decimals) can also revert when decimals exceed 18, and the unchecked-by-validation multiplications, addition, and final int256 conversion may overflow. Most directly, division by pair.totalSupply() reverts when totalSupply is zero. These failures propagate through oracle.get() into updateExchangeRate(), which has no try/catch or fallback. Consequently, borrow and solvency-checking paths, including borrow, removeCollateral, cook post-checks, and the liquidate path, can revert whenever they query the malformed aggregator. The source also contains an apparent _getReserves defect: it reads reserves into local variables but never returns them, causing default zero reserves, although this does not eliminate the division-by-zero and malformed-feed failure modes. No relevant guards exist in either contract."
+    },
+    "hyp_42370bb502e6": {
+      "title": "Cauldron accepts a zero exchange rate from a successful oracle update",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: Successful oracle responses are trusted without sanity checks on the exchange-rate value.\nATTACK VECTOR: Use a misconfigured or compromised oracle, or an oracle failure mode that returns updated=true with rate=0, then update the Cauldron rate and borrow against collateral whose true value cannot support the resulting debt.\nAFFECTED NODES: function_cauldron_oracle_rate, storage_cauldron_position, function_cauldron_borrow_repay, contract_cauldron_v4\nAFFECTED CODE: src/cauldrons/CauldronV4.sol:CauldronV4.updateExchangeRate, src/cauldrons/CauldronV4.sol:CauldronV4._isSolvent\nSEVERITY: high\nREASONING: The displayed update path assigns rate directly when updated is true. The displayed solvency equation multiplies the debt value by that rate, so rate==0 reduces the required collateral value to zero.\nSUGGESTED MITIGATION: Reject zero and out-of-range rates, validate the oracle response before updating storage, and retain the last known-good rate or enter a fail-closed mode when sanity checks fail.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "function_cauldron_oracle_rate",
+        "storage_cauldron_position",
+        "function_cauldron_borrow_repay",
+        "contract_cauldron_v4"
+      ],
+      "evidence": [],
+      "reasoning": "The displayed update path assigns rate directly when updated is true. The displayed solvency equation multiplies the debt value by that rate, so rate==0 reduces the required collateral value to zero.",
+      "mitigation": "Reject zero and out-of-range rates, validate the oracle response before updating storage, and retain the last known-good rate or enter a fail-closed mode when sanity checks fail.",
+      "finding_description": "CauldronV4.updateExchangeRate stores any rate returned with updated=true, including zero, without validating that the rate is nonzero or within configured bounds. In _isSolvent, the debt-side value is multiplied by _exchangeRate, so a zero rate makes every account with collateral appear solvent regardless of its borrow part.",
+      "impact": "Borrowers can create effectively uncollateralized MIM debt while solvency checks and liquidation eligibility are incorrectly bypassed, producing protocol bad debt.",
+      "vulnerable_code": [
+        {
+          "file": "src/cauldrons/CauldronV4.sol",
+          "contract": "CauldronV4",
+          "function": "updateExchangeRate"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/interfaces/ICauldronV2.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:14:08.212435",
+      "id": "hyp_42370bb502e6",
+      "qa_comment": "Upon reviewing CauldronV4.updateExchangeRate, _isSolvent, borrow, and the cook borrow path, I confirmed the oracle-validation vulnerability. updateExchangeRate directly assigns exchangeRate = rate whenever oracle.get(oracleData) returns updated = true, without checking that rate is nonzero or within a sane range. _isSolvent then multiplies the debt requirement by _exchangeRate, so a zero rate makes the right-hand side zero; any account with nonzero collateral and debt is consequently considered solvent. The borrow function's solvent modifier calls updateExchangeRate after executing the borrow, and the final solvency check therefore accepts a zero oracle rate. The cook path behaves similarly when borrowing and performing its final solvency check. Although ACTION_UPDATE_EXCHANGE_RATE can impose a caller-selected rate bound, this is not a protocol-level safeguard and direct updateExchangeRate and borrow calls do not enforce it. Thus, a misconfigured or compromised oracle returning updated=true and rate=0 can enable borrowing against inadequately valued collateral."
+    },
+    "hyp_fd1a1eb95327": {
+      "title": "Fee-on-transfer staking tokens can make internal principal accounting exceed actual holdings",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: Staking accounting appears to trust the nominal transfer amount instead of measuring the contract's balance before and after the transfer, with no demonstrated compatibility restriction for fee-on-transfer or rebasing tokens.\nATTACK VECTOR: Deploy or configure the contract with a token that transfers less than the requested amount, then stake and withdraw across multiple users; alternatively exploit a supported rebasing token whose balance decreases after staking.\nAFFECTED NODES: contract_locking_rewards\nAFFECTED CODE: src/staking/LockingMultiRewards.sol:stake/_stakeFor staking-token transfer and balance accounting\nSEVERITY: medium\nREASONING: The loaded implementation exposes a generic staking-token address and a nominal amount-based stake interface, but the transfer and accounting body is not included in the loaded excerpt. This is exploitable if the deployment permits non-standard ERC20s without balance-delta accounting or explicit token restrictions.\nSUGGESTED MITIGATION: Either restrict stakingToken to known non-rebasing, non-fee-on-transfer tokens or calculate the received amount from pre- and post-transfer balances and use that actual amount consistently in total-supply, user-balance, and withdrawal accounting.",
+      "vulnerability_type": "accounting_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_locking_rewards"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation exposes a generic staking-token address and a nominal amount-based stake interface, but the transfer and accounting body is not included in the loaded excerpt. This is exploitable if the deployment permits non-standard ERC20s without balance-delta accounting or explicit token restrictions.",
+      "mitigation": "Either restrict stakingToken to known non-rebasing, non-fee-on-transfer tokens or calculate the received amount from pre- and post-transfer balances and use that actual amount consistently in total-supply, user-balance, and withdrawal accounting.",
+      "finding_description": "The contract accepts an arbitrary staking token and the staking path is shown to use the requested amount as the stake amount. If the token charges transfer fees, rebases downward, or otherwise delivers fewer tokens than requested, the contract can record more staking principal than it actually receives. Later withdrawals may revert due to insufficient balance or leave the final stakers unable to recover their principal.",
+      "impact": "The staking pool can become insolvent for later withdrawals, causing withdrawal denial or loss of users' deposited tokens.",
+      "vulnerable_code": [
+        {
+          "file": "src/staking/LockingMultiRewards.sol",
+          "contract": "LockingMultiRewards",
+          "function": "stake(uint256,bool)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/staking/LockingMultiRewards.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:14:49.169347",
+      "id": "hyp_fd1a1eb95327",
+      "qa_comment": "Upon reviewing the staking and withdrawal paths in `src/staking/LockingMultiRewards.sol`, I confirmed the accounting vulnerability. In `_stakeFor` (approximately lines 377-398), the contract calls `stakingToken.safeTransferFrom(msg.sender, address(this), amount)` and then unconditionally increments `stakingTokenBalance`, the user balance, and either `unlockedSupply` or `lockedSupply` by the nominal `amount`. It never measures the contract\u2019s staking-token balance before and after the transfer. Consequently, a fee-on-transfer token can cause the contract to receive less than the amount credited internally, while a rebasing token can later reduce the actual balance without adjusting accounting. The `withdraw` function (approximately lines 166-183) similarly transfers and decrements the nominal amount, so withdrawals may revert once recorded liabilities exceed actual holdings, leaving user funds inaccessible; the issue can also affect subsequent users. No staking-token compatibility restriction or balance-delta validation exists in the constructor or staking path. `recover` does not mitigate this and may itself underflow when actual holdings are below `stakingTokenBalance`."
+    },
+    "hyp_a2a9008db8ce": {
+      "title": "Fee-on-transfer reward tokens can create unpayable reward liabilities",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: Reward liabilities are vulnerable to being calculated from the nominal notified amount rather than the actual amount received; no evidence of balance-delta validation or reward-token compatibility checks is provided.\nATTACK VECTOR: Configure a fee-on-transfer token as a reward token and notify a reward amount, or use a rebasing reward token whose balance falls after notification; users accrue the nominal liability and later claim against an insufficient balance.\nAFFECTED NODES: contract_locking_rewards\nAFFECTED CODE: src/staking/LockingMultiRewards.sol:addReward/notifyRewardAmount reward-token setup and funding\nSEVERITY: medium\nREASONING: The loaded excerpts establish owner-configurable arbitrary reward tokens and multi-token reward accounting, while the funding implementation is omitted. The issue applies if the omitted notification path uses the requested amount directly, which is a common failure mode for generic ERC20 reward systems.\nSUGGESTED MITIGATION: Measure the reward-token balance delta when funding and calculate the reward schedule from the actual received amount; alternatively reject fee-on-transfer and rebasing reward tokens during configuration.",
+      "vulnerability_type": "accounting_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_locking_rewards"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded excerpts establish owner-configurable arbitrary reward tokens and multi-token reward accounting, while the funding implementation is omitted. The issue applies if the omitted notification path uses the requested amount directly, which is a common failure mode for generic ERC20 reward systems.",
+      "mitigation": "Measure the reward-token balance delta when funding and calculate the reward schedule from the actual received amount; alternatively reject fee-on-transfer and rebasing reward tokens during configuration.",
+      "finding_description": "Reward tokens are configurable by the owner and the contract distributes multiple arbitrary ERC20 reward tokens. If notifyRewardAmount records the requested reward amount while the transfer into the contract delivers less because of transfer fees, the global reward rate and reward-per-token accounting can promise more tokens than the contract holds. Reward claims will then revert or become underfunded.",
+      "impact": "Reward claims can fail for some or all users, and accrued rewards can become permanently uncollectible or cause distribution insolvency.",
+      "vulnerable_code": [
+        {
+          "file": "src/staking/LockingMultiRewards.sol",
+          "contract": "LockingMultiRewards",
+          "function": "notifyRewardAmount(address,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/staking/LockingMultiRewards.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:14:54.072671",
+      "id": "hyp_a2a9008db8ce",
+      "qa_comment": "Upon reviewing the reward-token configuration and funding flow in LockingMultiRewards, I confirmed the accounting vulnerability. The owner may register arbitrary ERC20-compatible tokens through addReward, and notifyRewardAmount accepts any registered token without compatibility checks. In notifyRewardAmount, the contract records the requested amount, transfers it using rewardToken.safeTransferFrom, and then calculates rewardRate from that same nominal amount. SafeTransferLib validates transfer execution but does not measure the contract's balance before and after the transfer. Consequently, a fee-on-transfer token can deliver less than amount while the full nominal value is scheduled for distribution. Likewise, a rebasing token can reduce the contract's balance after notification. The existing-period remainder is also added using accounting values rather than verified token balances. As rewards accrue, users can receive liabilities exceeding the tokens held by the contract; eventual safeTransfer calls in _getRewards may revert or become economically insufficient. No balance-delta validation, token whitelist, or rejection of fee-on-transfer/rebasing assets is present. The issue depends on selecting such a token, but the code provides a clear exploitable deployment/configuration path."
+    },
+    "hyp_c8919c9cbc5a": {
+      "title": "Hardcoded Blast Points endpoint can make deployments fail outside Blast",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The constructor performs an unconditional external call to a chain-specific hardcoded address without checking the chain ID, code existence, or allowing a validated endpoint configuration.\nATTACK VECTOR: Cause or induce deployment of BlastDapp on a non-Blast chain, unsupported fork, or network where the hardcoded address is absent or exposes incompatible code; construction reverts atomically.\nAFFECTED NODES: library_blast_points, contract_blast_dapp\nAFFECTED CODE: src/blast/BlastDapp.sol:constructor, src/blast/libraries/BlastPoints.sol:configure\nSEVERITY: low\nREASONING: The constructor always executes the call, and Solidity external calls revert when the target lacks the expected function or returns failure. The code contains no chain or endpoint validation. This is primarily an availability issue and is exploitable when deployments are attempted on unsupported networks.\nSUGGESTED MITIGATION: Restrict deployment to the intended Blast chain, validate the chain ID and target code before calling, and make the points endpoint an immutable constructor parameter selected from a deployment-time allowlist. If points configuration is optional, separate it from construction and handle failure explicitly.",
+      "vulnerability_type": "availability",
+      "severity": "low",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "library_blast_points",
+        "contract_blast_dapp"
+      ],
+      "evidence": [],
+      "reasoning": "The constructor always executes the call, and Solidity external calls revert when the target lacks the expected function or returns failure. The code contains no chain or endpoint validation. This is primarily an availability issue and is exploitable when deployments are attempted on unsupported networks.",
+      "mitigation": "Restrict deployment to the intended Blast chain, validate the chain ID and target code before calling, and make the points endpoint an immutable constructor parameter selected from a deployment-time allowlist. If points configuration is optional, separate it from construction and handle failure explicitly.",
+      "finding_description": "BlastDapp unconditionally calls configurePointsOperator on the fixed Blast Points address during construction. On any chain or fork where that address has no compatible contract, the external call reverts and the entire deployment fails. If deployment tooling permits an incorrect chain or a supported network changes the endpoint, this creates a deployment denial of service.",
+      "impact": "BlastDapp and any deployment depending on it cannot be deployed on the affected network, potentially blocking protocol rollout or upgrades.",
+      "vulnerable_code": [
+        {
+          "file": "src/blast/BlastDapp.sol",
+          "contract": "BlastDapp",
+          "function": "constructor"
+        },
+        {
+          "file": "src/blast/libraries/BlastPoints.sol",
+          "contract": "BlastPoints",
+          "function": "configure"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/blast/BlastDapp.sol",
+          "src/blast/libraries/BlastPoints.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:15:42.597335",
+      "id": "hyp_c8919c9cbc5a",
+      "qa_comment": "Upon reviewing the BlastDapp constructor in src/blast/BlastDapp.sol and BlastPoints.configure in src/blast/libraries/BlastPoints.sol, I confirmed the deployment-fragility issue. The constructor unconditionally invokes BlastPoints.configure(), which performs an external call to the hardcoded BLAST_POINTS address 0x2536...d800 and passes the hardcoded operator address 0xD102...ff28. There is no chain ID validation, code-existence check, configurable endpoint, or error handling around this call. Consequently, deploying BlastDapp on a chain where that address contains incompatible code, implements a reverting function, or otherwise rejects configurePointsOperator will cause the constructor transaction to revert and the deployment to fail atomically. An address with no code may not itself cause a revert for a no-return call, so failure is not guaranteed solely by deploying on another chain; however, the implementation provides no protection against endpoint incompatibility and assumes the Blast deployment environment unconditionally. This is therefore a valid low-severity availability and portability issue, primarily affecting deployments and unsupported networks rather than an already-deployed contract."
+    },
+    "hyp_ca060f7cd2f5": {
+      "title": "Replayable master-contract approval signatures allow authorization to be restored after revocation",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Approval signatures are not evidently bound to a unique nonce, deadline, or one-time-use state transition.\nATTACK VECTOR: An observer captures a valid approval signature from transaction calldata, waits for the user to revoke the approval, and replays the old signature. If the master contract is compromised or malicious, it can then invoke DegenBox operations authorized through the restored approval.\nAFFECTED NODES: contract_master_manager, function_degenbox_withdraw, function_degenbox_transfers, contract_degenbox\nAFFECTED CODE: MasterContractManager signed approval flow, DegenBox allowed(from) authorization path\nSEVERITY: high\nREASONING: The architecture explicitly exposes signed approvals and DegenBox authorization based on the resulting approval mapping, while no nonce, deadline, or replay protection is present in the loaded evidence. The issue is exploitable if an approval signature is publicly observable and the associated master contract later becomes untrusted.\nSUGGESTED MITIGATION: Include a per-user nonce and deadline in the signed EIP-712 message, increment the nonce on every approval update, reject expired signatures, and use a domain separator that is safe across chain changes. Consider an explicit revocation generation or epoch that invalidates all prior approvals.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_master_manager",
+        "function_degenbox_withdraw",
+        "function_degenbox_transfers",
+        "contract_degenbox"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly exposes signed approvals and DegenBox authorization based on the resulting approval mapping, while no nonce, deadline, or replay protection is present in the loaded evidence. The issue is exploitable if an approval signature is publicly observable and the associated master contract later becomes untrusted.",
+      "mitigation": "Include a per-user nonce and deadline in the signed EIP-712 message, increment the nonce on every approval update, reject expired signatures, and use a domain separator that is safe across chain changes. Consider an explicit revocation generation or epoch that invalidates all prior approvals.",
+      "finding_description": "The MasterContractManager uses signed approvals for userMasterContractApproved, but the available component evidence does not indicate a per-user nonce, expiry, or consumed-signature tracking. A previously observed approval=true signature can therefore be submitted again after the user revokes approval, restoring authorization for the associated master contract.",
+      "impact": "A user\u2019s attempted revocation can be bypassed, allowing a compromised master contract to transfer or withdraw the user\u2019s DegenBox-held assets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/DegenBox.sol",
+          "src/mixins/MasterContractManager.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:17:58.980614",
+      "id": "hyp_ca060f7cd2f5",
+      "qa_comment": "Upon reviewing MasterContractManager.setMasterContractApproval and DegenBox.allowed, I determined this is a false positive. The signed EIP-712 approval includes the user, masterContract, approval state, warning text, and nonces[user], and is additionally protected by DOMAIN_SEPARATOR(), which binds the signature to the chain ID and contract address. The expression nonces[user]++ is evaluated while constructing the signed digest, and a valid transaction increments the nonce before storing the approval; any replayed signature therefore contains an outdated nonce and fails the recovered-address check because the current nonce has advanced. Both approval and revocation signatures consume successive nonces, so revoking access invalidates earlier approval signatures. The signed masterContract address also prevents reuse for another master contract. Although the message has no explicit deadline, expiration is not required to prevent replay when each valid signed state change advances a per-user nonce. The DegenBox.allowed modifier only consults the resulting approval mapping and cannot restore authorization using an old signature without passing this nonce validation."
+    },
+    "hyp_73a37a9d6cdb": {
+      "title": "Whitelisting revocation does not disable existing master-contract associations",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: The whitelist is enforced at registration time only; revocation does not clear existing associations or invalidate approvals, and DegenBox authorization relies on stale association state.\nATTACK VECTOR: A previously approved master contract is compromised. The owner attempts to disable it by removing it from the whitelist, but the compromised contract continues operating for all users whose masterContractOf mapping and approvals remain set.\nAFFECTED NODES: contract_master_manager, contract_degenbox, function_degenbox_withdraw, function_degenbox_transfers\nAFFECTED CODE: MasterContractManager whitelist and masterContractOf state, DegenBox allowed(from) authorization path\nSEVERITY: high\nREASONING: The architecture describes an owner-controlled whitelist separately from persistent user/master associations, while DegenBox\u2019s authorization path checks the association and approval. No evidence indicates that whitelist removal invalidates existing mappings or approvals, creating an ineffective emergency kill switch.\nSUGGESTED MITIGATION: Make DegenBox authorization require that the associated master contract remains currently whitelisted, or maintain a per-master-contract revocation epoch checked by DegenBox. Provide an owner-controlled mechanism to invalidate existing associations and approvals when a master contract is disabled.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_master_manager",
+        "contract_degenbox",
+        "function_degenbox_withdraw",
+        "function_degenbox_transfers"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture describes an owner-controlled whitelist separately from persistent user/master associations, while DegenBox\u2019s authorization path checks the association and approval. No evidence indicates that whitelist removal invalidates existing mappings or approvals, creating an ineffective emergency kill switch.",
+      "mitigation": "Make DegenBox authorization require that the associated master contract remains currently whitelisted, or maintain a per-master-contract revocation epoch checked by DegenBox. Provide an owner-controlled mechanism to invalidate existing associations and approvals when a master contract is disabled.",
+      "finding_description": "MasterContractManager\u2019s whitelist controls whether a master contract may be registered, but DegenBox authorization is based on the stored masterContractOf mapping and user approval. If whitelistMasterContract is later set to false, existing users remain associated with that master contract and their approvals remain effective because the authorization path does not appear to re-check the current whitelist status.",
+      "impact": "Emergency removal of a malicious or compromised master contract can fail, allowing unauthorized withdrawals or transfers of approved users\u2019 DegenBox assets until every user individually revokes or removes the association.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/DegenBox.sol",
+          "src/mixins/MasterContractManager.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_001157",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:18:01.856756",
+      "id": "hyp_73a37a9d6cdb",
+      "qa_comment": "Upon reviewing MasterContractManager.whitelistMasterContract, registerProtocol, setMasterContractApproval, and DegenBox.allowed, I confirmed that whitelist removal does not revoke existing master-contract authority. whitelistMasterContract only updates whitelistedMasterContracts and emits an event; it does not clear masterContractOf entries or masterContractApproved approvals. The whitelist is checked only in the unsigned-approval branch of setMasterContractApproval, while signed approvals can remain valid regardless of the whitelist state. Subsequently, DegenBox.allowed obtains masterContractOf[msg.sender] and checks only masterContractApproved[masterContract][from], without verifying whitelistedMasterContracts[masterContract] or any revocation epoch. Therefore, a registered master contract or clone whose address remains associated can continue invoking withdraw, transfer, transferMultiple, and deposit on behalf of users who previously approved it after the owner sets its whitelist status to false. No owner-controlled function in the reviewed code invalidates those associations or approvals, so whitelist removal is not an effective emergency disable mechanism for a compromised master contract."
+    }
+  },
+  "metadata": {
+    "total": 9,
+    "confirmed": 7,
+    "last_modified": "2026-10-13T00:18:01.858321"
+  }
+}

@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2024-03-revert-lend</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Revert Lend</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2024-03-revert-lend<br>
+                <strong>Date:</strong> October 13, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the Revert Lend protocol, focusing on its lending vault, collateralized borrowing, liquidation, automated position management, token swaps, and supporting oracle and interest-rate components.</p>
+<p>The review covered the system architecture and interaction flows among lenders, borrowers, V3Vault, V3Oracle, InterestRateModel, FlashloanLiquidator, Swapper, transformers, automators, Uniswap V3 integrations, and external token and pricing dependencies.</p>
+<p>Our team identified four confirmed security concerns: unauthenticated flash-loan callback execution, insufficient transaction-specific slippage protection in AutoCompound pool swaps, transfer-stale AutoExit configurations, and ERC-4626 withdrawal-limit inconsistencies that can deny lender exits during illiquidity. Several additional risks, including balance accounting, router trust, reentrancy, and operational denial of service, require further validation or defense-in-depth improvements. The protocol has meaningful authorization, collateral-health, oracle-consistency, and position-approval controls, but the confirmed issues should be addressed before relying on the affected workflows in production.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The Hound team analyzed Revert Lend's V3Vault as the central system boundary. The vault implements IVault and manages ERC-4626 lending shares, borrower debt shares, loan ownership, NFT collateral, borrowing, repayment, liquidation, and position transformations. Borrowing and repayment update debt accounting, while collateral-health checks use V3Oracle valuation and the configured InterestRateModel to maintain lending and debt exchange rates.</p>
+<p>V3Oracle provides position breakdowns and collateral valuations using configured token pricing sources, including Chainlink feeds and Uniswap V3 TWAP mechanisms. The oracle also compares the collateral pool's current price against the independently derived token ratio, providing a consistency check against significant price divergence. InterestRateModel supplies per-second rates used by V3Vault to accrue lending and borrowing economics based on liquidity and outstanding debt.</p>
+<p>Liquidation is available directly through V3Vault or through FlashloanLiquidator. The flash-liquidation path obtains liquidity from a Uniswap V3 pool, invokes the vault liquidation flow, swaps collateral through Swapper, and repays the flash loan. Our analysis revealed that the external uniswapV3FlashCallback boundary lacks demonstrated authentication to the configured pool and active liquidation operation, allowing callback logic to be reached outside a legitimate flash-loan context.</p>
+<p>Transformers and automators operate on Uniswap V3 position NFTs held by the vault or externally owned. LeverageTransformer borrows from V3Vault, swaps assets through router integrations, and adjusts liquidity, while V3Utils handles position minting, transfers, and balance deltas. AutoCompound performs reward collection and pool swaps before reinvesting, but its pool-swap path uses a TWAP check without a transaction-specific minimum output. AutoExit stores execution configuration by token ID, creating a transfer-lifecycle issue when positions change ownership.</p>
+<p>The Hound team also reviewed ERC-4626 lender-exit behavior. V3Vault uses an internally maintained lending exchange rate rather than raw donated balances for share conversion and incorporates debt into internal liquidity accounting. However, maxWithdraw, maxRedeem, and preview functions do not account for immediately transferable cash, while the actual withdrawal path checks available liquidity and can revert. This inconsistency may trap lender funds during periods when borrowers have reduced vault cash, even though the lending shares remain economically valued.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">2</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">2</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 0,1 125.00,225.00 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L125.00,225.00 A100,100 0 0,1 125.00,25.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">4</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">2</div>
+                    <div style="color: #64738c; font-size: 12px;">(50.0%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">2</div>
+                    <div style="color: #64738c; font-size: 12px;">(50.0%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Flash callback may accept forged callbacks without pool and operation authentication</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability arises because the external flash-loan callback is not demonstrably authenticated against both the trusted flash-loan pool and the liquidation operation currently in progress. The uniswapV3FlashCallback function decodes caller-supplied data and processes callback amounts, but without enforcing the expected pool address, callback parameters, and operation-specific state, an arbitrary contract may be able to invoke the callback directly or through a malicious pool-like contract.</p>
+<p>An attacker could submit forged callback data and amounts to trigger liquidation or related token-handling logic outside the intended flash-loan flow. Depending on the implementation, this could result in unauthorized asset transfers, incorrect accounting, execution against an unintended liquidation target, or other loss of funds. The callback should require the caller to be the configured pool, validate pool provenance where applicable, and verify all expected tokens, amounts, and targets against a pending liquidation record that is cleared after execution.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the FlashloanLiquidator contract, specifically the uniswapV3FlashCallback() callback and liquidate() function</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing FlashloanLiquidator.liquidate and uniswapV3FlashCallback in src/utils/FlashloanLiquidator.sol, I confirmed an access-control vulnerability. The callback is externally callable and contains no check that msg.sender is the flashLoanPool selected by liquidate, no factory/provenance validation, and no pending-operation state binding the callback to an initiated liquidation. Although liquidate encodes callback data and invokes params.flashLoanPool.flash, uniswapV3FlashCallback can also be called directly or through an attacker-controlled pool-like contract with attacker-selected FlashCallbackData, fee values, vault, token, swap, and recipient parameters. The callback then approves the arbitrary vault, invokes vault.liquidate, performs swaps, and transfers the repayment amount plus supplied fees to msg.sender; it also transfers leftover tokens and rewards to data.liquidator. The inline comment explicitly acknowledges that no origin check is performed, but the claim that the contract holds no funds is not a sufficient security boundary because balances or liquidation proceeds can exist during execution. Consequently, an untrusted caller can drive callback logic outside a legitimate flash-loan context and potentially redirect assets or execute unauthorized liquidations.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require msg.sender to equal the configured flash-loan pool, validate factory/pool provenance where applicable, and bind the callback to an operation-specific pending state containing the expected pool, tokens, amounts, and liquidation target; clear that state after completion.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/utils/FlashloanLiquidator.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 41-58</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function liquidate(LiquidateParams calldata params) external {
+    (,,, uint256 liquidationCost,) = params.vault.loanInfo(params.tokenId);
+    if (liquidationCost == 0) {
+        revert NotLiquidatable();
+    }
+
+    (,, address token0, address token1,,,,,,,,) = nonfungiblePositionManager.positions(params.tokenId);
+    address asset = params.vault.asset();
+
+    bool isAsset0 = params.flashLoanPool.token0() == asset;
+    bytes memory data = abi.encode(
+        FlashCallbackData(
+            params.tokenId,
+            params.debtShares,
+            liquidationCost,
+            params.vault,
+            IERC20(asset),
+            RouterSwapParams(IERC20(token0), IERC20(asset), params.amount0In, 0, params.swapData0),</code></pre></div>
+            </div>
+            <div class="code-explanation">The externally supplied liquidation parameters, including flashLoanPool and callback-related swap data, are encoded and prepared without establishing operation-specific authentication state.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/utils/FlashloanLiquidator.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 67-84</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function uniswapV3FlashCallback(uint256 fee0, uint256 fee1, bytes calldata callbackData) external {
+    // no origin check is needed - because the contract doesn&#39;t hold any funds - there is no benefit in calling uniswapV3FlashCallback() from another context
+
+    FlashCallbackData memory data = abi.decode(callbackData, (FlashCallbackData));
+
+    SafeERC20.safeApprove(data.asset, address(data.vault), data.liquidationCost);
+    data.vault.liquidate(
+        IVault.LiquidateParams(
+            data.tokenId, data.debtShares, data.swap0.amountIn, data.swap1.amountIn, address(this), &quot;&quot;
+        )
+    );
+    SafeERC20.safeApprove(data.asset, address(data.vault), 0);
+
+    // do swaps
+    _routerSwap(data.swap0);
+    _routerSwap(data.swap1);
+
+    // transfer lent amount + fee (only one token can have fee) - back to pool</code></pre></div>
+            </div>
+            <div class="code-explanation">The flash callback explicitly skips origin authentication, decodes caller-supplied callbackData, performs liquidation and swaps, and repays msg.sender without verifying that the caller is the configured pool or that the amounts and targets match a pending operation.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>AutoExit configuration may remain bound to a token ID after NFT ownership changes</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control and lifecycle-management vulnerability may occur when AutoExit configuration is associated only with an NFT token ID and is not revalidated after ownership changes. An owner can configure an exit while holding the NFT, but operator execution may later rely on that stale configuration without confirming the current NFT owner or invalidating the configuration when the position is transferred. This allows configuration authority and execution authority to become detached from the current position owner.</p>
+<p>An owner could configure an AutoExit position and then transfer the NFT, leaving the operator able to execute the former owner’s parameters against the transferred position. Depending on the payout and exit logic, proceeds could be directed to the former owner, or the position could be exited using obsolete thresholds, recipients, or other parameters. Execution should resolve and verify current NFT ownership, bind configuration to the current owner, invalidate configuration on transfer, and require the new owner to reauthorize payout recipients and exit parameters.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the AutoExit and Automator contracts, specifically the NFT owner configuration and operator-gated execution paths</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing AutoExit.execute() and configToken(), I confirmed that configuration is stored solely in positionConfigs[tokenId] and is not bound to the configuring owner or invalidated when ownership changes. configToken() checks nonfungiblePositionManager.ownerOf(tokenId) only at configuration time, while execute() loads the configuration by token ID without revalidating that the configuring owner remains the current owner. Although execution ultimately resolves ownerOf(tokenId) and sends proceeds to the current owner, preventing the specific claim that funds are paid to the former owner, stale trigger, swap, slippage, and reward parameters can still be applied to a position after transfer. Execution also requires the AutoExit contract to remain approved by the current owner through the position manager, so exploitation is conditional on current-owner approval or an equivalent authorization path; the former owner’s token-specific approval is normally cleared on transfer. Nevertheless, the missing transfer-aware invalidation or owner binding creates a real lifecycle authorization flaw, allowing an operator to execute obsolete owner-selected instructions against the transferred position.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">At execution time, resolve and verify the current NFT owner and bind configuration to the current owner rather than only the token ID. Clear or invalidate configurations on NFT transfer, and require the current owner to reauthorize any payout recipient or exit parameters.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/automators/AutoExit.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 100-117</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function execute(ExecuteParams calldata params) external {
+    if (!operators[msg.sender]) {
+        revert Unauthorized();
+    }
+
+    ExecuteState memory state;
+    PositionConfig memory config = positionConfigs[params.tokenId];
+
+    if (!config.isActive) {
+        revert NotConfigured();
+    }
+
+    if (
+        config.onlyFees &amp;&amp; params.rewardX64 &gt; config.maxRewardX64
+            || !config.onlyFees &amp;&amp; params.rewardX64 &gt; config.maxRewardX64
+    ) {
+        revert ExceedsMaxReward();
+    }</code></pre></div>
+            </div>
+            <div class="code-explanation">The operator execution path loads PositionConfig solely from positionConfigs[params.tokenId] and proceeds based on that token ID. It verifies the configuration and liquidity but does not verify the NFT&#39;s current owner before using the stale configuration, allowing configuration authority to remain detached after transfer.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>TWAP-bound pool swaps may still permit economically harmful execution within the accepted deviation</h3>
+                <div class="vulnerability-description">
+                    <p>This market-manipulation vulnerability results from relying on an oracle or TWAP price check without enforcing transaction-specific slippage and execution limits. Although the TWAP check can reject extreme price deviations, it may still permit a swap to execute at a materially unfavorable price if the manipulated price remains within the configured tolerance. The execution path also does not inherently provide minimum-output, maximum-input, deadline, or maximum-price-impact protections.</p>
+<p>An attacker could monitor a pending AutoCompound execution, temporarily manipulate the relevant Uniswap V3 pool, and allow the swap to proceed at a price that satisfies the TWAP bound while still causing an economic loss. The attacker could then reverse the manipulation after execution, for example through a sandwich strategy. The swap should enforce caller- or owner-defined minimum output and maximum input values, use a short deadline, limit price impact, and validate the final execution price against both the TWAP and transaction-specific slippage constraints.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the AutoCompound contract, specifically executeWithVault(), and its pool-swap execution path, including the associated swapper logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing AutoCompound.execute and Swapper._poolSwap, I confirmed that the alleged market-manipulation exposure exists. When params.amountIn is nonzero, execute reads the pool&#39;s current slot0 tick and, if configured, only verifies it through _hasMaxTWAPTickDifference against the TWAP. If the check passes, it calls _poolSwap with amountOutMin explicitly set to zero. Although _poolSwap calculates amountOutDelta, its slippage guard is therefore ineffective because no minimum output is supplied. The Uniswap V3 swap also uses a near-unbounded sqrt price limit (TickMath.MIN_SQRT_RATIO + 1 or MAX_SQRT_RATIO - 1), rather than a transaction-specific execution-price constraint. Consequently, an attacker able to move the pool price before the transaction can keep the spot tick within the permitted TWAP deviation while worsening the exact-input swap, then reverse the trade afterward. The TWAP check limits larger deviations but does not guarantee fair execution, protect against sandwiching, enforce maximum price impact, or bind the result to an expected output. The router path has an amountOutMin check, but it is not used by AutoCompound&#39;s pool-swap path.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require caller-supplied or owner-configured minimum output and maximum input values, enforce a short deadline and maximum price impact, and validate the final execution price against both TWAP and transaction-specific slippage limits.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/transformers/AutoCompound.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 87-94</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>87
+88
+89
+90
+91
+92
+93
+94</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function executeWithVault(ExecuteParams calldata params, address vault) external {
+    if (!operators[msg.sender] || !vaults[vault]) {
+        revert Unauthorized();
+    }
+    IVault(vault).transform(
+        params.tokenId, address(this), abi.encodeWithSelector(AutoCompound.execute.selector, params)
+    );
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The targeted vault entry point accepts only swap direction and amount through ExecuteParams and forwards execution without any caller-defined minimum output, maximum input, deadline, or price-impact constraint.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/utils/Swapper.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 132-149</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function _poolSwap(PoolSwapParams memory params) internal returns (uint256 amountInDelta, uint256 amountOutDelta) {
+    if (params.amountIn &gt; 0) {
+        (int256 amount0Delta, int256 amount1Delta) = params.pool.swap(
+            address(this),
+            params.swap0For1,
+            int256(params.amountIn),
+            (params.swap0For1 ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1),
+            abi.encode(
+                params.swap0For1 ? params.token0 : params.token1,
+                params.swap0For1 ? params.token1 : params.token0,
+                params.fee
+            )
+        );
+        amountInDelta = params.swap0For1 ? uint256(amount0Delta) : uint256(amount1Delta);
+        amountOutDelta = params.swap0For1 ? uint256(-amount1Delta) : uint256(-amount0Delta);
+
+        // amountMin slippage check
+        if (amountOutDelta &lt; params.amountOutMin) {</code></pre></div>
+            </div>
+            <div class="code-explanation">The direct pool swap uses the broadest Uniswap V3 price limits and computes the output after execution; the shown path does not impose a transaction-specific execution price or slippage limit.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>ERC-4626 redemption can overstate liquidity when assets are lent out</h3>
+                <div class="vulnerability-description">
+                    <p>This ERC-4626 accounting vulnerability occurs when the vault includes outstanding lending receivables or debt in total asset valuation while treating the same assets as immediately available for withdrawals and redemptions. Borrowing can therefore reduce the vault’s transferable cash without proportionally reducing the reported share value. If liquidity checks and withdrawal limits do not distinguish economic assets from currently available cash, standard ERC-4626 exits may be approved based on an inflated valuation but fail during execution.</p>
+<p>A user or connected borrower could reduce available cash while debt remains included in the vault’s valuation, causing share holders to encounter systematic withdrawal or redemption reverts until repayment or liquidation restores liquidity. This can prevent otherwise valid exits and create an unfair liquidity burden for remaining lenders, particularly where lenders absorb liquidation deficits. The vault should calculate maxWithdraw() and maxRedeem() using transferable cash after reserves, or provide an explicit withdrawal queue and claim mechanism, with preview functions and execution paths using consistent liquidity-aware accounting.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the V3Vault contract, specifically its ERC-4626 lending-share accounting, borrow(), repay(), liquidate(), withdrawal, and redemption liquidity logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing V3Vault&#39;s ERC-4626 functions and liquidity accounting, I confirmed a real liquidity-denial issue. Borrowing in borrow() transfers assets out of the vault, while _getAvailableBalance() correctly computes transferable liquidity from the token balance after reserves. However, maxWithdraw() returns the owner&#39;s entire share value and maxRedeem() returns the owner&#39;s full share balance without considering available liquidity. Likewise, previewWithdraw() and previewRedeem() report amounts based solely on the lending exchange rate. The actual _withdraw() path subsequently checks available &lt; assets and reverts with InsufficientLiquidity(), creating a direct inconsistency between ERC-4626 previews/max limits and executable withdrawals. A borrower can legitimately reduce cash liquidity while debt and lender claims remain outstanding, causing holders and integrators relying on maxWithdraw, maxRedeem, or previews to repeatedly submit reverting exit transactions until repayment or liquidation restores liquidity. This does not directly steal funds, and borrow authorization/collateral checks remain effective, but the code clearly permits systematic exit denial and violates the expected liquidity-aware semantics of the ERC-4626 limit functions.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Base maxWithdraw and maxRedeem on transferable cash after reserves, or implement an explicit withdrawal queue/claim mechanism; ensure preview functions and actual withdrawal paths use consistent liquidity-aware accounting.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">src/V3Vault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 550-567</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function borrow(uint256 tokenId, uint256 assets) external override {
+    bool isTransformMode =
+        transformedTokenId &gt; 0 &amp;&amp; transformedTokenId == tokenId &amp;&amp; transformerAllowList[msg.sender];
+
+    (uint256 newDebtExchangeRateX96, uint256 newLendExchangeRateX96) = _updateGlobalInterest();
+
+    _resetDailyDebtIncreaseLimit(newLendExchangeRateX96, false);
+
+    Loan storage loan = loans[tokenId];
+
+    // if not in transfer mode - must be called from owner or the vault itself
+    if (!isTransformMode &amp;&amp; tokenOwner[tokenId] != msg.sender &amp;&amp; address(this) != msg.sender) {
+        revert Unauthorized();
+    }
+
+    uint256 shares = _convertToShares(assets, newDebtExchangeRateX96, Math.Rounding.Up);
+
+    uint256 loanDebtShares = loan.debtShares + shares;</code></pre></div>
+            </div>
+            <div class="code-explanation">The borrow path increases debtSharesTotal and updates the loan&#39;s debt accounting after calculating the borrowed amount. This outstanding debt remains reflected in the vault&#39;s lending/share exchange-rate accounting even though the corresponding assets are transferred out, reducing immediately available cash.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

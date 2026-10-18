@@ -1,0 +1,144 @@
+{
+  "repo_id": "2022-11-telcoin",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_de8cb4f027b7",
+      "title": "Unvalidated plugin registration enables global denial of service",
+      "description": "addPlugin accepts any address without checking that it is a contract implementing the IPlugin interface. A zero address, EOA, or reverting/malicious contract can therefore enter the plugin array. Staking, exits, claims, and views iterate over the array and invoke plugin methods, while stake and exit paths unconditionally invoke notifyStakeChange.",
+      "impact": "Users may be unable to stake, exit, claim, or query balances until the bad plugin is removed; sufficiently large plugin registries can also make operations exceed the block gas limit.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/StakingModule.sol",
+          "contract": "StakingModule",
+          "function": "addPlugin(address)"
+        },
+        {
+          "file": "contracts/StakingModule.sol",
+          "contract": "StakingModule",
+          "function": "_notifyStakeChangeAllPlugins(address,uint256,uint256)"
+        }
+      ],
+      "mitigation": "Require nonzero contract code and validate the expected interface before registration; enforce a bounded plugin count; invoke notifyStakeChange only when requiresNotification returns true; consider isolating callback failures so one plugin cannot halt core staking operations.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_24a2a40e84b8",
+      "title": "Removing a plugin can permanently strand user rewards",
+      "description": "removePlugin deletes a plugin from the registry but does not migrate, claim, or otherwise expose its outstanding liabilities. SimplePlugin.claim is restricted to the StakingModule, so after removal users cannot claim balances held by that plugin through the module, and the removed plugin's liabilities are excluded from aggregate claimable and totalSupply calculations.",
+      "impact": "Outstanding TEL rewards can become inaccessible indefinitely, while displayed total supply and claimable balances underreport the system's liabilities.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/StakingModule.sol",
+          "contract": "StakingModule",
+          "function": "removePlugin(uint256)"
+        },
+        {
+          "file": "contracts/SimplePlugin.sol",
+          "contract": "SimplePlugin",
+          "function": "claim(address,address,bytes)"
+        }
+      ],
+      "mitigation": "Require a migration or settlement procedure before removal, keep removed plugins claimable until all liabilities are zero, and maintain removed-plugin claim routing or an explicit recovery mechanism for affected users.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_9b6f63dd6050",
+      "title": "Stake accounting can exceed actual TEL received for fee-on-transfer or nonstandard TEL",
+      "description": "_stake increases the user's checkpoint and _totalStaked by the requested amount before calling safeTransferFrom, but never verifies the module's balance increase. If the configured TEL token charges transfer fees, burns tokens, or otherwise transfers less than requested, the module credits more stake than it holds.",
+      "impact": "Early withdrawers can drain available TEL, leaving later stakers unable to exit; rescue logic also treats the inflated _totalStaked as the protected liability and cannot repair the deficit.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/StakingModule.sol",
+          "contract": "StakingModule",
+          "function": "_stake(address,address,uint256)"
+        },
+        {
+          "file": "contracts/StakingModule.sol",
+          "contract": "StakingModule",
+          "function": "initialize(address)"
+        }
+      ],
+      "mitigation": "Restrict TEL to a known standard token or measure the balance before and after transferFrom and credit only the amount actually received; validate the configured token during initialization.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_30150ad4ee47",
+      "title": "FeeBuyback credits all residual TEL balance to the current referral",
+      "description": "FeeBuyback.submit calculates the referral reward using _telcoin.balanceOf(address(this)) rather than the TEL received from the current transfer or swap. Any TEL already held by FeeBuyback, including residual funds from prior operations or unsolicited transfers, is approved and credited to the supplied recipient. A legitimate owner submission can therefore misallocate unrelated funds, and a compromised or malicious owner can direct the entire residual balance to an arbitrary recipient.",
+      "impact": "Unrelated TEL held by FeeBuyback can be assigned as referral rewards to an arbitrary account, causing permanent misallocation or theft of residual fee funds and inflating that account's claimable balance.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/fee-buyback/FeeBuyback.sol",
+          "contract": "FeeBuyback",
+          "function": "submit"
+        }
+      ],
+      "mitigation": "Record the TEL balance immediately before the transfer or swap, calculate the positive balance delta afterward, and credit only that delta. Validate the swap output and use SafeERC20 for all token transfers and approvals; isolate or reject unsolicited and residual balances.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_ed03fb292076",
+      "title": "FeeBuyback ignores ERC20 transfer and approval return values",
+      "description": "FeeBuyback.submit invokes IERC20.transferFrom and IERC20.approve directly without checking their boolean return values or using SafeERC20. Tokens that return false instead of reverting can make the funding or approval step fail silently, while execution continues to the aggregator and referral credit path.",
+      "impact": "FeeBuyback can process an operation without receiving the declared input or granting the intended allowance, while still potentially assigning existing TEL as referral rewards; this can create incorrect rewards and loss of contract-held funds.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/fee-buyback/FeeBuyback.sol",
+          "contract": "FeeBuyback",
+          "function": "submit"
+        }
+      ],
+      "mitigation": "Replace raw transferFrom, transfer, and approve calls with SafeERC20.safeTransferFrom and forceApprove/safeApprove as appropriate. Revert whenever funding or allowance setup fails, and credit only measured balance deltas after successful operations.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_d79a85f5b9e4",
+      "title": "RECOVERY_ROLE can redirect users’ migrated principal and rewards to an arbitrary recipient",
+      "description": "claimAndExitFor accepts independent account and to parameters and performs both _claim(account, to, auxData) and _exit(account, to) without requiring authorization from the affected account or validating that to is the account or an approved migration destination. Any holder of RECOVERY_ROLE can therefore invoke the paused migration path for a victim account and direct the victim’s staked principal and claimable rewards to an attacker-controlled address.",
+      "impact": "All migrated stake and pending rewards of targeted users can be permanently transferred away, causing direct loss of user principal and earned TEL.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/StakingModule.sol",
+          "contract": "StakingModule",
+          "function": "claimAndExitFor(address account, address to, bytes calldata auxData)"
+        }
+      ],
+      "mitigation": "Require a user-signed migration authorization binding account, destination, nonce, and migration parameters, or restrict to to == account or an approved migration contract. Add replay protection and emit events containing the authorized destination and migration nonce.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_aa53e9d65b24",
+      "title": "Owner-controlled arbitrary call enables FeeBuyback asset and approval exfiltration",
+      "description": "FeeBuyback.submit accepts an unrestricted wallet address and arbitrary walletData, then executes wallet.call from the FeeBuyback contract before performing any other validation. A compromised or malicious owner can use this primitive to invoke token transfers, approvals, or arbitrary contract methods with FeeBuyback as msg.sender, bypassing the narrower intended swap workflow.",
+      "impact": "FeeBuyback-held ERC20 or native assets can be transferred to an attacker, and allowances or downstream contract state can be modified, causing loss of fee-rewards funds.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/fee-buyback/FeeBuyback.sol",
+          "contract": "FeeBuyback",
+          "function": "submit(address,bytes,address,address,uint256,bytes)"
+        }
+      ],
+      "mitigation": "Replace the generic wallet.call with narrowly specified operations or enforce an immutable/administrative allowlist of wallet targets and permitted function selectors; validate calldata and prohibit calls that transfer FeeBuyback assets or modify arbitrary allowances.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_9070627b9861",
+      "title": "Successful aggregator call is accepted without verifying TEL output",
+      "description": "After transferring the source token from the safe and calling the external aggregator, submit only checks the low-level call success flag. It does not verify that the aggregator produced any TEL, that the TEL balance increased by an expected minimum, or that the source amount was actually consumed. A successful no-op, underperforming, or compromised aggregator call is therefore treated as a completed referral swap.",
+      "impact": "Fee tokens can be removed from the safe without delivering the corresponding TEL referral reward; the referral recipient receives an incorrect or zero credit while the source assets remain with or are consumed by the aggregator.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/fee-buyback/FeeBuyback.sol",
+          "contract": "FeeBuyback",
+          "function": "submit(address,bytes,address,address,uint256,bytes)"
+        }
+      ],
+      "mitigation": "Record the TEL balance before the swap, require the post-swap increase to meet a caller-supplied or configured minimum output, and validate that the source token transfer and aggregator execution satisfy the expected amount and route.",
+      "severity": "high"
+    }
+  ]
+}

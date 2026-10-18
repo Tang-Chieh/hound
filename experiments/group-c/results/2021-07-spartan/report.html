@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2021-07-spartan</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Spartan Protocol</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2021-07-spartan<br>
+                <strong>Date:</strong> October 12, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the Spartan Protocol, reviewing its principal contracts, vaults, registries, interfaces, token flows, and administrative relationships.</p>
+<p>The assessment covered the system architecture, including user-facing entrypoints, Router-mediated liquidity and swap operations, PoolFactory and SynthFactory deployment and registry mechanisms, Pool and Synth interactions, DAO configuration and control flows, Reserve operations, and DAO, Bond, and Synth vault deposits, claims, rewards, and withdrawals.</p>
+<p>Our team identified nine confirmed security issues affecting asset isolation, incentive accounting, vesting, withdrawal controls, input validation, scalability, and user funds availability. The most significant risks include Router balance sweeping, uncapped curated-pool dividend payouts, permanent BondVault lockups, and arbitrary zero-value deposits that can repeatedly reset another user’s locks. The overall security posture requires remediation before relying on the affected functionality in production.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>Spartan Protocol is organized around the Router, PoolFactory, Pool, SynthFactory, Synth, Dao, Utils, and Reserve contracts. PoolFactory deploys pools and maintains token-to-pool and curated-pool registries, while SynthFactory deploys synth assets and records token-to-synth relationships. The Router resolves pools through these registries and provides user-facing operations for liquidity provision, swaps, synth conversions, and withdrawals. Pool and Synth implement BEP20-compatible token behavior, while the interfaces define the cross-contract communication boundaries.</p>
+<p>The principal asset flow begins with users supplying BASE, external BEP20 assets, WBNB, or native BNB through Router entrypoints. The Router forwards assets to Pool contracts, which maintain liquidity and execute swaps, issue or burn Synth tokens, and return underlying assets or BASE. BNB operations also involve wrapping and unwrapping through WBNB. Our analysis revealed that several Router paths use the contract’s entire BASE or WBNB balance after external operations instead of calculating the balance delta attributable to the current call, allowing pre-existing balances to be redirected to later callers or used to mint synths.</p>
+<p>Dao provides the administrative and configuration layer. It configures Router, Utils, Reserve, and PoolFactory, authorizes pool creation, and coordinates the DAO, Bond, and Synth vaults. Reserve supplies BASE for protocol distributions and synth-related operations. Curated-pool dividend logic calculates a nominal allocation using era parameters such as maxTrades, but the reviewed flow does not enforce a per-era event count or cumulative allocation limit. Repeated qualifying swaps can therefore consume Reserve funds beyond the intended allocation.</p>
+<p>DaoVault handles LP deposits and withdrawals with a withdrawal delay and weight accounting. BondVault records member LP deposits and releases vested amounts through DAO-gated claims. We discovered vesting defects caused by comparing a claim amount with the post-claim balance and by rounding the vesting rate down to whole LP units per second; these conditions can permanently strand portions of bonded LP. SynthVault accepts synth deposits, tracks member weights and timestamps, harvests rewards, and processes partial withdrawals. Its controls do not reject zero-value deposits for arbitrary members, allowing an attacker to repeatedly reset another user’s lock timestamps.</p>
+<p>SynthVault also maintains a permanently growing list of historically staked synth assets and iterates through the full list in harvestAll, creating an eventual gas-exhaustion risk. Harvested rewards refresh a synth-specific timestamp but not the member-wide withdrawal timestamp, so newly harvested assets may bypass the intended withdrawal lock. Partial withdrawals independently round principal and weight reductions, allowing accounting divergence for small positions, while unrestricted basis-point inputs can trigger avoidable failures. These findings demonstrate that balance-delta accounting, explicit input validation, bounded iteration, invariant-preserving vesting calculations, and consistent lock enforcement are required across the protocol.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">9</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">4</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">5</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 0,1 159.20,218.97 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L159.20,218.97 A100,100 0 1,1 125.00,25.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">9</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">4</div>
+                    <div style="color: #64738c; font-size: 12px;">(44.4%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">5</div>
+                    <div style="color: #64738c; font-size: 12px;">(55.6%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Router balance sweeping allows liquidity withdrawers to steal unrelated assets</h3>
+                <div class="vulnerability-description">
+                    <p>This security issue allows liquidity withdrawers to receive assets that were already held by the Router rather than only the assets generated by their current operation. The affected withdrawal and conversion paths read the Router’s entire BASE or WBNB balance after external calls, without recording the pre-operation balance and calculating the attributable balance delta. The same pattern is used when forwarding BASE before minting synths.</p>
+<p>An attacker can send or wait for BASE or WBNB to accumulate in the Router, obtain or use a valid liquidity position, and invoke a liquidity withdrawal or single-sided withdrawal function to sweep the Router’s full balance. Similarly, swapAssetToSynth can issue synths backed by the Router’s unrelated BASE balance. This can result in the theft of funds belonging to other users or the protocol.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the Router contract, specifically removeLiquidityExact(), removeLiquiditySingle(), and swapAssetToSynth(), together with the user router entry points and Pool contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing Router.removeLiquidityExact, Router.removeLiquiditySingle, and Router.swapAssetToSynth, I confirmed an exploitable balance-sweeping vulnerability. In removeLiquidityExact for the BNB pool, Pool.remove() sends BASE and WBNB to the Router, after which the Router reads its entire BASE and WBNB balances and transfers or unwraps them, without recording balances before the operation. More significantly, removeLiquiditySingle always calls Pool.remove() to send both assets to the Router; when toBase is true, it transfers only the token balance back to the pool, leaving the removed BASE stranded in the Router. A subsequent user with any valid LP position can invoke the opposite withdrawal path, which transfers the Router’s entire BASE balance into the pool and ultimately sends the resulting asset to that user. The same issue exists in swapAssetToSynth, where the Router forwards its complete BASE balance after sellTo, allowing pre-existing BASE to fund another user’s synth mint. No access control or balance-delta accounting prevents these transfers.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Record each relevant Router asset balance before the operation and transfer only the post-operation balance delta. Avoid retaining user funds in Router; add explicit sweeping controls for any pre-existing balances and validate all intermediate transfer amounts.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/Router.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 101-116</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function removeLiquidityExact(uint units, address token) public {
+    address _pool = iPOOLFACTORY(_DAO().POOLFACTORY()).getPool(token); // Get the pool address
+    address _member = msg.sender; // The the user&#39;s address
+    iBEP20(_pool).transferFrom(_member, _pool, units); // Transfer LPs to the pool
+    if(token != address(0)){
+        Pool(_pool).removeForMember(_member); // Remove liquidity and send assets directly to user
+    } else {
+        Pool(_pool).remove(); // If BNB; remove liquidity and send to ROUTER instead
+        uint outputBase = iBEP20(BASE).balanceOf(address(this)); // Get the received SPARTA amount
+        uint outputToken = iBEP20(WBNB).balanceOf(address(this)); // Get the received WBNB amount
+        _handleTransferOut(token, outputToken, _member); // Unwrap to BNB &amp; tsf it to user
+        _handleTransferOut(BASE, outputBase, _member); // Transfer SPARTA to user
+    }
+}
+
+// User removes liquidity asymetrically (one asset)</code></pre></div>
+            </div>
+            <div class="code-explanation">After removing BNB-pool liquidity into the Router, the function reads the Router&#39;s entire BASE and WBNB balances rather than operation-specific balance deltas, then forwards all of both assets to the withdrawing user.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Curated-pool dividend payouts are unlimited despite maxTrades configuration</h3>
+                <div class="vulnerability-description">
+                    <p>This economic attack results from the curated-pool dividend mechanism treating maxTrades only as a divisor in the payout calculation rather than as an enforceable limit. Although the nominal allocation is calculated using the reserve, era length, and maxTrades, the implementation does not track the number of qualifying trades or the cumulative dividends distributed during an era before calling Reserve.grantFunds().</p>
+<p>An attacker can repeatedly execute qualifying swaps against a curated pool, potentially using controlled fee amounts or LP ownership, to trigger getsDividend() or addDividend() far more than maxTrades times in a single era. Each call can distribute the nominal per-trade allocation, multiplying the intended payout and potentially draining or over-distributing reserve funds.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the Router contract, specifically getsDividend(), addDividend(), and addTradeFee(), together with the Reserve, Pool, and user router entry-point contracts</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing Router.sol functions getsDividend, addTradeFee, and addDividend, I confirmed that the configured maxTrades value is not enforced as a per-era event limit or cumulative allocation cap. For every qualifying curated-pool swap, getsDividend calls addTradeFee and then addDividend, while addDividend calculates dailyAllocation as the current Reserve balance divided by eraLength and maxTrades, and immediately calls Reserve.grantFunds. No trade counter, era identifier, reset mechanism, or aggregate dividend tracking exists. Consequently, after the fee-average window is populated and emissions are enabled, an attacker can repeatedly execute swaps against a curated pool and trigger additional grants beyond maxTrades events in the same era. Reserve.grantFunds only limits each transfer to the reserve&#39;s current balance and does not impose a Router-specific budget; although the reserve balance declines, repeated calls can cumulatively distribute substantially more than the intended era allocation and can continue until the reserve is depleted. The curated-pool and nonzero-average checks are eligibility conditions, not rate limits.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Track dividend events and cumulative dividend allocation per era, reset the counters at an explicit era boundary, and reject or cap payouts once maxTrades or the configured aggregate allocation is reached. Enforce the cap in the Reserve as a defense in depth.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/Router.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 187-196</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>187
+188
+189
+190
+191
+192
+193
+194
+195
+196</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function getsDividend(address _pool, uint fee) internal {
+    if(iPOOLFACTORY(_DAO().POOLFACTORY()).isCuratedPool(_pool) == true){
+        addTradeFee(fee); // Add fee to array for avgFee calcs etc
+        addDividend(_pool, fee); // Check and tsf dividend to pool
+    }
+}
+
+//============================== Token Transfer Functions ======================================//
+
+// Handle the transfer of assets into the pool</code></pre></div>
+            </div>
+            <div class="code-explanation">Every qualifying curated-pool swap invokes addDividend without checking or tracking how many dividend events have occurred during the era.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/Router.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 270-284</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function addDividend(address _pool, uint256 _fees) internal {
+    if(!(normalAverageFee == 0)){
+        uint reserve = iBEP20(BASE).balanceOf(_DAO().RESERVE()); // Get SPARTA balance in the RESERVE contract
+        if(!(reserve == 0)){
+            uint dailyAllocation = (reserve / eraLength) / maxTrades; // Calculate max dividend
+            uint numerator = _fees * dailyAllocation;
+            uint feeDividend = numerator / (_fees + normalAverageFee); // Calculate actual dividend
+            revenueDetails(feeDividend, _pool); // Add to revenue metrics
+            iRESERVE(_DAO().RESERVE()).grantFunds(feeDividend, _pool); // Transfer dividend from RESERVE to POOL
+            Pool(_pool).sync(); // Sync the pool balances to attribute the dividend to the existing LPers
+        }
+    }
+}
+
+// Add fee to feeArray, used to calculate normalAverageFee</code></pre></div>
+            </div>
+            <div class="code-explanation">maxTrades is used only as a divisor to calculate a per-event allocation; no trade counter or cumulative payout limit is enforced before Reserve.grantFunds() transfers funds.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>BondVault claim logic can permanently lock half of a member’s remaining LP</h3>
+                <div class="vulnerability-description">
+                    <p>This logic error can permanently lock part of a member’s remaining bonded LP balance in BondVault. During claimForMember(), the contract reduces bondedLP before testing whether the claim represents the final claim, then compares the claim amount with the already-reduced balance. At a claim equal to half of the original balance, the remaining balance equals the claim amount, causing the claim rate to be set to zero even though bondedLP remains positive.</p>
+<p>A DAO-triggered claim, including one initiated during a later vault operation, can therefore leave the affected member with a positive LP balance but no continuing vesting rate. The remaining LP cannot be released through the normal claim process and may remain inaccessible indefinitely.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the BondVault contract, specifically claimForMember() and calcBondedLP(), together with the DAO contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing BondVault.sol, I confirmed the logic error in claimForMember and calcBondedLP. calcBondedLP computes the unlocked amount using elapsed time and claimRate, and claimForMember then updates lastBlockTime and subtracts _claimable from bondedLP before executing the final-claim test. The condition at the relevant code in claimForMember, `if (_claimable == mapBondAsset_memberDetails[asset].bondedLP[member])`, compares the claim against the post-claim remainder rather than the pre-claim balance or zero. Consequently, when exactly half of a bond is claimable, the subtraction leaves the other half in bondedLP, making the equality true and setting claimRate to zero. Subsequent calls to calcBondedLP therefore return zero despite the positive bondedLP balance, so the remaining LP cannot vest or be claimed through normal claim functions. The path is reachable because Dao.claimForMember and claimAllForMember invoke the vault, and depositForMember can also trigger claimForMember. No guard corrects the rate afterward; only a new deposit or release can potentially change the state.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Capture the pre-claim bonded balance, determine whether _claimable equals that pre-claim balance, and set claimRate to zero only when the post-claim bondedLP is zero. Add tests for claims at zero, half, and full vesting.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/BondVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 91-103</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function calcBondedLP(address member, address asset) public view returns (uint claimAmount){ 
+    if(mapBondAsset_memberDetails[asset].isMember[member]){
+        uint256 _secondsSinceClaim = block.timestamp - mapBondAsset_memberDetails[asset].lastBlockTime[member]; // Get seconds passed since last claim
+        uint256 rate = mapBondAsset_memberDetails[asset].claimRate[member]; // Get user&#39;s claim rate
+        claimAmount = _secondsSinceClaim * rate; // Set claim amount
+        if(claimAmount &gt;= mapBondAsset_memberDetails[asset].bondedLP[member] || bondRelease){
+            claimAmount = mapBondAsset_memberDetails[asset].bondedLP[member]; // If final claim; set claimAmount as remainder
+        }
+        return claimAmount;
+    }
+}
+
+// Perform a claim of the users&#39;s current available claim amount</code></pre></div>
+            </div>
+            <div class="code-explanation">calcBondedLP computes the claim against the current bondedLP balance and treats a claim equal to that balance as final. This value is later compared after bondedLP is reduced, enabling the half-balance edge case.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/BondVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 104-119</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function claimForMember(address asset, address member) public onlyDAO returns (bool){
+    require(mapBondAsset_memberDetails[asset].bondedLP[member] &gt; 0, &#39;!bonded&#39;); // They must have remaining unclaimed LPs
+    require(mapBondAsset_memberDetails[asset].isMember[member], &#39;!member&#39;); // They must be a member (scope: user -&gt; asset)
+    uint256 _claimable = calcBondedLP(member, asset); // Get the current claimable amount
+    address _pool = iPOOLFACTORY(_DAO().POOLFACTORY()).getPool(asset); // Get the pool address
+    mapBondAsset_memberDetails[asset].lastBlockTime[member] = block.timestamp; // Set lastBlockTime to current time
+    mapBondAsset_memberDetails[asset].bondedLP[member] -= _claimable; // Remove the claim amount from the user&#39;s remainder
+    if(_claimable == mapBondAsset_memberDetails[asset].bondedLP[member]){
+        mapBondAsset_memberDetails[asset].claimRate[member] = 0; // If final claim; zero-out their claimRate
+    }
+    decreaseWeight(asset, member); // Update user&#39;s weight
+    iBEP20(_pool).transfer(member, _claimable); // Send claim amount to user
+    return true;
+}
+
+// Decrease user&#39;s weight in the BondVault</code></pre></div>
+            </div>
+            <div class="code-explanation">claimForMember subtracts _claimable from bondedLP before checking whether the claim was final. For a claim equal to half the original balance, the reduced balance equals _claimable, so claimRate is incorrectly set to zero while bondedLP remains positive.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Arbitrary zero-value deposits can repeatedly lock another user’s SynthVault position</h3>
+                <div class="vulnerability-description">
+                    <p>This denial-of-service vulnerability allows an arbitrary caller to repeatedly reset another member’s SynthVault lock state without depositing any assets. depositForMember() accepts an unrestricted member address and does not require a positive amount. Its internal _deposit() function nevertheless updates the target member’s deposit and synth timestamps even when the deposited amount is zero.</p>
+<p>An attacker can repeatedly call depositForMember() with a valid synth, the victim’s address, and an amount of zero. Each successful call can extend the victim’s withdrawal and harvesting restrictions, potentially preventing the victim from withdrawing or claiming rewards despite receiving no additional balance. This can be repeated at low cost for as long as the function remains accessible.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the SynthVault contract, specifically depositForMember() and _deposit(), together with the user synth entry-point contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the SynthVault deposit flow, I confirmed that the alleged denial-of-service vulnerability is exploitable. In depositForMember, the contract validates only that the synth is recognized and that transferFrom succeeds; it does not require amount to be greater than zero or restrict the member address. A caller can therefore invoke depositForMember(validSynth, victim, 0), subject to the token accepting a zero-value transferFrom. The subsequent _deposit call unconditionally sets mapMemberSynth_lastTime[_member][_synth] and mapMember_depositTime[_member] to block.timestamp + minimumDepositTime, even when _amount is zero. It also records the member as a synth member, although no deposit balance or weight is added. These timestamps directly gate calcCurrentReward/harvest eligibility and _processWithdraw, so repeated zero-value calls can continually extend the victim&#39;s withdrawal and harvest lockouts without adding assets. No authorization, consent, existing-membership, or positive-amount check mitigates this path. The impact depends on the synth token&#39;s zero-transfer behavior, but standard BEP-20 implementations generally permit zero transfers, making the attack path clear.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Add require(amount &gt; 0), validate that the transferred amount is positive, and use an authorization model for deposits on behalf of another member or require explicit member consent.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/synthVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 95-101</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>95
+96
+97
+98
+99
+100
+101</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function depositForMember(address synth, address member, uint256 amount) public {
+    require(iSYNTHFACTORY(_DAO().SYNTHFACTORY()).isSynth(synth), &quot;!synth&quot;); // Must be a valid synth
+    require(iBEP20(synth).transferFrom(msg.sender, address(this), amount)); // Must successfuly transfer in
+    _deposit(synth, member, amount); // Assess and record the deposit
+}
+
+// Check and record the deposit</code></pre></div>
+            </div>
+            <div class="code-explanation">depositForMember accepts an arbitrary member address and does not require amount to be positive; a zero-value transfer can still invoke _deposit for the victim.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/synthVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 102-117</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function _deposit(address _synth, address _member, uint256 _amount) internal {
+    if(!isStakedSynth[_synth]){
+        isStakedSynth[_synth] = true; // Record as a staked synth
+        stakedSynthAssets.push(_synth); // Add to staked synth array
+    }
+    mapMemberSynth_lastTime[_member][_synth] = block.timestamp + minimumDepositTime; // Record deposit time (scope: member -&gt; synth)
+    mapMember_depositTime[_member] = block.timestamp + minimumDepositTime; // Record deposit time (scope: member)
+    mapMemberSynth_deposit[_member][_synth] += _amount; // Record balance for member
+    uint256 _weight = iUTILS(_DAO().UTILS()).calcSpotValueInBase(iSYNTH(_synth).LayerONE(), _amount); // Get the SPARTA weight of the deposit
+    mapMemberSynth_weight[_member][_synth] += _weight; // Add the weight to the user (scope: member -&gt; synth)
+    mapMemberTotal_weight[_member] += _weight; // Add to the user&#39;s total weight (scope: member)
+    totalWeight += _weight; // Add to the total weight (scope: vault)
+    isSynthMember[_member][_synth] = true; // Record user as a member
+    emit MemberDeposits(_synth, _member, _amount, _weight, totalWeight);
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">_deposit unconditionally resets both the member-wide and member-synth lock timestamps before adding the supplied amount, so an amount of zero can repeatedly extend the victim&#39;s lock without increasing their balance.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Router ignores token transfer return values and received amounts in asset ingress and egress</h3>
+                <div class="vulnerability-description">
+                    <p>This security issue arises from unsafe token transfer handling and the failure to consistently use the amount actually received by the Router. The implementation invokes ERC20 or BEP20 transfer, transferFrom, and WBNB transfer operations without checking their return values. Although _handleTransferIn() calculates an input balance delta, its callers continue using the requested amount rather than the measured received amount for downstream processing.</p>
+<p>A listed token with non-standard or fee-on-transfer behavior, or a token whose transfer fails without reverting, can therefore cause the Router to proceed with incomplete or nonexistent funds. Depending on the execution path, this may strand user assets, produce incorrect LP allocations, cause Pool accounting to diverge from actual balances, or silently fail output payments.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the Router contract, specifically _handleTransferIn(), _handleTransferOut(), addLiquidityForMember(), buyTo(), and sellTo(), together with the user router entry points and PoolFactory contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the Router transfer paths and PoolFactory.createPoolADD, I confirmed an exploitable unsafe-token interaction vulnerability. Router._handleTransferIn computes a balance delta for ERC20 inputs but does not require transferFrom to return true, and addLiquidityForMember, buyTo, sellTo, and related callers ignore the returned actual amount and continue using the requested amount in subsequent Pool operations. Router._handleTransferOut similarly invokes ERC20 transfer without checking its return value; therefore, a token that returns false can cause a swap or liquidity-removal operation to complete while the user receives no payout, leaving assets stranded in the Router. The WBNB transfer in _handleTransferIn is also unchecked. PoolFactory._handleTransferIn has the same unchecked transferFrom pattern during createPoolADD. Although some failed transfers may cause downstream Pool logic to revert depending on its balance checks, no general guard prevents silent false-return transfers or fee-on-transfer discrepancies, and balance-delta results are not propagated. A listed or newly created token with non-standard or fee-on-transfer behavior can therefore produce incorrect accounting or silent payout failures.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Use SafeERC20-style wrappers that revert on false or malformed return data, measure pre/post balances for every input, and pass the actual received amount into Pool operations. Verify output transfer success before finalizing accounting.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/Router.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 51-58</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>51
+52
+53
+54
+55
+56
+57
+58</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">function addLiquidityForMember(uint inputBase, uint inputToken, address token, address member) public payable{
+    address pool = iPOOLFACTORY(_DAO().POOLFACTORY()).getPool(token);  // Get pool address
+    _handleTransferIn(BASE, inputBase, pool); // Transfer SPARTA to pool
+    _handleTransferIn(token, inputToken, pool); // Transfer TOKEN to pool
+    Pool(pool).addForMember(member); // Add liquidity to pool for user
+}
+
+// Trade LP tokens for another type of LP tokens</code></pre></div>
+            </div>
+            <div class="code-explanation">addLiquidityForMember invokes _handleTransferIn for both assets but ignores the returned actual amount, so downstream pool accounting uses the requested amounts even when a token transfer is fee-on-transfer or partially successful.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/Router.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 197-213</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function _handleTransferIn(address _token, uint256 _amount, address _pool) internal returns(uint256 actual){
+    if(_amount &gt; 0) {
+        if(_token == address(0)){
+            require((_amount == msg.value));
+            (bool success, ) = payable(WBNB).call{value: _amount}(&quot;&quot;); // Wrap BNB
+            require(success, &quot;!send&quot;);
+            iBEP20(WBNB).transfer(_pool, _amount); // Transfer WBNB from ROUTER to pool
+            actual = _amount;
+        } else {
+            uint startBal = iBEP20(_token).balanceOf(_pool); // Get prior TOKEN balance of pool
+            iBEP20(_token).transferFrom(msg.sender, _pool, _amount); // Transfer TOKEN to pool
+            actual = iBEP20(_token).balanceOf(_pool)-(startBal); // Get received TOKEN amount
+        }
+    }
+}
+
+// Handle the transfer of assets out of the ROUTER</code></pre></div>
+            </div>
+            <div class="code-explanation">_handleTransferIn calls transfer and transferFrom without checking return values. Although it measures the pool balance delta for ERC20 tokens, callers can ignore this actual amount; the WBNB path also assumes the requested amount was transferred.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/Router.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 214-228</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-10').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228</pre></div>
+                <div class="code-content"><pre id="code-block-10"><code class="language-solidity">function _handleTransferOut(address _token, uint256 _amount, address _recipient) internal {
+    if(_amount &gt; 0) {
+        if (_token == address(0)) {
+            iWBNB(WBNB).withdraw(_amount); // Unwrap WBNB to BNB
+            (bool success, ) = payable(_recipient).call{value:_amount}(&quot;&quot;);  // Send BNB to recipient
+            require(success, &quot;!send&quot;);
+        } else {
+            iBEP20(_token).transfer(_recipient, _amount); // Transfer TOKEN to recipient
+        }
+    }
+}
+
+//================================ Swap Synths ========================================//
+
+// Swap TOKEN to Synth</code></pre></div>
+            </div>
+            <div class="code-explanation">_handleTransferOut performs token transfers without validating their return values, allowing failed or silently unsuccessful output payments to be treated as completed.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Integer truncation can create permanently unclaimable BondVault dust</h3>
+                <div class="vulnerability-description">
+                    <p>This funds-lockup vulnerability is caused by integer truncation in BondVault’s vesting-rate calculation. The contract computes the rate as bondedLP divided by the bonding period in seconds, rounding down to whole LP units per second, and does not preserve fractional accrual or maintain a remainder. Small bonds or small residual balances can therefore produce a zero claim rate.</p>
+<p>Once the rate is zero, elapsed time does not generate any additional claimable amount, leaving the residual LP permanently unclaimable through the normal vesting flow. The issue can affect both small initial deposits and dust remaining after previous claims.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the BondVault contract, specifically depositForMember(), calcBondedLP(), and claimForMember(), together with the DAO contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing BondVault.depositForMember, calcBondedLP, and claimForMember in contracts/BondVault.sol, I confirmed the funds-lockup condition. depositForMember calculates claimRate as bondedLP divided by bondingPeriodSeconds using integer division, with no remainder accounting. Consequently, any deposit whose LP amount is smaller than the configured vesting period (15,552,000 seconds by default) receives a zero claimRate. calcBondedLP then computes elapsed time multiplied by this zero rate and returns zero unless the privileged bondRelease flag is enabled, so the member cannot obtain the bonded LPs through Dao.claimForMember or claimAllForMember. The same issue can affect residual amounts only where a recalculation produces a zero rate; ordinary nonzero-rate residuals eventually become claimable because calcBondedLP caps claims at the remaining balance. The only apparent escape is BondVault.release(), restricted to the DAO or deployer and not exposed through a normal user path. Thus, the vulnerable zero-rate case is exploitable as a user funds lockup, although an authorized administrative release may recover all bonds globally.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Track vesting using a numerator and denominator or an accrued remainder so fractional per-second entitlement is preserved. Alternatively provide a clearly defined final-dust claim path that does not depend on bondRelease.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/BondVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 60-76</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-11').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76</pre></div>
+                <div class="code-content"><pre id="code-block-11"><code class="language-solidity">function depositForMember(address asset, address member, uint LPS) external onlyDAO returns(bool){
+    if(!mapBondAsset_memberDetails[asset].isMember[member]){
+        mapBondAsset_memberDetails[asset].isMember[member] = true; // Register user as member (scope: user -&gt; asset)
+        arrayMembers.push(member); // Add user to member array (scope: vault)
+        mapBondAsset_memberDetails[asset].members.push(member); // Add user to member array (scope: user -&gt; asset)
+    }
+    if(mapBondAsset_memberDetails[asset].bondedLP[member] != 0){
+        claimForMember(asset, member); // Force claim if member has an existing remainder
+    }
+    mapBondAsset_memberDetails[asset].bondedLP[member] += LPS; // Add new deposit to users remainder
+    mapBondAsset_memberDetails[asset].lastBlockTime[member] = block.timestamp; // Set lastBlockTime to current time
+    mapBondAsset_memberDetails[asset].claimRate[member] = mapBondAsset_memberDetails[asset].bondedLP[member] / iDAO(_DAO().DAO()).bondingPeriodSeconds(); // Set claim rate per second
+    increaseWeight(asset, member); // Update user&#39;s weight
+    return true;
+}
+
+// Increase user&#39;s weight in the BondVault</code></pre></div>
+            </div>
+            <div class="code-explanation">depositForMember stores the bonded LP amount and calculates claimRate using integer division by the full bonding period. Small deposits or residual balances can truncate this rate to zero, while the subsequent vesting logic relies on the stored rate.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Harvested Synth rewards bypass the minimum withdrawal lock</h3>
+                <div class="vulnerability-description">
+                    <p>This logic error allows harvested synth rewards to bypass the minimum withdrawal lock. The harvestSingle() function increases the member’s withdrawable synth balance and updates the harvest timestamp, but it does not refresh the deposit timestamp that _processWithdraw() uses to enforce the withdrawal lock.</p>
+<p>A member can deposit synths, wait until the original deposit lock expires, harvest additional rewards, and immediately withdraw both the previously deposited amount and the newly credited rewards. As a result, rewards intended to remain locked for the minimum withdrawal period can be removed without respecting that restriction.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the SynthVault contract, specifically harvestSingle() and _processWithdraw(), together with the user synth entry-point contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the SynthVault deposit, harvestSingle, calcCurrentReward, and _processWithdraw functions, I confirmed that the alleged lock-bypass vulnerability is exploitable. _deposit updates both mapMemberSynth_lastTime and the member-wide mapMember_depositTime to block.timestamp + minimumDepositTime. However, harvestSingle only refreshes mapMemberSynth_lastTime before adding synthReward to mapMemberSynth_deposit; it does not update mapMember_depositTime. Once the original deposit lock expires, a member can call harvestSingle, which is permitted because calcCurrentReward checks only the synth-specific timestamp, and the newly minted reward is immediately added to the withdrawable balance. The member can then call withdraw, whose _processWithdraw function checks only block.timestamp &gt; mapMember_depositTime[_member], allowing withdrawal of a percentage of the combined principal and harvested rewards without a new lock period. No later check uses the refreshed synth-specific timestamp to restrict withdrawal, and harvestAll has the same underlying behavior because it delegates to harvestSingle. Therefore, the implementation does not enforce the intended withdrawal lock on harvested rewards.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Apply the intended lock to harvested rewards by updating the applicable member or member-and-synth withdrawal timestamp when harvestSingle credits synthReward, or track deposit timestamps per balance tranche and enforce the lock against each tranche.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/synthVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 135-152</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-12').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152</pre></div>
+                <div class="code-content"><pre id="code-block-12"><code class="language-solidity">function harvestSingle(address synth) public returns (bool) {
+    require(iSYNTHFACTORY(_DAO().SYNTHFACTORY()).isSynth(synth), &quot;!synth&quot;); // Must be valid synth
+    require(iRESERVE(_DAO().RESERVE()).emissions(), &quot;!emissions&quot;); // RESERVE emissions must be on
+    uint256 _weight;
+    uint256 reward = calcCurrentReward(synth, msg.sender); // Calc user&#39;s current SPARTA reward
+    mapMemberSynth_lastTime[msg.sender][synth] = block.timestamp; // Set last harvest time as now
+    address _poolOUT = iPOOLFACTORY(_DAO().POOLFACTORY()).getPool(iSYNTH(synth).LayerONE()); // Get pool address
+    iRESERVE(_DAO().RESERVE()).grantFunds(reward, _poolOUT); // Send the SPARTA from RESERVE to POOL
+    (uint synthReward,) = iPOOL(_poolOUT).mintSynth(synth, address(this)); // Mint synths &amp; tsf to SynthVault
+    _weight = iUTILS(_DAO().UTILS()).calcSpotValueInBase(iSYNTH(synth).LayerONE(), synthReward); // Calc reward&#39;s SPARTA value
+    mapMemberSynth_deposit[msg.sender][synth] += synthReward; // Record deposit for the user (scope: member -&gt; synth)
+    mapMemberSynth_weight[msg.sender][synth] += _weight; // Add the weight to the user (scope: member -&gt; synth)
+    mapMemberTotal_weight[msg.sender] += _weight; // Add to the user&#39;s total weight (scope: member)
+    totalWeight += _weight; // Add to the total weight (scope: vault)
+    _addVaultMetrics(reward); // Add to the revenue metrics (for UI)
+    iSYNTH(synth).realise(_poolOUT); // Check synth-held LP value for premium; burn if so
+    emit MemberHarvests(synth, msg.sender, reward, _weight, totalWeight);
+    return true;</code></pre></div>
+            </div>
+            <div class="code-explanation">harvestSingle() credits newly minted synth rewards to the member&#39;s deposit balance and updates the synth-specific harvest timestamp, but never refreshes mapMember_depositTime, which governs withdrawals.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/synthVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 182-195</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-13').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194</pre></div>
+                <div class="code-content"><pre id="code-block-13"><code class="language-solidity">function _processWithdraw(address _synth, address _member, uint256 _basisPoints) internal returns (uint256 synthReward) {
+    require((block.timestamp &gt; mapMember_depositTime[_member]), &quot;lockout&quot;); // Must not withdraw before lockup period passed
+    uint256 _principle = iUTILS(_DAO().UTILS()).calcPart(_basisPoints, mapMemberSynth_deposit[_member][_synth]); // Calc amount to withdraw
+    mapMemberSynth_deposit[_member][_synth] -= _principle; // Remove from user&#39;s recorded vault holdings
+    uint256 _weight = iUTILS(_DAO().UTILS()).calcPart(_basisPoints, mapMemberSynth_weight[_member][_synth]); // Calc SPARTA value of amount
+    mapMemberTotal_weight[_member] -= _weight; // Remove from member&#39;s total weight (scope: member)
+    mapMemberSynth_weight[_member][_synth] -= _weight; // Remove from member&#39;s synth weight (scope: member -&gt; synth)
+    totalWeight -= _weight; // Remove from total weight (scope: vault)
+    emit MemberWithdraws(_synth, _member, synthReward, _weight, totalWeight);
+    return (_principle + synthReward);
+}
+
+//================================ Helper Functions ===============================//</code></pre></div>
+            </div>
+            <div class="code-explanation">_processWithdraw() enforces the lock exclusively through mapMember_depositTime, then withdraws a percentage of the full synth balance, allowing rewards added by harvestSingle() to bypass a refreshed lock.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>SynthVault harvestAll becomes increasingly gas-heavy and can become unusable</h3>
+                <div class="vulnerability-description">
+                    <p>This denial-of-service issue results from harvestAll() iterating over the entire historical stakedSynthAssets array without pagination or a bounded iteration limit. The array grows whenever a synth is first deposited and is not reduced, so the loop becomes progressively more expensive over time. Each iteration may also perform multiple external calls.</p>
+<p>As the number of supported and historically staked synth assets increases, a user’s harvestAll() transaction may exceed the block gas limit. This can prevent the user from harvesting through the aggregate function and may make the standard harvesting workflow impractical or unusable for affected accounts.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the SynthVault contract, specifically harvestAll() and _deposit(), together with the user synth entry-point and SynthRegistry contracts</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing SynthVault.harvestAll and _deposit, I confirmed the reported scalability-related denial-of-service condition. harvestAll iterates from index zero through the entire stakedSynthAssets array on every call, without pagination, a caller-supplied range, or any membership-based index. _deposit permanently appends each previously unseen synth to this array via isStakedSynth and push, so the loop domain is monotonically increasing and is never pruned. Although non-member entries generally avoid the more expensive harvestSingle path because their calculated reward is zero, every entry still incurs storage reads, timestamp checks, and reward calculation, while entries with an active balance and reward can trigger multiple external calls through the reserve, pool factory, pool, utilities, and synth contracts. A user can expand the global array by depositing across many valid synths, subject to synth and pool curation. No guard limits the array size or bounds gas usage. harvestSingle remains an alternative for individual assets, so this does not necessarily disable all harvesting, but harvestAll can eventually exceed the block gas limit and become unusable as historical assets accumulate.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Provide paginated harvesting with start and end indexes, or let users harvest only explicitly selected synths. Do not require iterating over the full historical stakedSynthAssets array in one transaction.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/synthVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 121-134</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-14').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134</pre></div>
+                <div class="code-content"><pre id="code-block-14"><code class="language-solidity">function harvestAll() external returns (bool) {
+    for(uint i = 0; i &lt; stakedSynthAssets.length; i++){
+        if((block.timestamp &gt; mapMemberSynth_lastTime[msg.sender][stakedSynthAssets[i]])){
+            uint256 reward = calcCurrentReward(stakedSynthAssets[i], msg.sender);
+            if(reward &gt; 0){
+                harvestSingle(stakedSynthAssets[i]);
+            }
+        }
+        
+    }
+    return true;
+}
+
+// User harvests available rewards of the chosen asset</code></pre></div>
+            </div>
+            <div class="code-explanation">harvestAll iterates over the entire stakedSynthAssets array with no pagination or iteration bound. The array is historical and can grow indefinitely, while each eligible entry may trigger reward calculation and harvestSingle, making the aggregate transaction increasingly gas-intensive and potentially unusable.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Withdrawal basis points are not range-validated, enabling caller-triggered reverts and inconsistent partial accounting</h3>
+                <div class="vulnerability-description">
+                    <p>This validation error allows withdrawal requests to bypass the documented basis-point range and can create inconsistent partial accounting. The external withdrawal parameter is not checked to ensure that it is at most 10,000 basis points, allowing callers to submit values that cause the operation to revert. In addition, principal deposits and withdrawal weights are reduced through separate proportional calculations that can round differently.</p>
+<p>For small positions, a partial withdrawal may decrease the principal while leaving the associated weight unchanged. The retained weight can then continue to participate in harvesting before the remaining principal is withdrawn, creating an accounting imbalance. The practical impact depends on the precision of the proportional calculation and the relationship between the deposit and its weight.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the SynthVault contract, specifically withdraw() and _processWithdraw(), together with the user synth entry-point contract</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing SynthVault.withdraw and _processWithdraw, I confirmed that the stated validation and accounting weaknesses exist. withdraw forwards the caller-supplied basisPoints without enforcing a maximum of 10,000, while _processWithdraw independently invokes Utils.calcPart for the stored deposit and synth weight. With integer, floor-based proportional arithmetic, a partial withdrawal can therefore reduce mapMemberSynth_deposit while reducing mapMemberSynth_weight by zero when the weight is below the rounding threshold. The member can repeat such withdrawals and retain voting or reward weight after removing the corresponding synth principal, potentially harvesting rewards against stale weight before a later full withdrawal clears it. The global and per-member weight totals are updated using the independently rounded weight value, so no invariant repairs this divergence. A basisPoints value above 10,000 will generally cause subtraction underflow and revert under Solidity 0.8.3; this primarily makes the caller’s own transaction fail rather than harming other users, but it still demonstrates missing input validation. The lockout only restricts timing and does not prevent either issue.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require basisPoints &lt;= 10000 and reject zero or otherwise ineffective withdrawals where appropriate. Calculate a single proportional share and ensure principal and weight reductions cannot diverge materially due to rounding; clear residual weight when the corresponding deposit reaches zero.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/synthVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 175-181</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-15').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>175
+176
+177
+178
+179
+180
+181</pre></div>
+                <div class="code-content"><pre id="code-block-15"><code class="language-solidity">function withdraw(address synth, uint256 basisPoints) external returns (uint256 redeemedAmount) {
+    redeemedAmount = _processWithdraw(synth, msg.sender, basisPoints); // Perform the withdrawal
+    require(iBEP20(synth).transfer(msg.sender, redeemedAmount)); // Transfer from SynthVault to user
+    return redeemedAmount;
+}
+
+// Contract withdraws a percentage of user&#39;s synths from the vault</code></pre></div>
+            </div>
+            <div class="code-explanation">The externally callable withdrawal accepts an unconstrained basisPoints value and forwards it directly to the withdrawal processor without enforcing the documented maximum of 10,000.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/synthVault.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 182-195</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-16').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194</pre></div>
+                <div class="code-content"><pre id="code-block-16"><code class="language-solidity">function _processWithdraw(address _synth, address _member, uint256 _basisPoints) internal returns (uint256 synthReward) {
+    require((block.timestamp &gt; mapMember_depositTime[_member]), &quot;lockout&quot;); // Must not withdraw before lockup period passed
+    uint256 _principle = iUTILS(_DAO().UTILS()).calcPart(_basisPoints, mapMemberSynth_deposit[_member][_synth]); // Calc amount to withdraw
+    mapMemberSynth_deposit[_member][_synth] -= _principle; // Remove from user&#39;s recorded vault holdings
+    uint256 _weight = iUTILS(_DAO().UTILS()).calcPart(_basisPoints, mapMemberSynth_weight[_member][_synth]); // Calc SPARTA value of amount
+    mapMemberTotal_weight[_member] -= _weight; // Remove from member&#39;s total weight (scope: member)
+    mapMemberSynth_weight[_member][_synth] -= _weight; // Remove from member&#39;s synth weight (scope: member -&gt; synth)
+    totalWeight -= _weight; // Remove from total weight (scope: vault)
+    emit MemberWithdraws(_synth, _member, synthReward, _weight, totalWeight);
+    return (_principle + synthReward);
+}
+
+//================================ Helper Functions ===============================//</code></pre></div>
+            </div>
+            <div class="code-explanation">The processor performs no upper-bound validation on _basisPoints, so values above 10,000 can cause proportional calculations and subsequent subtraction to revert. Principal and weight are calculated independently with calcPart, allowing rounding differences that can reduce principal while leaving weight unchanged.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

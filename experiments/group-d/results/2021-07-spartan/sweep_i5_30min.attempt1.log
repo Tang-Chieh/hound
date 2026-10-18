@@ -1,0 +1,1015 @@
+Using project: houndD-gpt56_20261012-direct-2021-07-spartan
+Running autonomous audit...
+This is not a run — it’s a declaration that systems will behave, because YOU 
+said so.
+Using graph: graph_SystemArchitecture.json
+[*] Auto-loaded system graph: SystemArchitecture (38 nodes, 87 edges)
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ AUTONOMOUS SECURITY AGENT                                                    │
+│ Project:                                                                     │
+│ <LOCAL_WORKSPACE>/subscription-gateway- │
+│ pilot/results/hound_23_repo_group_d_direct_gpt56_20261012/hound-home/.hound/ │
+│ projects/houndD-gpt56_20261012-direct-2021-07-spartan                        │
+│ Scout: OpenAI/openai-codex/gpt-5.6-luna                                      │
+│ Strategist: OpenAI/openai-codex/gpt-5.6-luna                                 │
+│ Lightweight: openai/openai-codex/gpt-5.6-luna                                │
+│ Context Limit: 64,000 tokens (compress at 75%)                               │
+│ Time Limit: 30 minutes                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Coverage: Nodes 0/38 (0.0%) | Cards 0/130 (0.0%)
+
+═══ Planning Batch 1 ═══
+
+═══ PHASE 1: SWEEP ═══
+Wide sweep for shallow bugs at medium granularity
+Approach: Examine each module/class for all security issues.
+Also captures invariants and assumptions to build the knowledge graph.
+
+Coverage: Nodes 0/38 (0.0%) | Cards 0/130 (0.0%)
+[strategist] plan_next: input=2021 tok, limit=64000, context=3% (OpenAI:openai-codex/gpt-5.6-luna)
+Coverage: Nodes 0/38 (0.0%) | Cards 0/130 (0.0%)
+Unvisited nodes (sample): base_asset, bnb, bond_vault, dao, dao_vault, 
+external_tokens, i_base, i_bep20, i_bep677, i_bond_vault
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 0/38 (0.0%) | Cards 0/130 (0.0%) | Unvisited: 38 (sample: 
+base_asset@SystemArchitecture, bnb@SystemArchitecture, 
+bond_vault@SystemArchitecture, dao@SystemArchitecture, 
+dao_vault@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 0 | Confirmed: 0 | Rejected: 0 | Pending: 0
+
+Planning next investigations...
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ PENDING    │ 1 - Sweep    │ Vulnera │ 10       │ high     │ aspect     │
+│     │            │              │ bility  │          │          │            │
+│     │            │              │ analysi │          │          │            │
+│     │            │              │ s of    │          │          │            │
+│     │            │              │ Pool    │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Planning batch 1 (top 1)
+================================================================================
+
+
+New Investigations Planned by Strategist:
+
+  1. Vulnerability analysis of Pool
+     Priority: 10 | Impact: high | Category: aspect
+     Reasoning: WHY NOW: Pool is the core pricing component, and the graph 
+explicitly identifies reserve-based swap pricing, balance-delta inputs, and 
+reserve-based LP redemption as central behaviors. These mechanisms are the 
+highest-priority surface for determining whether an attacker can manipulate spot
+prices through transient trades, token donations, or reserve/balance 
+desynchronization and then extract value through swaps or withdrawals. EXIT 
+CRITERIA: Trace all state changes affecting reserves, balances, pricing 
+formulas, LP supply, and redemption outputs; identify every caller and dependent
+pricing path; determine whether same-transaction manipulation is possible and 
+whether any invariant, oracle, minimum-output, or synchronization control 
+prevents exploitation; document a concrete exploit path or conclude that price 
+manipulation is adequately bounded.
+
+═══ Starting Investigation 1/1 ═══
+Goal: Vulnerability analysis of Pool
+Coverage: Nodes 0/38 (0.0%) | Cards 0/130 (0.0%)
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 0/38 (0.0%) | Cards 0/130 (0.0%) | Unvisited: 38 (sample: 
+base_asset@SystemArchitecture, bnb@SystemArchitecture, 
+bond_vault@SystemArchitecture, dao@SystemArchitecture, 
+dao_vault@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 0 | Confirmed: 0 | Rejected: 0 | Pending: 0
+
+Currently Investigating: Vulnerability analysis of Pool
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ ACTIVE     │ 1 - Sweep    │ Vulnera │ 10       │ high     │ aspect     │
+│     │            │              │ bility  │          │          │            │
+│     │            │              │ analysi │          │          │            │
+│     │            │              │ s of    │          │          │            │
+│     │            │              │ Pool    │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Planning batch 1 (top 1)
+================================================================================
+
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 1):
+  Action: load_nodes
+  Thought: Load the Pool implementation first to inspect reserve accounting, 
+swap pricing, fee calculations, and mint/burn paths that determine price 
+behavior.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 1 
+    • pool
+Usage: Context 1691/64000 tok (2%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=4113 out=136
+Executing: Executing: load_nodes
+Result: Loaded 1 nodes (1 with code)
+Usage: Context 9213/64000 tok (14%) — Last call OpenAI:openai-codex/gpt-5.6-luna
+in=4113 out=136
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 2):
+  Action: load_nodes
+  Thought: Load the pricing, routing, synth, and pool-registration 
+implementations surrounding Pool to complete the price-flow context without 
+reloading the cached Pool contract.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 5  (+3 more)
+    • utils, router
+Usage: Context 9213/64000 tok (14%) — Last call OpenAI:openai-codex/gpt-5.6-luna
+in=11503 out=213
+Executing: Executing: load_nodes
+Result: Loaded 5 nodes (5 with code)
+Usage: Context 25474/64000 tok (39%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=11503 out=213
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 3):
+  Action: load_nodes
+  Thought: Load the remaining price-affecting callers and reserve/base 
+components to complete the Pool price-flow context, especially external asset 
+transfers, reserve-funded pool changes, and user routing paths.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 5  (+3 more)
+    • dao, reserve
+Usage: Context 25474/64000 tok (39%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=27536 out=180
+Executing: Executing: load_nodes
+Result: Loaded 5 nodes (5 with code)
+Usage: Context 40379/64000 tok (63%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=27536 out=180
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 4):
+  Action: update_node
+  Thought: Record concrete Pool pricing and accounting behaviors before 
+strategic analysis.
+  Parameters:
+  - node_id: pool
+  - observations: 3  (+1 more)
+    • balance-delta swap inputs, recorded reserves price swaps
+  - assumptions: 1 
+    • LP redemption uses reserves
+Usage: Context 40379/64000 tok (63%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=42286 out=186
+Executing: Executing: update_node
+Result: Updated node pool: 3 observations, 1 assumptions
+Usage: Context 40457/64000 tok (63%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=42286 out=186
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 5):
+  Action: deep_think
+  Thought: The Pool price-flow context is complete: Pool swap, synth mint/burn, 
+liquidity add/remove, reserve sync, Utils pricing math, Router entrypoints, 
+cross-pool routing, curated dividends, synth vault interactions, and pool 
+registration have been examined and annotated. Request strategic analysis 
+focused exclusively on price manipulation vulnerabilities.
+
+═══ CALLING STRATEGIST FOR DEEP ANALYSIS ═══
+Strategist model: OpenAI/openai-codex/gpt-5.6-luna | effort: default
+Strategist is analyzing the collected context...
+Usage: Context 40457/64000 tok (63%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=42363 out=120
+Executing: Executing: deep_think
+[strategist] deep_think(json): input=41346 tok, limit=64000, context=64% (OpenAI:openai-codex/gpt-5.6-luna)
+
+═══ STRATEGIST ANALYSIS COMPLETE ═══
+
+HYPOTHESIS PROCESSING RESULTS
+ #    Title                                                   Severity  Status  
+ 1    Manipulable pool spot price overweights SynthVault      high      ✓ ADDED 
+      deposits ...                                                              
+ 2    Spot-price manipulation can amplify reserve-funded      high      ✓ ADDED 
+      curated-p...                                                              
+ 3    Router swaps and synth issuance lack user price         medium    ✓ ADDED 
+      protection a...                                                           
+
+Total: 3 | Added: 3 | Skipped: 0
+
+Hypothesis Store: 3 total vulnerabilities tracked
+
+Strategist Guidance:
+  → Review Pool.sync and all reserve-accounting paths for permissionless balance
+donations or reserve desynchronization that can alter oracle values without 
+equivalent economic trades.
+  → Add invariant and fork tests that manipulate curated-pool reserves before 
+SynthVault deposits, harvests, and dividend-generating trades, measuring 
+attacker profit after restoring the price.
+  → Evaluate whether every reserve-funded operation should use a TWAP or 
+independent oracle and impose per-pool and per-transaction emission caps.
+Usage: Context 43721/64000 tok (68%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=1276 out=253
+
+✓ Investigation Completed: Vulnerability analysis of Pool
+Coverage: Nodes 11/38 (28.9%) | Cards 74/130 (56.9%)
+
+═══ Planning Batch 2 ═══
+
+═══ PHASE 1: SWEEP ═══
+Wide sweep for shallow bugs at medium granularity
+Approach: Examine each module/class for all security issues.
+Also captures invariants and assumptions to build the knowledge graph.
+
+Coverage: Nodes 11/38 (28.9%) | Cards 74/130 (56.9%)
+[strategist] plan_next: input=2257 tok, limit=64000, context=3% (OpenAI:openai-codex/gpt-5.6-luna)
+Coverage: Nodes 11/38 (28.9%) | Cards 74/130 (56.9%)
+Unvisited nodes (sample): base_asset, bnb, bond_vault, dao_vault, 
+external_tokens, i_base, i_bep20, i_bep677, i_bond_vault, i_dao
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 11/38 (28.9%) | Cards 74/130 (56.9%) | Unvisited: 27 (sample: 
+base_asset@SystemArchitecture, bnb@SystemArchitecture, 
+bond_vault@SystemArchitecture, dao_vault@SystemArchitecture, 
+external_tokens@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 3 | Confirmed: 0 | Rejected: 0 | Pending: 3
+
+Planning next investigations...
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ PENDING    │ 1 - Sweep    │ Vulnera │ 9        │ medium   │ aspect     │
+│     │            │              │ bility  │          │          │            │
+│     │            │              │ analysi │          │          │            │
+│     │            │              │ s of    │          │          │            │
+│     │            │              │ DaoVaul │          │          │            │
+│     │            │              │ t       │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Iter 5 executing: Executing: deep_think
+  Iter 5 result: deep_think
+  Iter 5 usage: Context 43721/64000 tok (68%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=1276 out=253
+  ✓ Completed: Vulnerability analysis of Pool
+  Planning batch 2 (top 1)
+================================================================================
+
+
+Previously Completed Investigations:
+  ✓ Vulnerability analysis of Pool
+
+New Investigations Planned by Strategist:
+
+  1. Vulnerability analysis of DaoVault
+     Priority: 9 | Impact: medium | Category: aspect
+     Reasoning: WHY NOW: DaoVault is an unvisited major component explicitly 
+annotated as using spot-valued weights and recalculating weight on deposit, 
+while Pool has already established mutable spot pricing as a confirmed 
+price-manipulation risk. This makes DaoVault a high-priority downstream consumer
+that may convert a transient pool price distortion into persistent share, 
+reward, or redemption value. EXIT CRITERIA: Trace all DaoVault valuation and 
+weight calculations through deposit, harvest, and withdrawal; identify every 
+price/reserve source and whether it is manipulable within the same transaction 
+or surrounding transactions; verify whether share issuance, rewards, or LP 
+redemption can be profitably distorted; conclude with either a concrete exploit 
+path and affected state or documented evidence that manipulation is bounded or 
+independently protected.
+
+═══ Starting Investigation 1/1 ═══
+Goal: Vulnerability analysis of DaoVault
+Coverage: Nodes 11/38 (28.9%) | Cards 74/130 (56.9%)
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 11/38 (28.9%) | Cards 74/130 (56.9%) | Unvisited: 27 (sample: 
+base_asset@SystemArchitecture, bnb@SystemArchitecture, 
+bond_vault@SystemArchitecture, dao_vault@SystemArchitecture, 
+external_tokens@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 3 | Confirmed: 0 | Rejected: 0 | Pending: 3
+
+Currently Investigating: Vulnerability analysis of DaoVault
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ ACTIVE     │ 1 - Sweep    │ Vulnera │ 9        │ medium   │ aspect     │
+│     │            │              │ bility  │          │          │            │
+│     │            │              │ analysi │          │          │            │
+│     │            │              │ s of    │          │          │            │
+│     │            │              │ DaoVaul │          │          │            │
+│     │            │              │ t       │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Iter 5 executing: Executing: deep_think
+  Iter 5 result: deep_think
+  Iter 5 usage: Context 43721/64000 tok (68%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=1276 out=253
+  ✓ Completed: Vulnerability analysis of Pool
+  Planning batch 2 (top 1)
+================================================================================
+
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 1):
+  Action: load_nodes
+  Thought: Load DaoVault implementation and its DAO-facing deposit/withdrawal 
+paths, plus related vault interfaces and BondVault context to establish the 
+complete vault accounting and price-sensitive flow.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 5  (+3 more)
+    • dao_vault, user_dao_entry
+Usage: Context 1896/64000 tok (2%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=4318 out=195
+Executing: Executing: load_nodes
+Result: Loaded 5 nodes (5 with code)
+Usage: Context 8129/64000 tok (12%) — Last call OpenAI:openai-codex/gpt-5.6-luna
+in=4318 out=195
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 2):
+  Action: load_nodes
+  Thought: Expand the DaoVault price-accounting context with the pool and 
+registry interfaces plus BASE lookup interface, focusing on the exact external 
+methods used to derive LP share weight and resolve DAO configuration.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 4  (+2 more)
+    • i_pool, i_pool_factory
+Usage: Context 8129/64000 tok (12%) — Last call OpenAI:openai-codex/gpt-5.6-luna
+in=10533 out=227
+Executing: Executing: load_nodes
+Result: Loaded 4 nodes (4 with code)
+Usage: Context 11582/64000 tok (18%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=10533 out=227
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 3):
+  Action: load_nodes
+  Thought: Load the remaining utility interface that defines pool-share weight 
+calculation, which is the key valuation dependency used by DaoVault deposit 
+accounting.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 1 
+    • i_utils
+Usage: Context 11582/64000 tok (18%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=13955 out=252
+Executing: Executing: load_nodes
+Result: Loaded 1 nodes (1 with code)
+Usage: Context 13756/64000 tok (21%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=13955 out=252
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 4):
+  Action: load_nodes
+  Thought: Expand the price-accounting context with previously unloaded 
+curated-pool and synthetic-asset components that can affect pool selection, pool
+valuation, and LP-weight inputs used by DaoVault.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 5  (+3 more)
+    • synth_factory, synth
+Usage: Context 13756/64000 tok (21%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=16083 out=440
+Executing: Executing: load_nodes
+Result: Loaded 5 nodes (5 with code)
+Usage: Context 20806/64000 tok (32%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=16083 out=440
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 5):
+  Action: update_node
+  Thought: Record the concrete price-sensitive accounting behavior observed in 
+the loaded vault and pool-registry code before strategic analysis.
+  Parameters:
+  - node_id: synth_vault
+  - observations: 2 
+    • deposit uses spot valuation, harvest mints spot-valued synths
+  - assumptions: 1 
+    • curated synth required
+Usage: Context 20806/64000 tok (32%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=22992 out=274
+Executing: Executing: update_node
+Result: Updated node synth_vault: 2 observations, 1 assumptions
+Usage: Context 20898/64000 tok (32%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=22992 out=274
+
+✓ Investigation Completed: Vulnerability analysis of DaoVault
+Coverage: Nodes 25/38 (65.8%) | Cards 86/130 (66.2%)
+
+═══ Planning Batch 3 ═══
+
+═══ PHASE 1: SWEEP ═══
+Wide sweep for shallow bugs at medium granularity
+Approach: Examine each module/class for all security issues.
+Also captures invariants and assumptions to build the knowledge graph.
+
+Coverage: Nodes 25/38 (65.8%) | Cards 86/130 (66.2%)
+[strategist] plan_next: input=2271 tok, limit=64000, context=3% (OpenAI:openai-codex/gpt-5.6-luna)
+Coverage: Nodes 25/38 (65.8%) | Cards 86/130 (66.2%)
+Unvisited nodes (sample): base_asset, bnb, external_tokens, i_bep677, i_dao, 
+i_reserve, i_router, i_synth_vault, i_wbnb, synth_registry
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 25/38 (65.8%) | Cards 86/130 (66.2%) | Unvisited: 13 (sample: 
+base_asset@SystemArchitecture, bnb@SystemArchitecture, 
+external_tokens@SystemArchitecture, i_bep677@SystemArchitecture, 
+i_dao@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 3 | Confirmed: 0 | Rejected: 0 | Pending: 3
+
+Planning next investigations...
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ PENDING    │ 1 - Sweep    │ Vulnera │ 8        │ medium   │ aspect     │
+│     │            │              │ bility  │          │          │            │
+│     │            │              │ analysi │          │          │            │
+│     │            │              │ s of    │          │          │            │
+│     │            │              │ BASE /  │          │          │            │
+│     │            │              │ SPARTA  │          │          │            │
+│     │            │              │ token   │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Iter 5 executing: Executing: update_node
+  Iter 5 result: update_node
+  Iter 5 usage: Context 20898/64000 tok (32%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=22992 out=274
+  ✓ Completed: Vulnerability analysis of DaoVault
+  Planning batch 3 (top 1)
+================================================================================
+
+
+Previously Completed Investigations:
+  ✓ Vulnerability analysis of Pool
+  ✓ Vulnerability analysis of DaoVault
+
+New Investigations Planned by Strategist:
+
+  1. Vulnerability analysis of BASE / SPARTA token
+     Priority: 8 | Impact: medium | Category: aspect
+     Reasoning: WHY NOW: This unvisited token component directly affects 
+balances used by Pool reserve and swap pricing, while existing hypotheses 
+identify spot-price manipulation as a high-priority risk. Its transfer fee, 
+burn, and callback semantics may create balance/reserve discrepancies that can 
+be exploited to distort prices or influence downstream spot-valued calculations.
+EXIT CRITERIA: Trace every externally reachable mint, burn, transfer, and 
+transferAndCall path; map effects on pool balances and recorded reserves; 
+identify whether an attacker can create a profitable price distortion or bypass 
+expected reserve accounting; conclude with either a concrete price-manipulation 
+finding and affected flows or documented evidence that these token operations 
+cannot materially influence pricing.
+
+═══ Starting Investigation 1/1 ═══
+Goal: Vulnerability analysis of BASE / SPARTA token
+Coverage: Nodes 25/38 (65.8%) | Cards 86/130 (66.2%)
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 25/38 (65.8%) | Cards 86/130 (66.2%) | Unvisited: 13 (sample: 
+base_asset@SystemArchitecture, bnb@SystemArchitecture, 
+external_tokens@SystemArchitecture, i_bep677@SystemArchitecture, 
+i_dao@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 3 | Confirmed: 0 | Rejected: 0 | Pending: 3
+
+Currently Investigating: Vulnerability analysis of BASE / SPARTA token
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ ACTIVE     │ 1 - Sweep    │ Vulnera │ 8        │ medium   │ aspect     │
+│     │            │              │ bility  │          │          │            │
+│     │            │              │ analysi │          │          │            │
+│     │            │              │ s of    │          │          │            │
+│     │            │              │ BASE /  │          │          │            │
+│     │            │              │ SPARTA  │          │          │            │
+│     │            │              │ token   │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Iter 5 executing: Executing: update_node
+  Iter 5 result: update_node
+  Iter 5 usage: Context 20898/64000 tok (32%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=22992 out=274
+  ✓ Completed: Vulnerability analysis of DaoVault
+  Planning batch 3 (top 1)
+================================================================================
+
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 1):
+  Action: load_nodes
+  Thought: Load remaining interfaces governing router, reserve, DAO, and 
+SynthVault flows to complete the price-sensitive call surface and validate 
+available safeguards.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 5  (+3 more)
+    • i_router, i_synth_vault
+Usage: Context 2020/64000 tok (3%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=4441 out=218
+Executing: Executing: load_nodes
+Result: Loaded 5 nodes (5 with code)
+Usage: Context 4037/64000 tok (6%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=4441 out=218
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 2):
+  Action: load_nodes
+  Thought: Expand the price-sensitive context around pool and synth creation, 
+including initial liquidity/ratio setup and BASE token mechanics, using uncached
+implementation nodes.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 5  (+3 more)
+    • user_pool_factory_entry, user_synth_factory_entry
+Usage: Context 4037/64000 tok (6%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=6443 out=238
+Executing: Executing: load_nodes
+Result: Loaded 5 nodes (5 with code)
+Usage: Context 9189/64000 tok (14%) — Last call OpenAI:openai-codex/gpt-5.6-luna
+in=6443 out=238
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 3):
+  Action: update_node
+  Thought: Record concrete price-sensitive behaviors from the newly loaded pool 
+creation and synth creation entrypoints before strategic analysis.
+  Parameters:
+  - node_id: user_pool_factory_entry
+  - observations: 3  (+1 more)
+    • permissionless pool creation, fixed minimum BASE
+  - assumptions: 1 
+    • token decimals 18
+Usage: Context 9189/64000 tok (14%) — Last call OpenAI:openai-codex/gpt-5.6-luna
+in=11519 out=214
+Executing: Executing: update_node
+Result: Updated node user_pool_factory_entry: 3 observations, 1 assumptions
+Usage: Context 9287/64000 tok (14%) — Last call OpenAI:openai-codex/gpt-5.6-luna
+in=11519 out=214
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 4):
+  Action: deep_think
+  Thought: The price-sensitive subsystem is now covered: pool reserve accounting
+and swaps, router swap/synth paths, synth and pool creation, BASE transfer 
+mechanics, reserve funding, and vault/DAO reward flows. The newly loaded 
+creation and token-transfer code completes the context for strategic 
+price-manipulation analysis.
+
+═══ CALLING STRATEGIST FOR DEEP ANALYSIS ═══
+Strategist model: OpenAI/openai-codex/gpt-5.6-luna | effort: default
+Strategist is analyzing the collected context...
+Usage: Context 9287/64000 tok (14%) — Last call OpenAI:openai-codex/gpt-5.6-luna
+in=11617 out=187
+Executing: Executing: deep_think
+[strategist] deep_think(json): input=10675 tok, limit=64000, context=16% (OpenAI:openai-codex/gpt-5.6-luna)
+
+═══ STRATEGIST ANALYSIS COMPLETE ═══
+
+HYPOTHESIS PROCESSING RESULTS
+ #    Title                                                   Severity  Status  
+ 1    Permissionless pool initialization permits              high      ✓ ADDED 
+      attacker-selected...                                                      
+
+Total: 1 | Added: 1 | Skipped: 0
+
+Hypothesis Store: 4 total vulnerabilities tracked
+
+Strategist Guidance:
+  → Review the exact curation and pool-listing governance path to determine 
+whether an attacker-created pool can be curated without an independent price or 
+liquidity review.
+  → Trace Pool.mintSynth, Utils price calculations, and SynthVault deposit 
+accounting to confirm whether they use the initial spot ratio directly or have 
+any TWAP, liquidity, or deviation safeguards.
+  → Test pool initialization with extreme ratios, fee-on-transfer tokens, and 
+subsequent small swaps to measure the amount of BASE or synth value that can be 
+extracted.
+Usage: Context 10405/64000 tok (16%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=1655 out=245
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 5):
+  Action: deep_think
+  Thought: The relevant price-sensitive implementation is already loaded, 
+including pool curation and initialization, Pool mintSynth/swap accounting, 
+Utils pricing, SynthFactory enablement, Router synth flows, and SynthVault 
+valuation paths. Strategic analysis is needed to assess reachability and confirm
+whether curation or downstream consumers impose independent price safeguards.
+
+═══ CALLING STRATEGIST FOR DEEP ANALYSIS ═══
+Strategist model: OpenAI/openai-codex/gpt-5.6-luna | effort: default
+Strategist is analyzing the collected context...
+Usage: Context 10405/64000 tok (16%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=12737 out=505
+Executing: Executing: deep_think
+[strategist] deep_think(json): input=11824 tok, limit=64000, context=18% (OpenAI:openai-codex/gpt-5.6-luna)
+
+═══ STRATEGIST ANALYSIS COMPLETE ═══
+
+ℹ No vulnerabilities identified in this analysis
+
+Strategist Guidance:
+  → Verify whether all synth minting, SynthVault deposits, and reserve-funded 
+flows are already covered by the existing spot-price manipulation findings; 
+avoid treating the same pool spot dependency as separate issues.
+  → Trace pool reserve updates and Utils valuation functions for any 
+balance-versus-recorded-reserve discrepancies that permit donation or 
+transfer-tax tokens to alter prices without corresponding accounting updates.
+  → Confirm that pool curation and synth enablement cannot be reached through a 
+permissionless governance path that would make attacker-selected initialization 
+prices exploitable.
+Usage: Context 10761/64000 tok (16%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=11824 out=579
+
+✓ Investigation Completed: Vulnerability analysis of BASE / SPARTA token
+Coverage: Nodes 34/38 (89.5%) | Cards 88/130 (67.7%)
+
+═══ Planning Batch 4 ═══
+
+═══ PHASE 1: SWEEP ═══
+Wide sweep for shallow bugs at medium granularity
+Approach: Examine each module/class for all security issues.
+Also captures invariants and assumptions to build the knowledge graph.
+
+Coverage: Nodes 34/38 (89.5%) | Cards 88/130 (67.7%)
+[strategist] plan_next: input=2228 tok, limit=64000, context=3% (OpenAI:openai-codex/gpt-5.6-luna)
+Coverage: Nodes 34/38 (89.5%) | Cards 88/130 (67.7%)
+Unvisited nodes (sample): bnb, i_bep677, i_wbnb, synth_registry
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 34/38 (89.5%) | Cards 88/130 (67.7%) | Unvisited: 4 (sample: 
+bnb@SystemArchitecture, i_bep677@SystemArchitecture, i_wbnb@SystemArchitecture, 
+synth_registry@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 4 | Confirmed: 0 | Rejected: 0 | Pending: 4
+
+Planning next investigations...
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ PENDING    │ 1 - Sweep    │ Vulnera │ 7        │ high     │ aspect     │
+│     │            │              │ bility  │          │          │            │
+│     │            │              │ analysi │          │          │            │
+│     │            │              │ s of    │          │          │            │
+│     │            │              │ SynthFa │          │          │            │
+│     │            │              │ ctory   │          │          │            │
+│     │            │              │ token-t │          │          │            │
+│     │            │              │ o-synth │          │          │            │
+│     │            │              │  and    │          │          │            │
+│     │            │              │ isSynth │          │          │            │
+│     │            │              │ registr │          │          │            │
+│     │            │              │ ies     │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Iter 5 executing: Executing: deep_think
+  Iter 5 result: deep_think
+  Iter 5 usage: Context 10761/64000 tok (16%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=11824 out=579
+  ✓ Completed: Vulnerability analysis of BASE / SPARTA token
+  Planning batch 4 (top 1)
+================================================================================
+
+
+Previously Completed Investigations:
+  ✓ Vulnerability analysis of Pool
+  ✓ Vulnerability analysis of DaoVault
+  ✓ Vulnerability analysis of BASE / SPARTA token
+
+New Investigations Planned by Strategist:
+
+  1. Vulnerability analysis of SynthFactory token-to-synth and isSynth 
+registries
+     Priority: 7 | Impact: high | Category: aspect
+     Reasoning: WHY NOW: This is the remaining non-interface component and 
+directly controls asset identity used by synth-related pricing and swap paths. A
+manipulated or inconsistent registry could cause protocols to treat an 
+attacker-selected token as a valid synth or resolve the wrong synth for 
+valuation. EXIT CRITERIA: Trace every write and read of token-to-synth and 
+isSynth state, identify all callers that use these values in price-sensitive 
+calculations or asset routing, and determine whether any permissionless or stale
+mapping can alter a victim's effective price or synth valuation. Stop when all 
+registry mutation and consumption paths are covered with no exploitable price 
+impact found.
+
+═══ Starting Investigation 1/1 ═══
+Goal: Vulnerability analysis of SynthFactory token-to-synth and isSynth 
+registries
+Coverage: Nodes 34/38 (89.5%) | Cards 88/130 (67.7%)
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 34/38 (89.5%) | Cards 88/130 (67.7%) | Unvisited: 4 (sample: 
+bnb@SystemArchitecture, i_bep677@SystemArchitecture, i_wbnb@SystemArchitecture, 
+synth_registry@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 4 | Confirmed: 0 | Rejected: 0 | Pending: 4
+
+Currently Investigating: Vulnerability analysis of SynthFactory token-to-synth 
+and isSynth registries
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ ACTIVE     │ 1 - Sweep    │ Vulnera │ 7        │ high     │ aspect     │
+│     │            │              │ bility  │          │          │            │
+│     │            │              │ analysi │          │          │            │
+│     │            │              │ s of    │          │          │            │
+│     │            │              │ SynthFa │          │          │            │
+│     │            │              │ ctory   │          │          │            │
+│     │            │              │ token-t │          │          │            │
+│     │            │              │ o-synth │          │          │            │
+│     │            │              │  and    │          │          │            │
+│     │            │              │ isSynth │          │          │            │
+│     │            │              │ registr │          │          │            │
+│     │            │              │ ies     │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Iter 5 executing: Executing: deep_think
+  Iter 5 result: deep_think
+  Iter 5 usage: Context 10761/64000 tok (16%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=11824 out=579
+  ✓ Completed: Vulnerability analysis of BASE / SPARTA token
+  Planning batch 4 (top 1)
+================================================================================
+
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 1):
+  Action: load_nodes
+  Thought: Load the dedicated SynthFactory registry implementation to complete 
+the token-to-synth and isSynth registry context before analysis.
+  Parameters:
+  - graph_name: SystemArchitecture
+  - node_ids: 1 
+    • synth_registry
+Usage: Context 2103/64000 tok (3%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=4525 out=196
+Executing: Executing: load_nodes
+Result: Loaded 1 nodes (1 with code)
+Usage: Context 3339/64000 tok (5%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=4525 out=196
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 2):
+  Action: update_node
+  Thought: Record concrete SynthFactory registry behaviors revealed by the 
+loaded implementation before strategic analysis.
+  Parameters:
+  - node_id: synth_registry
+  - observations: 3  (+1 more)
+    • zero token aliases WBNB, isSynth marks deployed contracts
+  - assumptions: 1 
+    • deployer-only purge
+Usage: Context 3339/64000 tok (5%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=5734 out=259
+Executing: Executing: update_node
+Result: Updated node synth_registry: 3 observations, 1 assumptions
+Usage: Context 3418/64000 tok (5%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=5734 out=259
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 3):
+  Action: deep_think
+  Thought: SynthFactory implementation, registry behavior, pool-curation 
+dependency, BNB aliasing, and related factory components are loaded with 
+observations; request strategic analysis of registry-related price manipulation 
+implications.
+
+═══ CALLING STRATEGIST FOR DEEP ANALYSIS ═══
+Strategist model: OpenAI/openai-codex/gpt-5.6-luna | effort: default
+Strategist is analyzing the collected context...
+Usage: Context 3418/64000 tok (5%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=5812 out=189
+Executing: Executing: deep_think
+[strategist] deep_think(json): input=4873 tok, limit=64000, context=7% (OpenAI:openai-codex/gpt-5.6-luna)
+
+═══ STRATEGIST ANALYSIS COMPLETE ═══
+
+ℹ No vulnerabilities identified in this analysis
+
+Strategist Guidance:
+  → Trace Synth.getPool and PoolFactory.getPool implementations to verify that 
+token-to-pool resolution uses the same WBNB normalization for address(0) and 
+cannot select a different priced pool.
+  → Verify that every financially sensitive synth mint, burn, vault deposit, and
+withdrawal path obtains pricing from the intended curated pool and does not 
+trust the SynthFactory isSynth flag as a price or valuation oracle.
+  → Review pool curation and reserve-manipulation controls separately; the 
+SynthFactory registry itself only records addresses and does not calculate or 
+consume prices.
+Usage: Context 3756/64000 tok (5%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=4873 out=445
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 4):
+  Action: deep_think
+  Thought: SynthFactory registry code and related Synth, PoolFactory, Pool, 
+router, vault, and factory components are already loaded. Request targeted 
+analysis of WBNB normalization, pool resolution, and whether registry flags 
+influence price-sensitive valuation paths.
+
+═══ CALLING STRATEGIST FOR DEEP ANALYSIS ═══
+Strategist model: OpenAI/openai-codex/gpt-5.6-luna | effort: default
+Strategist is analyzing the collected context...
+Usage: Context 3756/64000 tok (5%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=6147 out=310
+Executing: Executing: deep_think
+[strategist] deep_think(json): input=5218 tok, limit=64000, context=8% (OpenAI:openai-codex/gpt-5.6-luna)
+
+═══ STRATEGIST ANALYSIS COMPLETE ═══
+
+ℹ No vulnerabilities identified in this analysis
+
+Strategist Guidance:
+  → Verify that PoolFactory.getPool(address(0)) and Synth.getPool normalize 
+address(0) to WBNB consistently, preventing resolution to an unintended pool or 
+price source.
+  → Confirm that all synth mint, burn, vault deposit, and withdrawal paths 
+validate the synth against the intended curated pool and do not treat isSynth 
+alone as a valuation oracle.
+  → Review pool curation and reserve accounting separately for spot-price 
+manipulation; SynthFactory only stores token-to-synth mappings and does not 
+calculate or consume prices.
+Usage: Context 4097/64000 tok (6%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=5218 out=407
+Analyzing: Analyzing context and deciding next action
+
+Model Decision (Iteration 5):
+  Action: complete
+  Thought: SynthFactory registry code and all relevant pool, synth, vault, 
+router, and factory components are already loaded and analyzed. The registry 
+only stores token-to-synth mappings and isSynth flags; no additional 
+price-sensitive registry path remains to explore.
+Usage: Context 4097/64000 tok (6%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=6485 out=350
+Executing: Executing: complete
+Result: Investigation complete
+Usage: Context 4164/64000 tok (6%) — Last call OpenAI:openai-codex/gpt-5.6-luna 
+in=6485 out=350
+
+✓ Investigation Completed: Vulnerability analysis of SynthFactory token-to-synth
+and isSynth registries
+Coverage: Nodes 35/38 (92.1%) | Cards 88/130 (67.7%)
+
+═══ Planning Batch 5 ═══
+
+═══ PHASE 1: SWEEP ═══
+Wide sweep for shallow bugs at medium granularity
+Approach: Examine each module/class for all security issues.
+Also captures invariants and assumptions to build the knowledge graph.
+
+Coverage: Nodes 35/38 (92.1%) | Cards 88/130 (67.7%)
+[strategist] plan_next: input=2229 tok, limit=64000, context=3% (OpenAI:openai-codex/gpt-5.6-luna)
+Coverage: Nodes 35/38 (92.1%) | Cards 88/130 (67.7%)
+Unvisited nodes (sample): bnb, i_bep677, i_wbnb
+
+================================================================================
+STRATEGIST PLANNING & AUDIT STATUS
+================================================================================
+
+Coverage: Nodes 35/38 (92.1%) | Cards 88/130 (67.7%) | Unvisited: 3 (sample: 
+bnb@SystemArchitecture, i_bep677@SystemArchitecture, i_wbnb@SystemArchitecture)
+
+Hypothesis Statistics:
+  Total: 4 | Confirmed: 0 | Rejected: 0 | Pending: 4
+
+Planning next investigations...
+
+Investigation Plan:
+╭─────┬────────────┬──────────────┬─────────┬──────────┬──────────┬────────────╮
+│ #   │ Status     │ Phase        │ Goal    │ Priority │ Impact   │ Category   │
+├─────┼────────────┼──────────────┼─────────┼──────────┼──────────┼────────────┤
+│ 1   │ PENDING    │ 1 - Sweep    │ System  │ 7        │ medium   │ aspect     │
+│     │            │              │ compone │          │          │            │
+│     │            │              │ nt      │          │          │            │
+│     │            │              │ review: │          │          │            │
+│     │            │              │ iBEP677 │          │          │            │
+│     │            │              │ (i_bep6 │          │          │            │
+│     │            │              │ 77)     │          │          │            │
+╰─────┴────────────┴──────────────┴─────────┴──────────┴──────────┴────────────╯
+
+Recent Model Activity:
+  Iter 5 executing: Executing: complete
+  Iter 5 result: complete
+  Iter 5 usage: Context 4164/64000 tok (6%) — Last call 
+OpenAI:openai-codex/gpt-5.6-luna in=6485 out=350
+  ✓ Completed: Vulnerability analysis of SynthFactory token-to-synth and isSynth
+registries
+  Planning batch 5 (top 1)
+================================================================================
+
+
+All accessible components have been analyzed
+Sweep mode complete!
+
+═══ INVESTIGATION REPORT ═══
+
+Investigation Goal: Vulnerability analysis of SynthFactory token-to-synth and 
+isSynth registries
+Iterations: 5
+
+Hypotheses:
+  • Total: 4
+  • Confirmed: 2
+  • Rejected: 0
+  • Uncertain: 2
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━┳┓
+┃ Hypothesis                                         ┃ Model                ┃ ┃┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━╇┩
+│ Manipulable pool spot price overweights SynthVault │ unknown              │ ││
+│ deposits and rewards                               │                      │ ││
+│ Spot-price manipulation can amplify reserve-funded │ unknown              │ ││
+│ curated-pool dividends                             │                      │ ││
+│ Router swaps and synth issuance lack user price    │ unknown              │ ││
+│ protection against sandwich manipulation           │                      │ ││
+│ Permissionless pool initialization permits         │ unknown              │ ││
+│ attacker-selected oracle price                     │                      │ ││
+└────────────────────────────────────────────────────┴──────────────────────┴─┴┘
+
+Conclusion:
+  No conclusion available
+
+
+Investigation complete.
+
+Plan Execution Summary
+┏━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━┳━━━━━━━━┳━━━━━━━┓
+┃ #    ┃ Frame            ┃ Goal             ┃ Batch   ┃ Pos  ┃  Iters ┃  Hyps ┃
+┡━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━╇━━━━━━━━╇━━━━━━━┩
+│ 1    │ frame_16ab1de91… │ Vulnerability    │ 5       │ 1    │      5 │     3 │
+│      │                  │ analysis of Pool │         │      │        │       │
+│ 2    │ frame_6364bb0ac… │ Vulnerability    │ 5       │ 2    │      5 │     3 │
+│      │                  │ analysis of      │         │      │        │       │
+│      │                  │ DaoVault         │         │      │        │       │
+│ 3    │ frame_942b4e0c2… │ Vulnerability    │ 5       │ 3    │      5 │     4 │
+│      │                  │ analysis of BASE │         │      │        │       │
+│      │                  │ / SPARTA token   │         │      │        │       │
+│ 4    │ frame_e134e18cc… │ Vulnerability    │ 5       │ 4    │      5 │     4 │
+│      │                  │ analysis of      │         │      │        │       │
+│      │                  │ SynthFactory     │         │      │        │       │
+│      │                  │ token-to-synth   │         │      │        │       │
+│      │                  │ and isSynth      │         │      │        │       │
+│      │                  │ registries       │         │      │        │       │
+└──────┴──────────────────┴──────────────────┴─────────┴──────┴────────┴───────┘
+
+Final Coverage Statistics:
+  Nodes visited: 35/38 (92.1%)
+  Cards analyzed: 88/130 (67.7%)
+
+Session details saved to: sessions/sess_agent_20261012_200221.json

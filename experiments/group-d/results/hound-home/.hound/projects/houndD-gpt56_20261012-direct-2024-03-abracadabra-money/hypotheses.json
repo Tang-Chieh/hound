@@ -1,0 +1,218 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_d4108cfe0ff7": {
+      "title": "Unvalidated oracle and oracleData permit deployment with attacker-influenced collateral pricing",
+      "description": "VULNERABILITY TYPE: oracle_price_manipulation\nROOT CAUSE: The deployment library treats arbitrary oracle and oracleData inputs as trusted and performs no allowlisting, code/implementation verification, sanity bounds, freshness checks, or independent price validation.\nATTACK VECTOR: Influence the deployment configuration to provide a malicious oracle or oracleData, then manipulate its reported exchange rate before users borrow or liquidators evaluate solvency. Cauldron initialization stores the attacker-selected oracle configuration and downstream solvency and liquidation logic relies on it.\nAFFECTED NODES: deployment_tool_cauldron_lib, function_cauldron_oracle_rate, function_cauldron_liquidate, storage_cauldron_position\nAFFECTED CODE: utils/CauldronDeployLib.sol:getCauldronParameters, utils/CauldronDeployLib.sol:deployCauldronV4\nSEVERITY: high\nREASONING: The code visibly forwards arbitrary oracle and oracleData into Cauldron initialization, while the architecture shows that Cauldron exchange-rate and liquidation paths use the configured oracle. Exploitability depends on whether deployment inputs or the selected oracle implementation are attacker-influenceable; under an authorized-deployer compromise or permissionless deployment workflow, the price manipulation path is direct.\nSUGGESTED MITIGATION: Restrict oracle addresses to an audited allowlist or verified implementation, validate oracleData against expected immutable configuration, require freshness and deviation protections in the oracle, and verify the resulting Cauldron configuration after deployment before enabling borrowing.",
+      "vulnerability_type": "oracle_price_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "deployment_tool_cauldron_lib",
+        "function_cauldron_oracle_rate",
+        "function_cauldron_liquidate",
+        "storage_cauldron_position"
+      ],
+      "evidence": [],
+      "reasoning": "The code visibly forwards arbitrary oracle and oracleData into Cauldron initialization, while the architecture shows that Cauldron exchange-rate and liquidation paths use the configured oracle. Exploitability depends on whether deployment inputs or the selected oracle implementation are attacker-influenceable; under an authorized-deployer compromise or permissionless deployment workflow, the price manipulation path is direct.",
+      "mitigation": "Restrict oracle addresses to an audited allowlist or verified implementation, validate oracleData against expected immutable configuration, require freshness and deviation protections in the oracle, and verify the resulting Cauldron configuration after deployment before enabling borrowing.",
+      "finding_description": "getCauldronParameters and deployCauldronV4 encode the caller-supplied oracle address and oracleData directly into the Cauldron initialization without validating oracle provenance, implementation, update behavior, or configuration. If deployment parameters can be influenced by an attacker or a compromised deployment authority, a malicious oracle can report inflated collateral values for borrowing or depressed values for liquidation, and the deployed Cauldron will consume those manipulated prices.",
+      "impact": "The attacker can cause overvalued collateral to support excessive borrowing or undervalued collateral to trigger unfair liquidations, potentially draining BentoBox liquidity or transferring users' collateral to liquidators.",
+      "vulnerable_code": [
+        {
+          "file": "utils/CauldronDeployLib.sol",
+          "contract": "CauldronDeployLib",
+          "function": "getCauldronParameters"
+        },
+        {
+          "file": "utils/CauldronDeployLib.sol",
+          "contract": "CauldronDeployLib",
+          "function": "deployCauldronV4"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "utils/CauldronDeployLib.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_224630",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:49:28.569834",
+      "id": "hyp_d4108cfe0ff7"
+    },
+    "hyp_0cdad7952348": {
+      "title": "Unbounded LTV configuration can create undercollateralized borrowing",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Deployment-time risk parameters are encoded without validating that ltvBips is within the intended 0-10,000 bips range.\nATTACK VECTOR: A deployment caller supplies an ltvBips value greater than 10,000, deploys the Cauldron, and borrows against collateral using the resulting over-permissive collateral valuation. If deployment configuration is attacker-influenced or governance validation is absent, this creates undercollateralized positions that can be realized through BentoBox borrowing.\nAFFECTED NODES: deployment_tool_cauldron_lib, function_cauldron_borrow_repay, function_cauldron_liquidate, storage_cauldron_position\nAFFECTED CODE: utils/CauldronDeployLib.sol:getCauldronParameters\nSEVERITY: high\nREASONING: The function performs unchecked arithmetic conversion from caller-provided LTV bips to the Cauldron parameter. The resulting parameter directly controls borrowing and liquidation solvency calculations. This is configuration-induced overvaluation rather than a live oracle attack, and requires an untrusted or insufficiently reviewed deployment caller.\nSUGGESTED MITIGATION: Require ltvBips <= 10_000 and enforce protocol-specific maximum LTV bounds before encoding parameters; validate the resulting Cauldron collateralization rate after deployment and block activation when it exceeds approved limits.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "deployment_tool_cauldron_lib",
+        "function_cauldron_borrow_repay",
+        "function_cauldron_liquidate",
+        "storage_cauldron_position"
+      ],
+      "evidence": [],
+      "reasoning": "The function performs unchecked arithmetic conversion from caller-provided LTV bips to the Cauldron parameter. The resulting parameter directly controls borrowing and liquidation solvency calculations. This is configuration-induced overvaluation rather than a live oracle attack, and requires an untrusted or insufficiently reviewed deployment caller.",
+      "mitigation": "Require ltvBips <= 10_000 and enforce protocol-specific maximum LTV bounds before encoding parameters; validate the resulting Cauldron collateralization rate after deployment and block activation when it exceeds approved limits.",
+      "finding_description": "getCauldronParameters converts ltvBips to the Cauldron collateralization parameter without enforcing an upper bound. Values above 10,000 bips encode a collateralization rate above 100%, allowing the deployed market to value collateral at more than its configured economic limit when calculating borrow capacity.",
+      "impact": "Borrowers can extract more stablecoins than the collateral can repay, leaving the Cauldron and BentoBox with bad debt when collateral is liquidated at its actual market value.",
+      "vulnerable_code": [
+        {
+          "file": "utils/CauldronDeployLib.sol",
+          "contract": "CauldronDeployLib",
+          "function": "getCauldronParameters"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/interfaces/ICauldronV2.sol",
+          "utils/CauldronDeployLib.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_224630",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:49:28.586406",
+      "id": "hyp_0cdad7952348",
+      "qa_comment": "Upon reviewing CauldronDeployLib.getCauldronParameters and CauldronV4.init, I confirmed that the deployment path accepts an out-of-range LTV value without validation. The helper encodes ltvBips * 1e1 directly as COLLATERIZATION_RATE, while neither getCauldronParameters nor init enforces the documented 0-10,000 bips range or a protocol-specific maximum. CauldronV4._isSolvent then multiplies collateral value by COLLATERIZATION_RATE / 1e5, so a supplied value such as 20,000 bips produces a 200% collateralization rate and permits borrowing up to twice the collateral value, subject only to available MIM and borrow limits. The borrow and cook borrow paths invoke solvency checks using this inflated parameter, and liquidation uses the same solvency calculation, meaning positions can remain apparently solvent despite being economically undercollateralized. Although exploitation requires an untrusted deployment caller or inadequate governance review, the code provides no technical guard against that configuration error. The owner can also set the rate without bounds through setCollateralizationRate, reinforcing the missing invariant."
+    },
+    "hyp_a547184c8f23": {
+      "title": "Owner-controlled ProxyOracle implementation enables instant price substitution",
+      "description": "VULNERABILITY TYPE: oracle_price_manipulation\nROOT CAUSE: A privileged owner can change the entire price implementation without delayed execution or an independent validation constraint on the replacement oracle.\nATTACK VECTOR: Compromise or abuse the ProxyOracle owner, call the implementation-upgrade function, install a malicious oracle implementation, then borrow against inflated collateral or liquidate positions using depressed collateral prices before governance can react.\nAFFECTED NODES: contract_proxy_oracle, function_cauldron_oracle_rate, function_cauldron_liquidate, storage_cauldron_position\nAFFECTED CODE: ProxyOracle implementation delegation and owner-controlled implementation change, Cauldron oracle rate update and oracle-priced liquidation\nSEVERITY: high\nREASONING: The architecture explicitly identifies ProxyOracle as calling price sources and having an owner-only implementation change. The downstream Cauldron paths use the oracle result for solvency and liquidation. No cached-price sanity bound, replacement delay, or independent cross-check is visible in the supplied component context. This is distinct from attacker-controlled oracleData validation: it concerns privileged replacement of the complete oracle logic.\nSUGGESTED MITIGATION: Protect implementation changes with a timelock and multisignature governance, emit and monitor implementation-change events, require the replacement to satisfy an oracle interface and nonzero contract-code checks, and add downstream deviation bounds, circuit breakers, and delayed activation for materially different prices.",
+      "vulnerability_type": "oracle_price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_proxy_oracle",
+        "function_cauldron_oracle_rate",
+        "function_cauldron_liquidate",
+        "storage_cauldron_position"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies ProxyOracle as calling price sources and having an owner-only implementation change. The downstream Cauldron paths use the oracle result for solvency and liquidation. No cached-price sanity bound, replacement delay, or independent cross-check is visible in the supplied component context. This is distinct from attacker-controlled oracleData validation: it concerns privileged replacement of the complete oracle logic.",
+      "mitigation": "Protect implementation changes with a timelock and multisignature governance, emit and monitor implementation-change events, require the replacement to satisfy an oracle interface and nonzero contract-code checks, and add downstream deviation bounds, circuit breakers, and delayed activation for materially different prices.",
+      "finding_description": "ProxyOracle delegates oracle pricing to a replaceable implementation controlled by a single owner. If that owner is compromised, coerced, or malicious, it can atomically replace the implementation with one returning attacker-favorable prices, without an observed timelock, governance delay, or downstream circuit breaker. Cauldron exchange-rate updates and liquidation decisions consume the resulting prices.",
+      "impact": "The attacker can cause Cauldron to record false exchange rates, obtain undercollateralized loans, or trigger unfair liquidations, potentially draining collateral and lending assets.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/oracles/ProxyOracle.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_224630",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:50:09.672115",
+      "id": "hyp_a547184c8f23",
+      "qa_comment": "Upon reviewing the ProxyOracle implementation and CauldronV4 oracle-dependent paths, I confirmed the privileged oracle-substitution risk. ProxyOracle.changeOracleImplementation() is callable by onlyOwner, but performs an immediate assignment of oracleImplementation without a timelock, validation of contract code or interface behavior, price continuity check, or independent approval. All subsequent decimals(), get(), peek(), and peekSpot() calls delegate directly to the replacement. CauldronV4.init(), updateExchangeRate(), and liquidate() consume oracle.get(oracleData), while borrow(), removeCollateral(), and cook() ultimately enforce solvency using the returned exchange rate through _isSolvent(). Consequently, a compromised or malicious ProxyOracle owner can install an oracle that returns arbitrary successful rates and influence borrowing, solvency checks, and liquidation calculations immediately. The cook rate bounds are caller-supplied transaction constraints, not an independent safeguard against a malicious implementation. This is a privileged-governance attack rather than a permissionless exploit, but the source clearly lacks the proposed defense mechanisms and exposes downstream protocol accounting to instantaneous owner-controlled oracle replacement."
+    },
+    "hyp_108b416c2bac": {
+      "title": "Oracle failure preserves stale exchange rates for borrowing and liquidation",
+      "description": "VULNERABILITY TYPE: ORACLE_PRICE_MANIPULATION\nROOT CAUSE: Oracle update failure is fail-open with respect to the cached exchange rate, allowing stale prices to remain authoritative for financially sensitive operations.\nATTACK VECTOR: Manipulate or disrupt the configured price source, submit oracle data that causes the update to fail, or exploit a market move during oracle unavailability; then borrow against overvalued collateral or delay liquidation while the stale cached rate is used.\nAFFECTED NODES: function_cauldron_oracle_rate, storage_cauldron_position, function_cauldron_borrow_repay, function_cauldron_liquidate\nAFFECTED CODE: function_cauldron_oracle_rate: cached exchange-rate update and solvency checks, function_cauldron_borrow_repay: collateral valuation and borrow operations, function_cauldron_liquidate: oracle-priced liquidation, storage_cauldron_position: cached exchange-rate state\nSEVERITY: high\nREASONING: The architecture explicitly records a cached exchange rate and that oracle failure keeps the existing rate. The same exchange-rate state feeds borrowing/solvency and liquidation paths, so a sufficiently stale rate directly affects credit issuance and collateral seizure. Exact source lines were not provided in the loaded graph.\nSUGGESTED MITIGATION: Fail closed when an exchange-rate update fails, or enforce a maximum rate age and deviation bounds before allowing borrowing or liquidation. Consider pausing credit-sensitive operations until a fresh, independently validated price is available.",
+      "vulnerability_type": "ORACLE_PRICE_MANIPULATION",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "function_cauldron_oracle_rate",
+        "storage_cauldron_position",
+        "function_cauldron_borrow_repay",
+        "function_cauldron_liquidate"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records a cached exchange rate and that oracle failure keeps the existing rate. The same exchange-rate state feeds borrowing/solvency and liquidation paths, so a sufficiently stale rate directly affects credit issuance and collateral seizure. Exact source lines were not provided in the loaded graph.",
+      "mitigation": "Fail closed when an exchange-rate update fails, or enforce a maximum rate age and deviation bounds before allowing borrowing or liquidation. Consider pausing credit-sensitive operations until a fresh, independently validated price is available.",
+      "finding_description": "The Cauldron exchange-rate path caches the previous oracle rate and retains it when the oracle update fails. Borrowing, solvency checks, and liquidation then continue using an obsolete valuation rather than reverting or applying a bounded fallback. An attacker who can induce oracle failure or exploit a temporarily unavailable/manipulated source can transact while collateral is materially overvalued or debt is under-collateralized.",
+      "impact": "The attacker may borrow more than the collateral is worth or prevent timely liquidation, leaving bad debt and causing losses to lenders and the protocol.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/interfaces/ICauldronV2.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_224630",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:51:18.178145",
+      "id": "hyp_108b416c2bac",
+      "qa_comment": "Upon reviewing CauldronV4.sol, I confirmed the stale-oracle vulnerability in updateExchangeRate, borrow, the solvent modifier, cook, and liquidate. updateExchangeRate calls oracle.get(oracleData) and, when updated is false, explicitly returns the previously stored exchangeRate without recording an update timestamp, enforcing a maximum age, or applying deviation bounds. The solvent modifier used by borrow and removeCollateral invokes this function and passes the returned rate to _isSolvent, so borrowing and collateral-withdrawal decisions remain based on stale data whenever the oracle fails. The cook path has the same behavior: ACTION_UPDATE_EXCHANGE_RATE only requires a fresh result when must_update is true, which callers can set to false. Most importantly, liquidate explicitly documents that the oracle may fail and uses the cached rate for both solvency checks and collateral seizure calculations. Thus, a market move during oracle outage or a source failure can preserve an overvalued collateral price, enabling undercollateralized borrowing and preventing timely liquidation. No freshness or fail-closed guard exists in the reviewed implementation."
+    },
+    "hyp_38e58ce51876": {
+      "title": "Spot-reserve MagicLP aggregator price can be manipulated before Cauldron valuation",
+      "description": "VULNERABILITY TYPE: oracle_price_manipulation\nROOT CAUSE: The LP oracle uses instantaneous pool reserves and total supply as the valuation basis without evidenced TWAP, deviation, liquidity, or independent-price validation.\nATTACK VECTOR: Acquire or borrow capital, execute a large permissionless MagicLP swap to alter reserves, trigger the Cauldron oracle update or a borrow/liquidation using the manipulated aggregator result, then unwind the swap.\nAFFECTED NODES: contract_magiclp_aggregator, contract_magiclp, interface_aggregator, function_cauldron_oracle_rate, function_cauldron_borrow_repay, function_cauldron_liquidate, contract_proxy_oracle\nAFFECTED CODE: contract_magiclp_aggregator:reserve-based LP pricing, contract_magiclp:PMM pricing and swap state, function_cauldron_oracle_rate:exchange-rate update, function_cauldron_borrow_repay:collateral valuation, function_cauldron_liquidate:oracle-priced liquidation\nSEVERITY: high\nREASONING: The architecture explicitly records that MagicLpAggregator uses a minimum oracle price and reserve sum over supply, and MagicLP exposes PMM pricing state modified by swaps. This creates a concrete spot-state dependency in a financially sensitive collateral oracle. The exact feasibility and magnitude depend on pool liquidity, underlying-price handling, and whether deployment configuration adds external safeguards.\nSUGGESTED MITIGATION: Use a time-weighted and manipulation-resistant valuation for MagicLP, validate both underlying asset prices and pool state, impose bounded rate-change limits and liquidity/deviation checks, and reject oracle updates when reserve composition or price deviates materially from an independent reference.",
+      "vulnerability_type": "oracle_price_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_magiclp_aggregator",
+        "contract_magiclp",
+        "interface_aggregator",
+        "function_cauldron_oracle_rate",
+        "function_cauldron_borrow_repay",
+        "function_cauldron_liquidate",
+        "contract_proxy_oracle"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records that MagicLpAggregator uses a minimum oracle price and reserve sum over supply, and MagicLP exposes PMM pricing state modified by swaps. This creates a concrete spot-state dependency in a financially sensitive collateral oracle. The exact feasibility and magnitude depend on pool liquidity, underlying-price handling, and whether deployment configuration adds external safeguards.",
+      "mitigation": "Use a time-weighted and manipulation-resistant valuation for MagicLP, validate both underlying asset prices and pool state, impose bounded rate-change limits and liquidity/deviation checks, and reject oracle updates when reserve composition or price deviates materially from an independent reference.",
+      "finding_description": "MagicLpAggregator derives the MagicLP token valuation from the pool's current reserve sum divided by total supply and only applies a minimum oracle price. The reserve state is affected by permissionless swaps, while no time-weighted or independently sourced price protection is evidenced. An attacker can trade against the pool to skew reserves immediately before a Cauldron oracle update, causing the aggregator and downstream ProxyOracle/Cauldron exchange rate to overvalue or undervalue collateral.",
+      "impact": "A borrower can temporarily inflate collateral value and borrow more than the collateral is worth, or force incorrect liquidation and acquire collateral at a manipulated valuation, producing bad debt or direct protocol loss.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "src/oracles/ProxyOracle.sol",
+          "src/oracles/aggregators/MagicLpAggregator.sol",
+          "src/mimswap/MagicLP.sol",
+          "src/interfaces/ICauldronV2.sol",
+          "src/cauldrons/CauldronV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_224630",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T22:52:41.645006",
+      "id": "hyp_38e58ce51876",
+      "qa_comment": "Upon reviewing MagicLpAggregator.latestAnswer(), MagicLP.getReserves(), the permissionless sellBase() and sellQuote() functions, and CauldronV4.updateExchangeRate(), borrow(), cook(), and liquidate(), I confirmed a spot-reserve oracle-manipulation vulnerability. The aggregator obtains the current base and quote reserves, normalizes them, sums them, multiplies the result by the minimum of the two underlying oracle answers, and divides by pair.totalSupply(). It does not use MagicLP's cumulative price state, a TWAP, an independent LP valuation, liquidity thresholds, deviation limits, or a bounded rate-change check. MagicLP swaps update _BASE_RESERVE_ and _QUOTE_RESERVE_ through _setReserve(), so an attacker can trade against the pool to materially alter the valuation inputs while totalSupply remains unchanged. The attacker can then call CauldronV4.updateExchangeRate() or combine rate updating with borrowing through cook(), causing collateral solvency calculations to use the manipulated rate, and potentially unwind afterward. ProxyOracle only delegates calls and adds no protection. Although profitability depends on pool liquidity, fees, collateral balances, and underlying oracle behavior, the code provides a clear manipulation path and no effective mitigation."
+    }
+  },
+  "metadata": {
+    "total": 5,
+    "confirmed": 4,
+    "last_modified": "2026-10-12T22:52:41.646373"
+  }
+}

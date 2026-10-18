@@ -1,0 +1,74 @@
+{
+  "repo_id": "2023-06-real-wagmi",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_92fca074a04e",
+      "title": "Rebalance is hardcoded to the 0.05% Uniswap pool and can be permanently unavailable",
+      "description": "Multipool.getAmountOut always reads underlyingTrustedPools[500].poolAddress, regardless of the configured strategy or constructor fee list. Factory.createMultipool accepts arbitrary fee arrays, so a valid multipool created without fee 500 causes rebalanceAll to call observe on address(0) and revert.",
+      "impact": "Liquidity cannot be rebalanced for affected pools, preventing strategy updates and potentially leaving assets in stale positions or blocking operational risk management.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "getAmountOut(bool,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "rebalanceAll(RebalanceParams)"
+        },
+        {
+          "file": "concentrator/contracts/Factory.sol",
+          "contract": "Factory",
+          "function": "createMultipool(address,address,address,uint24[])"
+        }
+      ],
+      "mitigation": "Use a configured trusted fee tier or a strategy-selected oracle pool, and validate oracle availability during pool creation and before rebalance. Reject zero-duration or unavailable observation configurations.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_5c8f93529b0b",
+      "title": "Unbounded TWAP duration configuration can disable all rebalances",
+      "description": "setParam casts the arbitrary _param value to uint32 for twapDuration without requiring it to be nonzero, within a practical observation window, or representable as a safe signed divisor. getAmountOut divides by int32(twapDuration) and requests that observation period from Uniswap V3.",
+      "impact": "The operator cannot rebalance the pool, and an invalid configuration can make recovery require privileged administrative intervention.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "setParam(MANAGING,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "getAmountOut(bool,uint256)"
+        }
+      ],
+      "mitigation": "Require twapDuration > 0, <= type(int32).max, and within a documented maximum supported by the underlying pools; validate observation cardinality or handle unavailable history before allowing the parameter update.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_d2fcdfe7d2c1",
+      "title": "Spot-price manipulation can distort deposit LP issuance",
+      "description": "Multipool.deposit obtains slot data through getSlots, which reads each underlying Uniswap V3 pool's current slot0 price, and uses that data to calculate liquidity and LP issuance. Unlike the rebalance path, the deposit path has no demonstrated TWAP or manipulation-resistance check.",
+      "impact": "The attacker may mint undervalued or overvalued LP tokens and redeem against reserves, transferring value from existing liquidity providers or causing unfair dilution.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "deposit"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "getSlots"
+        }
+      ],
+      "mitigation": "Use a sufficiently long and validated TWAP for deposit valuation, reject stale or insufficient observations, and enforce deposit minimums based on a manipulation-resistant reference price. Consider adding per-deposit price-impact limits and synchronizing valuation across all underlying positions.",
+      "severity": "high"
+    }
+  ]
+}

@@ -1,0 +1,487 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_527e443b401c": {
+      "title": "Factory accepts an unauthenticated risk-engine address",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Risk-engine validation is limited to a nonzero-address check rather than authenticating the implementation or restricting configuration to trusted risk engines.\nATTACK VECTOR: An attacker deploys or front-runs creation of a pool using a contract-controlled risk engine that returns favorable risk results, then induces users or integrators to interact with the resulting factory-registered pool.\nAFFECTED NODES: factory_v4, risk_engine_interface, risk_engine, panoptic_pool\nAFFECTED CODE: PanopticFactoryV4 risk-engine validation and pool deployment\nSEVERITY: high\nREASONING: The architecture explicitly records a nonzero risk-engine requirement but does not record implementation verification, allowlisting, code/interface validation, or immutable binding to a trusted engine. This is exploitable if pool creation exposes the risk-engine choice or permits an untrusted factory configuration.\nSUGGESTED MITIGATION: Restrict pool creation to an approved risk-engine registry or bind the factory to an immutable trusted implementation; verify code/interface compatibility and prevent arbitrary risk-engine addresses from being registered for production pools.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "factory_v4",
+        "risk_engine_interface",
+        "risk_engine",
+        "panoptic_pool"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records a nonzero risk-engine requirement but does not record implementation verification, allowlisting, code/interface validation, or immutable binding to a trusted engine. This is exploitable if pool creation exposes the risk-engine choice or permits an untrusted factory configuration.",
+      "mitigation": "Restrict pool creation to an approved risk-engine registry or bind the factory to an immutable trusted implementation; verify code/interface compatibility and prevent arbitrary risk-engine addresses from being registered for production pools.",
+      "finding_description": "PanopticFactoryV4 is observed to require only a nonzero risk-engine address before deploying a pool. Without validating that the address is an approved implementation or otherwise enforcing the expected RiskEngine behavior, a caller able to select this parameter can deploy a pool backed by a malicious contract that returns permissive collateral and solvency assessments.",
+      "impact": "The malicious pool can accept undercollateralized positions and permit withdrawals or trades that should fail, potentially causing deposited collateral to be lost when the pool becomes insolvent.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/RiskEngine.sol",
+          "contracts/PanopticPool.sol",
+          "contracts/interfaces/IRiskEngine.sol",
+          "contracts/PanopticFactoryV4.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:56:50.223675",
+      "id": "hyp_527e443b401c",
+      "qa_comment": "Upon reviewing the PanopticFactoryV4.deployNewPool function, I confirmed that pool creation accepts any nonzero riskEngine address and performs no allowlist, implementation-address, code-hash, interface, or governance authorization check. Although the subsequent riskEngine.vegoid() call implicitly requires the address to provide a compatible return value, an attacker can deploy a contract implementing the required IRiskEngine methods while returning attacker-controlled values for getRiskParameters, getSolvencyTicks, isAccountSolvent, getMargin, liquidation calculations, and related functions. The selected address is embedded immutably into the PanopticPool and both CollateralTracker clones, so all security-critical pool calculations thereafter trust the attacker\u2019s implementation. The pool is also recorded in s_getPanopticPool and advertised through PoolDeployed, allowing integrators or users that treat factory-registered pools as trusted to interact with it. The mapping\u2019s inclusion of the risk-engine address prevents duplicate-key conflicts but does not establish trust. Therefore, the nonzero check and ABI compatibility implied by vegoid() are insufficient access-control protections."
+    },
+    "hyp_e01549358865": {
+      "title": "Multicall reuses msg.value across delegated calls",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Delegatecall preserves msg.value and the multicall implementation does not track or restrict value consumption between subcalls.\nATTACK VECTOR: An attacker submits one multicall transaction with a nonzero value and multiple calls to a payable state-changing function. Each subcall observes the same msg.value and may independently credit the attacker, despite only one amount being transferred.\nAFFECTED NODES: multicall, panoptic_pool\nAFFECTED CODE: Multicall self-delegatecall batching, PanopticPool functions reachable through multicall\nSEVERITY: high\nREASONING: The architecture explicitly identifies self-delegatecalls. Solidity delegatecall preserves msg.sender and msg.value, so value replay is inherent unless the implementation rejects nonzero msg.value, permits only one payable subcall, or explicitly accounts for value consumption. Exploitability depends on whether reachable payable functions use msg.value for accounting.\nSUGGESTED MITIGATION: Reject multicall transactions with nonzero msg.value unless value forwarding is explicitly supported; alternatively permit at most one payable subcall and enforce exact value accounting so the aggregate subcalls cannot consume the same msg.value more than once.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "multicall",
+        "panoptic_pool"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies self-delegatecalls. Solidity delegatecall preserves msg.sender and msg.value, so value replay is inherent unless the implementation rejects nonzero msg.value, permits only one payable subcall, or explicitly accounts for value consumption. Exploitability depends on whether reachable payable functions use msg.value for accounting.",
+      "mitigation": "Reject multicall transactions with nonzero msg.value unless value forwarding is explicitly supported; alternatively permit at most one payable subcall and enforce exact value accounting so the aggregate subcalls cannot consume the same msg.value more than once.",
+      "finding_description": "Multicall executes each batch element through address(this).delegatecall, which preserves the original msg.value for every delegated invocation. If any payable pool or inherited function credits deposits, mints assets, or performs accounting based on msg.value, one ETH payment can be consumed repeatedly within a single batch.",
+      "impact": "Depending on the payable functions exposed by the pool, an attacker may obtain multiple deposits, claims, or minted positions for a single payment, causing loss of native assets or insolvency in affected accounting.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/PanopticPool.sol",
+          "contracts/base/Multicall.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:57:14.579333",
+      "id": "hyp_e01549358865",
+      "qa_comment": "Upon reviewing Multicall.multicall and PanopticPool.dispatchFrom, I determined that the alleged vulnerability is not demonstrated by the supplied code. The self-delegatecall loop in Multicall does preserve msg.sender and msg.value, but PanopticPool has only one relevant payable state-changing entry point: dispatchFrom. Its msg.value is not used to credit the caller repeatedly in storage; it is forwarded only during liquidation through collateralToken0().settleLiquidation{value: msg.value}(...). Repeating dispatchFrom through multicall would cause each liquidation subcall to attempt an outbound value transfer of the same amount from the PanopticPool balance. The EVM balance requirement means that, absent additional pre-existing ETH or partial consumption, the subsequent transfer will revert rather than create value. The other dispatchFrom branches (force exercise and premium settlement) do not forward or account for msg.value. Therefore, although the generic delegatecall property exists, the provided implementation does not show multiple payable accounting operations that independently credit an attacker from one incoming value. Confirming a balance-draining scenario would require the CollateralTracker.settleLiquidation implementation and evidence of exploitable pre-existing native-currency balances."
+    },
+    "hyp_a9057128dda7": {
+      "title": "Epoch-gated oracle can remain stale while still being treated as valid",
+      "description": "VULNERABILITY TYPE: oracle\nROOT CAUSE: Epoch-gated persistence is not inherently a freshness guarantee, and the loaded architecture does not show a mandatory freshness check at oracle consumers.\nATTACK VECTOR: An attacker trades or borrows against the pool after a large market move while preventing or waiting out the next oracle update, then exploits the still-accepted historical tick for collateral actions.\nAFFECTED NODES: oracle_pack_type, risk_engine, panoptic_pool\nAFFECTED CODE: OraclePack EMA and median tick storage/update logic, RiskEngine oracle tick consumption, PanopticPool solvency gates\nSEVERITY: high\nREASONING: The architecture explicitly identifies epoch-gated updates and oracle-gated solvency, but exposes no evidence that stale values are rejected. This is exploitable if updates can be delayed or skipped and should be verified in the consumer paths.\nSUGGESTED MITIGATION: Store the observation timestamp or epoch and require every risk-sensitive consumer to reject values older than a configured maximum age; define an explicit fail-closed behavior when the update epoch is missed.",
+      "vulnerability_type": "oracle",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_pack_type",
+        "risk_engine",
+        "panoptic_pool"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies epoch-gated updates and oracle-gated solvency, but exposes no evidence that stale values are rejected. This is exploitable if updates can be delayed or skipped and should be verified in the consumer paths.",
+      "mitigation": "Store the observation timestamp or epoch and require every risk-sensitive consumer to reject values older than a configured maximum age; define an explicit fail-closed behavior when the update epoch is missed.",
+      "finding_description": "OraclePack is described as using epoch-gated updates, while RiskEngine and PanopticPool use its EMA/median ticks for solvency decisions. If no freshness or maximum-age check is enforced at the consumer boundary, a failed, delayed, or skipped update leaves an old oracle value active and indistinguishable from a current observation.",
+      "impact": "During a material market move, stale pricing can cause the risk engine to accept undercollateralized positions, permit withdrawals or burns that should fail, and accumulate bad debt before the oracle is updated.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/PanopticPool.sol",
+          "contracts/types/OraclePack.sol",
+          "contracts/RiskEngine.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:58:55.768492",
+      "id": "hyp_a9057128dda7",
+      "qa_comment": "Upon reviewing the oracle update and consumer paths in PanopticPool, RiskEngine, and OraclePackLibrary, I determined this hypothesis is a false positive. Although OraclePack stores observations by 64-second epochs and does not impose an explicit maximum-age revert, risk-sensitive consumers do not blindly trust the persisted pack. PanopticPool._validateSolvency calls RiskEngine.getSolvencyTicks, which invokes OraclePack.getOracleTicks and computes a prospective observation using the current pool tick whenever the stored epoch differs from the current epoch. The returned pack is then persisted by dispatch or pokeOracle. The same path dynamically selects multiple conservative ticks, including median, latest, and current ticks, when divergence exceeds MAX_TICKS_DELTA. RiskEngine.isSafeMode additionally detects external shocks, EMA disagreement, and median/EMA divergence; PanopticPool.dispatch blocks new positions when safeMode exceeds two. Liquidation in dispatchFrom checks spot, TWAP, latest, and current ticks and rejects excessive current-versus-TWAP deviation with StaleOracle. Therefore, delayed updates may leave storage stale temporarily, but the relevant solvency checks derive fresh or conservative values and include fail-safe guards rather than accepting an unconditionally historical tick."
+    },
+    "hyp_828be110f959": {
+      "title": "Boundary-time spot manipulation can poison the epoch oracle",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Epoch gating limits update frequency but does not prevent manipulation of the source tick at the precise time an epoch observation is captured.\nATTACK VECTOR: Acquire temporary control of the relevant AMM price around the epoch transition, trigger or wait for the oracle update, then perform collateral or position actions using the poisoned EMA/median value.\nAFFECTED NODES: oracle_pack_type, risk_engine, panoptic_pool, sfpm_v3, sfpm_v4\nAFFECTED CODE: OraclePack observation capture and EMA/median computation, RiskEngine solvency calculations, SemiFungiblePositionManager market price source\nSEVERITY: high\nREASONING: The graph identifies clamped observations, EMA/median ticks, and epoch-gated updates but does not identify a manipulation-resistant sampling mechanism. The issue depends on whether the captured observation is derived from a manipulable spot or short-window price.\nSUGGESTED MITIGATION: Build observations from sufficiently long-duration, liquidity-weighted TWAP data rather than a boundary spot tick; enforce minimum observation spacing and liquidity/depth checks, and ensure updates cannot be permissionlessly selected from an attacker-controlled instantaneous price.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_pack_type",
+        "risk_engine",
+        "panoptic_pool",
+        "sfpm_v3",
+        "sfpm_v4"
+      ],
+      "evidence": [],
+      "reasoning": "The graph identifies clamped observations, EMA/median ticks, and epoch-gated updates but does not identify a manipulation-resistant sampling mechanism. The issue depends on whether the captured observation is derived from a manipulable spot or short-window price.",
+      "mitigation": "Build observations from sufficiently long-duration, liquidity-weighted TWAP data rather than a boundary spot tick; enforce minimum observation spacing and liquidity/depth checks, and ensure updates cannot be permissionlessly selected from an attacker-controlled instantaneous price.",
+      "finding_description": "An epoch-gated oracle that records an observation from the current market tick can be manipulated at the update boundary. An attacker can temporarily move the underlying AMM price immediately before an observation is accepted, causing the manipulated tick to enter the EMA or median history and influence risk calculations for the remainder of the epoch.",
+      "impact": "A temporary price move can make positions appear safer or riskier than their true market value, enabling undercollateralized borrowing, liquidation avoidance, or forced liquidations and associated losses.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/RiskEngine.sol",
+          "contracts/SemiFungiblePositionManagerV4.sol",
+          "contracts/SemiFungiblePositionManager.sol",
+          "contracts/PanopticPool.sol",
+          "contracts/types/OraclePack.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:58:55.783940",
+      "id": "hyp_828be110f959"
+    },
+    "hyp_f33d1d4c530d": {
+      "title": "Oracle clamping can create persistent saturated prices instead of rejecting invalid observations",
+      "description": "VULNERABILITY TYPE: oracle_validation\nROOT CAUSE: Clamping converts invalid or extreme source values into accepted values that participate in stateful EMA/median calculations.\nATTACK VECTOR: Manipulate the underlying price or submit an out-of-range observation at successive permitted update epochs so the clamped value is incorporated into the oracle state and used by the risk engine.\nAFFECTED NODES: oracle_pack_type, risk_engine, constants_library\nAFFECTED CODE: OraclePack clamping and observation incorporation, RiskEngine oracle-derived pricing, Constants tick bounds\nSEVERITY: medium\nREASONING: The architecture confirms clamped observations but does not specify whether clamping occurs before validation, whether updates are externally supplied, or whether deviation checks exist. Confirm the update path and handling of out-of-range values before accepting this finding.\nSUGGESTED MITIGATION: Treat observations outside configured deviation and tick bounds as invalid rather than silently clipping them; require independent corroboration and bounded per-update movement before incorporating an observation, and fail closed when the source repeatedly violates limits.",
+      "vulnerability_type": "oracle_validation",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_pack_type",
+        "risk_engine",
+        "constants_library"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture confirms clamped observations but does not specify whether clamping occurs before validation, whether updates are externally supplied, or whether deviation checks exist. Confirm the update path and handling of out-of-range values before accepting this finding.",
+      "mitigation": "Treat observations outside configured deviation and tick bounds as invalid rather than silently clipping them; require independent corroboration and bounded per-update movement before incorporating an observation, and fail closed when the source repeatedly violates limits.",
+      "finding_description": "OraclePack is explicitly described as clamping observations. If out-of-range or anomalous ticks are clipped into the valid range and then incorporated into EMA or median state, an attacker can repeatedly submit extreme observations that remain valid at the clamp boundary rather than causing an oracle failure. This can bias the persisted oracle toward a boundary value and conceal source-data failure.",
+      "impact": "Risk calculations can use a materially distorted but apparently valid price, allowing excessive collateral withdrawals or position creation, or triggering erroneous liquidations when the clamp boundary is far from the true market price.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/types/OraclePack.sol",
+          "contracts/libraries/Constants.sol",
+          "contracts/RiskEngine.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:58:55.797000",
+      "id": "hyp_f33d1d4c530d"
+    },
+    "hyp_36c49a11fe77": {
+      "title": "Unchecked recipient balance addition can wrap token balances",
+      "description": "VULNERABILITY TYPE: arithmetic_error\nROOT CAUSE: The recipient balance addition is unchecked and is not independently guarded against uint256 overflow.\nATTACK VECTOR: Cause or obtain a recipient balance near uint256.max, then transfer tokens to that address so the unchecked addition wraps; exploit the resulting balance/accounting inconsistency in downstream collateral or share accounting.\nAFFECTED NODES: erc20_minimal\nAFFECTED CODE: erc20_minimal:recipient balance update, erc20_minimal:transfer\nSEVERITY: medium\nREASONING: The architecture explicitly identifies an unchecked recipient balance update and direct balance transfers. This is exploitable only if the token's supply or balances can reach a value close enough to uint256.max; the available context does not establish whether minting or initialization prevents that state.\nSUGGESTED MITIGATION: Use checked arithmetic for recipient balance updates, or enforce an explicit overflow condition before addition. Also ensure every mint or initialization path preserves totalSupply and per-account balance bounds.",
+      "vulnerability_type": "arithmetic_error",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "erc20_minimal"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies an unchecked recipient balance update and direct balance transfers. This is exploitable only if the token's supply or balances can reach a value close enough to uint256.max; the available context does not establish whether minting or initialization prevents that state.",
+      "mitigation": "Use checked arithmetic for recipient balance updates, or enforce an explicit overflow condition before addition. Also ensure every mint or initialization path preserves totalSupply and per-account balance bounds.",
+      "finding_description": "ERC20Minimal performs the recipient balance increase inside unchecked arithmetic. If an account balance and transferred amount sum above uint256.max\u2014such as after an unexpectedly large mint or corrupted/preloaded balance\u2014the recipient balance wraps to a small value while the sender balance is reduced, breaking token accounting and potentially enabling subsequent transfers based on an inconsistent balance state.",
+      "impact": "Token balances can be corrupted, allowing loss of accounting integrity and potentially incorrect collateral/share valuations or unauthorized transfers if a wrapping state is reachable.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/tokens/ERC20Minimal.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:59:24.707760",
+      "id": "hyp_36c49a11fe77"
+    },
+    "hyp_b0b2b549ea66": {
+      "title": "SafeTransferLib treats non-contract or silently failing tokens as successful transfers",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Low-level token calls validate call success and optionally decode a boolean, but do not verify token contract existence or independently verify the token balance delta. Empty-return calls are accepted for compatibility with legacy ERC20 tokens.\nATTACK VECTOR: An attacker supplies or causes use of a non-contract or malicious ERC20-like asset whose transferFrom/transfer call returns successfully without moving tokens. The tracker credits deposits or completes payouts while the underlying balance remains unchanged.\nAFFECTED NODES: safe_transfer_lib, collateral_tracker, erc20_partial_interface\nAFFECTED CODE: SafeTransferLib low-level ERC20 transfer and transferFrom calls, CollateralTracker token settlement and accounting paths\nSEVERITY: high\nREASONING: The architecture explicitly identifies SafeTransferLib as accepting empty token-call returns and shows CollateralTracker relying on it across an IERC20Partial trust boundary. Empty-return acceptance is necessary for some legacy tokens, but without code-existence checks and balance-delta validation it also accepts calls that did not perform an ERC20 transfer. Exploitability depends on whether an attacker-controlled or untrusted asset can reach a collateral tracker.\nSUGGESTED MITIGATION: Require the token address to contain contract code before invoking it, restrict supported assets to vetted ERC20 implementations, and for deposit/transferFrom flows verify the recipient balance increase or otherwise account for actual received amounts. Do not rely solely on empty return data to establish that assets moved.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "safe_transfer_lib",
+        "collateral_tracker",
+        "erc20_partial_interface"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies SafeTransferLib as accepting empty token-call returns and shows CollateralTracker relying on it across an IERC20Partial trust boundary. Empty-return acceptance is necessary for some legacy tokens, but without code-existence checks and balance-delta validation it also accepts calls that did not perform an ERC20 transfer. Exploitability depends on whether an attacker-controlled or untrusted asset can reach a collateral tracker.",
+      "mitigation": "Require the token address to contain contract code before invoking it, restrict supported assets to vetted ERC20 implementations, and for deposit/transferFrom flows verify the recipient balance increase or otherwise account for actual received amounts. Do not rely solely on empty return data to establish that assets moved.",
+      "finding_description": "The library relies on a low-level ERC20 call and accepts empty return data as success, without requiring the token address to contain contract code. Calls to an EOA, zero address, or malicious token that performs no transfer but returns no data can therefore pass as successful transfers. CollateralTracker can then update its accounting based on a transfer that never occurred.",
+      "impact": "A collateral tracker may mint shares or record collateral without receiving assets, allowing the attacker to withdraw real collateral and causing insolvency for other users.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/CollateralTracker.sol",
+          "contracts/libraries/SafeTransferLib.sol",
+          "contracts/tokens/interfaces/IERC20Partial.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T01:00:15.117839",
+      "id": "hyp_b0b2b549ea66"
+    },
+    "hyp_01bf3c50b9da": {
+      "title": "V4StateReader trusts unverified extsload state source and storage layout",
+      "description": "VULNERABILITY TYPE: state_validation\nROOT CAUSE: External storage reads are treated as authoritative without validating the target code identity, deployment, version, or returned storage schema.\nATTACK VECTOR: Deploy or configure a counterfeit or upgraded V4 state source implementing extsload to return attacker-selected packed words, then cause PanopticPool or its risk engine to calculate collateral and solvency from the forged state.\nAFFECTED NODES: v4_state_reader, sfpm_v4, pool_data_type, panoptic_pool, risk_engine\nAFFECTED CODE: V4StateReader extsload-based packed-state readers, SemiFungiblePositionManagerV4 consumers of V4StateReader\nSEVERITY: high\nREASONING: The architecture explicitly identifies V4StateReader as decoding packed storage obtained through extsload, while no authenticity or storage-layout validation is shown. The issue is exploitable when the read target is not a permanently trusted canonical deployment; otherwise it is a deployment and upgrade-safety risk rather than an immediate attack.\nSUGGESTED MITIGATION: Restrict reads to an immutable, verified canonical V4 state source; validate the target address and expected code hash/version during initialization and upgrades; validate extsload return length and packed-field ranges before use; fail closed when the target or storage schema is unsupported.",
+      "vulnerability_type": "state_validation",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "v4_state_reader",
+        "sfpm_v4",
+        "pool_data_type",
+        "panoptic_pool",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies V4StateReader as decoding packed storage obtained through extsload, while no authenticity or storage-layout validation is shown. The issue is exploitable when the read target is not a permanently trusted canonical deployment; otherwise it is a deployment and upgrade-safety risk rather than an immediate attack.",
+      "mitigation": "Restrict reads to an immutable, verified canonical V4 state source; validate the target address and expected code hash/version during initialization and upgrades; validate extsload return length and packed-field ranges before use; fail closed when the target or storage schema is unsupported.",
+      "finding_description": "V4StateReader obtains packed pool state through extsload and decodes it without evidence of authenticating the target contract or validating that the returned words correspond to the expected V4 storage layout. If the SFPM or pool-manager address is configurable, upgradeable, or otherwise replaceable, a malicious implementation can return fabricated liquidity, tick, fee, or position state that downstream solvency and pricing logic accepts.",
+      "impact": "The attacker may cause incorrect collateral requirements and liquidity accounting, enabling undercollateralized positions, unauthorized withdrawals, or protocol insolvency; a nonresponsive source can also cause protocol-wide denial of service.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/RiskEngine.sol",
+          "contracts/libraries/V4StateReader.sol",
+          "contracts/types/PoolData.sol",
+          "contracts/SemiFungiblePositionManagerV4.sol",
+          "contracts/PanopticPool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T01:00:45.698624",
+      "id": "hyp_01bf3c50b9da",
+      "qa_comment": "Upon reviewing V4StateReader and its consumers in SemiFungiblePositionManagerV4 and PanopticPool, I determined this hypothesis is not an independently exploitable vulnerability in the shown implementation. V4StateReader does trust the Uniswap V4 storage layout and decodes values returned by extsload without checking code hash, schema version, or semantic ranges. However, the target is not user-controlled: SemiFungiblePositionManagerV4 stores POOL_MANAGER_V4 as an immutable constructor parameter, and PanopticPool stores the SFPM as an immutable parameter in its implementation while clones encode the associated pool manager and pool key as immutable arguments. There is no setter or configuration path allowing an attacker to replace the manager used by an existing deployment. Moreover, the SFPM restricts unlockCallback to the immutable POOL_MANAGER_V4 address and uses that same address for modifyLiquidity, swaps, mints, and burns, so a counterfeit extsload-only contract cannot transparently substitute for the canonical manager. A malicious deployment could intentionally pass a counterfeit manager, but that is a deployment trust or configuration failure rather than a demonstrated attack against correctly initialized canonical instances."
+    },
+    "hyp_0f7ee9e0b440": {
+      "title": "Non-canonical tick inputs can create token-ID or position-hash collisions",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Tick values are canonicalized by bit masking without an explicit range and sign/canonical-form validation at the PanopticMath/token-ID boundary.\nATTACK VECTOR: An attacker submits a malformed position or token-ID construction request using an out-of-range tick that aliases a valid tick after 24-bit masking, then interacts with the resulting aliased position or uses it in downstream accounting.\nAFFECTED NODES: panoptic_math, token_id_type, efficient_hash, position_balance_type\nAFFECTED CODE: PanopticMath token-ID and position conversion routines, EfficientHash tick-key encoding, PositionBalance packed tick decoding\nSEVERITY: high\nREASONING: The architecture explicitly records masked 24-bit tick hashing and unchecked packed tick decoding, but provides no evidence that PanopticMath itself rejects non-canonical ticks before encoding. The exploit depends on an externally reachable path accepting wider-than-int24 values; this should be confirmed in the concrete callers.\nSUGGESTED MITIGATION: Validate every tick before encoding or hashing: require it to be within the protocol's canonical min/max bounds, explicitly sign-extend packed values during decoding, and reject non-canonical representations rather than silently masking them. Add tests proving distinct invalid inputs cannot resolve to an existing valid token ID.",
+      "vulnerability_type": "logic_error",
+      "severity": "high",
+      "confidence": 0.42,
+      "status": "proposed",
+      "node_refs": [
+        "panoptic_math",
+        "token_id_type",
+        "efficient_hash",
+        "position_balance_type"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records masked 24-bit tick hashing and unchecked packed tick decoding, but provides no evidence that PanopticMath itself rejects non-canonical ticks before encoding. The exploit depends on an externally reachable path accepting wider-than-int24 values; this should be confirmed in the concrete callers.",
+      "mitigation": "Validate every tick before encoding or hashing: require it to be within the protocol's canonical min/max bounds, explicitly sign-extend packed values during decoding, and reject non-canonical representations rather than silently masking them. Add tests proving distinct invalid inputs cannot resolve to an existing valid token ID.",
+      "finding_description": "The token-ID and hashing path masks tick values to 24 bits, while the connected position-balance decoding is described as unchecked. If any caller supplies a tick value outside the canonical signed int24/AMM tick range before PanopticMath or EfficientHash processes it, distinct integer inputs differing by 2^24 are encoded identically. This can cause a position or liquidity chunk to be addressed under the wrong token ID and make authorization, ownership, or accounting checks operate on an aliased position.",
+      "impact": "An attacker submits a malformed position or token-ID construction request using an out-of-range tick that aliases a valid tick after 24-bit masking, then interacts with the resulting aliased position or uses it in downstream accounting.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/types/PositionBalance.sol",
+          "contracts/libraries/EfficientHash.sol",
+          "contracts/libraries/PanopticMath.sol",
+          "contracts/types/TokenId.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T01:02:01.967922",
+      "id": "hyp_0f7ee9e0b440"
+    },
+    "hyp_febf18dc6fdc": {
+      "title": "Pointer does not validate the referenced code-bearing address or slice bounds",
+      "description": "VULNERABILITY TYPE: validation_error\nROOT CAUSE: The packed pointer representation is trusted during decoding and code-slice reads, with no demonstrated address-code existence or offset/length validation.\nATTACK VECTOR: Cause or supply an invalid Pointer value to a metadata read path, or cause a referenced code-bearing address to have missing or unexpected runtime code; subsequent metadata reads return truncated/empty data or revert during decoding.\nAFFECTED NODES: pointer_type, metadata_store, factory_nft\nAFFECTED CODE: Pointer packed-code-pointer decoding and code-slice read, MetadataStore nested pointer mapping and metadata retrieval, FactoryNFT SVG/metadata generation\nSEVERITY: medium\nREASONING: The architecture explicitly identifies Pointer as a packed code pointer that reads a code slice and MetadataStore as its consumer, but provides no evidence of validation of the decoded code address or slice boundaries. extcodecopy-style reads commonly return zero-padded data for out-of-range offsets and do not inherently prove that code exists.\nSUGGESTED MITIGATION: Validate the decoded address with extcodesize/code existence checks, validate offset and length against the actual runtime code size before reading, reject zero or malformed pointers, and make metadata decoding fail closed on truncated or invalid data.",
+      "vulnerability_type": "validation_error",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "pointer_type",
+        "metadata_store",
+        "factory_nft"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies Pointer as a packed code pointer that reads a code slice and MetadataStore as its consumer, but provides no evidence of validation of the decoded code address or slice boundaries. extcodecopy-style reads commonly return zero-padded data for out-of-range offsets and do not inherently prove that code exists.",
+      "mitigation": "Validate the decoded address with extcodesize/code existence checks, validate offset and length against the actual runtime code size before reading, reject zero or malformed pointers, and make metadata decoding fail closed on truncated or invalid data.",
+      "finding_description": "Pointer reads metadata from a packed address/code pointer using contract-code access without evidence of validating that the decoded address contains code or that the requested slice lies within the code length. A zero, malformed, or stale pointer can therefore yield empty or zero-padded bytes, which downstream metadata decoding may treat as valid data or cause failures.",
+      "impact": "Metadata can be corrupted, omitted, or made unavailable, potentially causing token metadata generation or dependent NFT operations to revert. If callers use decoded metadata as an authorization or routing input, malformed values could also affect those decisions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/types/Pointer.sol",
+          "contracts/base/MetadataStore.sol",
+          "contracts/base/FactoryNFT.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T01:02:49.592703",
+      "id": "hyp_febf18dc6fdc",
+      "qa_comment": "Upon reviewing the alleged validation error in PointerLibrary.data, PointerLibrary.decompressedDataStr, MetadataStore's constructor, and FactoryNFT's metadata-generation functions, I determined this is not a clearly exploitable vulnerability. Pointer.data does perform extcodecopy without checking extcodesize, the requested slice bounds, or whether the decoded address contains code, so malformed or stale pointers could produce zero-padded data or cause decompression and downstream processing to revert. However, every pointer is supplied only through the MetadataStore constructor and stored in an internal mapping; the shown code provides no external setter or user-controlled metadata update path. The tokenURI and constructMetadata callers select among these immutable deployment-time pointers but cannot alter them. Consequently, exploitation would require a malicious or faulty deployer configuration, or an independently changed/removed code source, rather than an attacker supplying an invalid Pointer to an existing deployed FactoryNFT. The absence of defensive validation is a robustness and deployment-integrity concern, but the source does not establish the claimed attacker-controlled vulnerability or a clear impact path."
+    },
+    "hyp_dfeaf2297d47": {
+      "title": "MarketState packed-field width truncation can corrupt collateral accounting",
+      "description": "VULNERABILITY TYPE: state_validation\nROOT CAUSE: Packed MarketState fields rely on masking rather than explicit range validation and invariant checks for every field write.\nATTACK VECTOR: A user causes a deposit, withdrawal, fee settlement, or token-accounting transition that supplies a value at or above a packed field's maximum width; the resulting truncation or neighboring-field corruption changes total assets, shares, or related accounting state.\nAFFECTED NODES: market_state_type, collateral_tracker\nAFFECTED CODE: MarketState packed field getters and setters, CollateralTracker accounting transitions that read and write MarketState\nSEVERITY: medium\nREASONING: The available component metadata confirms that MarketState uses packed fields and masked updates, but does not expose source lines proving whether every incoming value is width-checked before encoding. This is therefore a focused hypothesis requiring confirmation in the concrete setters and their callers.\nSUGGESTED MITIGATION: Explicitly validate every value against its field width before packing, use typed bounded values where possible, reject rather than truncate out-of-range inputs, and add invariant tests ensuring unpack(pack(state)) preserves each accounting field and that total assets and shares cannot be corrupted by boundary values.",
+      "vulnerability_type": "state_validation",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "market_state_type",
+        "collateral_tracker"
+      ],
+      "evidence": [],
+      "reasoning": "The available component metadata confirms that MarketState uses packed fields and masked updates, but does not expose source lines proving whether every incoming value is width-checked before encoding. This is therefore a focused hypothesis requiring confirmation in the concrete setters and their callers.",
+      "mitigation": "Explicitly validate every value against its field width before packing, use typed bounded values where possible, reject rather than truncate out-of-range inputs, and add invariant tests ensuring unpack(pack(state)) preserves each accounting field and that total assets and shares cannot be corrupted by boundary values.",
+      "finding_description": "MarketState stores multiple accounting values in a packed word and updates them through bit masks. If callers can supply values wider than the corresponding packed field, the update either silently truncates the value or allows unmasked high bits to affect neighboring fields. CollateralTracker then reads an accounting state that no longer matches actual assets or shares, potentially making redemptions, solvency checks, or share pricing incorrect.",
+      "impact": "The protocol can misprice collateral shares or accept redemptions against insufficient assets, potentially causing insolvency or loss of funds for other depositors.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/CollateralTracker.sol",
+          "contracts/types/MarketState.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T01:03:33.882450",
+      "id": "hyp_dfeaf2297d47"
+    },
+    "hyp_7591997171aa": {
+      "title": "Missing domain separation can cause cross-context packed-hash collisions",
+      "description": "VULNERABILITY TYPE: logic_error\nROOT CAUSE: Packed hash preimages are not self-describing and overloaded encodings lack explicit domain separation between logical key types or usage contexts.\nATTACK VECTOR: Craft values for two different key formats whose packed representations are identical, then invoke the consumer that reads or writes the shared hash-derived key.\nAFFECTED NODES: efficient_hash, token_id_type, panoptic_math\nAFFECTED CODE: EfficientHash overloaded packed-hash helpers, TokenId hash/key construction, PanopticMath hash-derived position handling\nSEVERITY: medium\nREASONING: The architecture explicitly identifies assembly packed hashing and overloaded key encodings. Without the concrete source or proof that every hash namespace is separated by distinct lengths or domain tags, cross-context preimage ambiguity remains a security-relevant risk distinct from tick truncation.\nSUGGESTED MITIGATION: Add explicit domain-separation constants or type tags to every logically distinct hash preimage, use canonical fixed-width encodings for each field, and verify that all hash consumers use disjoint namespaces; add collision and differential tests for every overload.",
+      "vulnerability_type": "logic_error",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "efficient_hash",
+        "token_id_type",
+        "panoptic_math"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies assembly packed hashing and overloaded key encodings. Without the concrete source or proof that every hash namespace is separated by distinct lengths or domain tags, cross-context preimage ambiguity remains a security-relevant risk distinct from tick truncation.",
+      "mitigation": "Add explicit domain-separation constants or type tags to every logically distinct hash preimage, use canonical fixed-width encodings for each field, and verify that all hash consumers use disjoint namespaces; add collision and differential tests for every overload.",
+      "finding_description": "EfficientHash uses assembly-level packed encodings across overloaded hashing helpers without evidence of a domain separator or type tag. If two consumers hash logically different key structures that produce the same packed byte sequence, they derive the same storage or position key. An attacker able to choose the respective fields can target an entry created in another context, subject to those consumers sharing the resulting hash namespace.",
+      "impact": "A collision can cause unrelated position, accounting, or metadata entries to be read, overwritten, or treated as equivalent, potentially enabling unauthorized state association or denial of service.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/types/TokenId.sol",
+          "contracts/libraries/EfficientHash.sol",
+          "contracts/libraries/PanopticMath.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T01:04:19.218541",
+      "id": "hyp_7591997171aa"
+    },
+    "hyp_22b663645155": {
+      "title": "Packed LeftRight arithmetic can cross-contaminate the two accounting lanes",
+      "description": "VULNERABILITY TYPE: arithmetic_error\nROOT CAUSE: Packed two-lane values are vulnerable when arithmetic or conversions do not preserve lane isolation and valid numeric ranges.\nATTACK VECTOR: Drive a fee-growth, liquidity-delta, or settlement value close to the 128-bit boundary and trigger an operation that increments or decrements the opposing lane through carry, borrow, or truncation.\nAFFECTED NODES: left_right_type, fees_calc, sfpm_v4\nAFFECTED CODE: LeftRight packed arithmetic and slot conversion, FeesCalc LeftRight fee computation, SemiFungiblePositionManagerV4 LeftRight liquidity accounting\nSEVERITY: high\nREASONING: The architecture identifies LeftRight as a packed type used by FeesCalc and SFPM V4, making lane isolation and overflow handling security-critical. The available context does not expose the implementation or exact source locations, so exploitability depends on whether the implementation uses unchecked whole-word arithmetic or unchecked narrowing conversions.\nSUGGESTED MITIGATION: Use checked per-lane arithmetic and reject values outside the representable slot range before constructing or updating a LeftRight value.",
+      "vulnerability_type": "arithmetic_error",
+      "severity": "high",
+      "confidence": 0.36,
+      "status": "proposed",
+      "node_refs": [
+        "left_right_type",
+        "fees_calc",
+        "sfpm_v4"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies LeftRight as a packed type used by FeesCalc and SFPM V4, making lane isolation and overflow handling security-critical. The available context does not expose the implementation or exact source locations, so exploitability depends on whether the implementation uses unchecked whole-word arithmetic or unchecked narrowing conversions.",
+      "mitigation": "Use checked per-lane arithmetic and reject values outside the representable slot range before constructing or updating a LeftRight value.",
+      "finding_description": "LeftRight is used to pack two independent values into one 256-bit word and is consumed by FeesCalc and SemiFungiblePositionManagerV4. If packed additions or subtractions operate on the raw word, or if lane overflow is only truncated during repacking, overflow in one 128-bit lane can carry into or wrap the other lane. An attacker who causes fee or liquidity values near a lane boundary can corrupt the accounting value for the other asset.",
+      "impact": "Incorrect token0/token1 fee or liquidity accounting can cause users to receive excess withdrawals, be charged incorrect collateral, or make pool solvency checks rely on corrupted balances.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/SemiFungiblePositionManagerV4.sol",
+          "contracts/types/LeftRight.sol",
+          "contracts/libraries/FeesCalc.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_005503",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T01:05:56.687691",
+      "id": "hyp_22b663645155"
+    }
+  },
+  "metadata": {
+    "total": 13,
+    "confirmed": 1,
+    "last_modified": "2026-10-13T01:05:56.688547"
+  }
+}

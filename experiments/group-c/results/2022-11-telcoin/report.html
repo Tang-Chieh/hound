@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndC-gpt56_20261012-direct-2022-11-telcoin</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Telcoin Staking and FeeBuyback System</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndC-gpt56_20261012-direct-2022-11-telcoin<br>
+                <strong>Date:</strong> October 12, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound team conducted this comprehensive audit of the Telcoin Staking and FeeBuyback System, including its staking, reward distribution, plugin, administrative, migration, and fee-conversion functionality.</p>
+<p>The review covered the system architecture and trust boundaries connecting staking users, the StakingModule, pluggable IPlugin reward contracts, TEL and other ERC-20 tokens, FeeBuyback, external wallets, swap aggregators, safe addresses, and privileged administrative roles.</p>
+<p>Our team identified several high-severity issues affecting availability, asset accounting, reward accessibility, migration authorization, and privileged asset control. Key risks include denial of service through invalid plugins, reward stranding after plugin removal, arbitrary calls by the FeeBuyback owner, misallocation of residual TEL, missing swap-output validation, and unrestricted reward or principal redirection by RECOVERY_ROLE. The system’s security posture depends heavily on trusted administrative roles and correctly configured external components, and remediation should prioritize role containment, plugin lifecycle controls, balance-delta accounting, and strict external-call validation.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The Hound team analyzed the StakingModule as the core user-facing contract. Users stake TEL through stake, receive checkpointed stake balances, and can exit, claim rewards, or combine claiming and exiting. The module maintains total staked principal and user checkpoints, transfers TEL through ERC-20 operations, and invokes registered IPlugin contracts to calculate claimable rewards, process claims, and receive stake-change notifications.</p>
+<p>The StakingModule uses a plugin registry composed of the plugins array, nPlugins, and pluginsMapping. SimplePlugin implements IPlugin and maintains per-user claimable checkpoints together with aggregate amounts owed. It is funded through increaseClaimableBy, is restricted so that the StakingModule performs user claims, and transfers TEL directly to claim recipients. Our analysis revealed that plugin registration and callback execution form a significant trust boundary: arbitrary or reverting registered addresses can affect staking, exit, claim, and view operations, while removing a plugin can leave its outstanding liabilities inaccessible through normal user paths.</p>
+<p>We reviewed the FeeBuyback flow connecting the fee-rewards safe, external swap aggregator, FeeBuyback, and SimplePlugin. FeeBuyback can obtain fee tokens from the safe, execute an owner-supplied external call, swap assets through the configured aggregator, and approve SimplePlugin to pull TEL for referral rewards. We discovered that the flow relies on unrestricted owner-controlled calls, does not verify swap output, does not consistently check ERC-20 return values, and credits the entire current TEL balance rather than the balance increase attributable to the current submission.</p>
+<p>Administrative and recovery controls include SLASHER_ROLE, PLUGIN_EDITOR_ROLE, PAUSER_ROLE, RECOVERY_ROLE, TieredOwnership controls, and the initialization authority. These controls can modify plugins, pause operations, slash stakes, rescue tokens, and execute migration-only functions. The Hound team identified that RECOVERY_ROLE can invoke claimAndExitFor with independent source and destination addresses, allowing a compromised or misused recovery operator to redirect user principal and rewards. Initialization also requires atomic deployment-time execution to prevent an uninitialized proxy from being claimed by an attacker.</p>
+<p>The architecture otherwise uses role guards, pausing, reentrancy protection, checkpointed accounting, and SafeERC20 operations in portions of the staking and plugin flows. However, these mechanisms do not compensate for missing validation at trust boundaries. Our analysis revealed that the most important improvements are to validate plugin code and interfaces, preserve or settle liabilities before plugin removal, constrain arbitrary external calls, measure token balance deltas, enforce minimum swap outputs, verify transfer results, and bind privileged migrations to explicit user authorization.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">6</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">2</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 1,1 25.00,125.00 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L25.00,125.00 A100,100 0 0,1 125.00,25.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">8</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">6</div>
+                    <div style="color: #64738c; font-size: 12px;">(75.0%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">2</div>
+                    <div style="color: #64738c; font-size: 12px;">(25.0%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Unvalidated plugin registration enables global denial of service</h3>
+                <div class="vulnerability-description">
+                    <p>This denial-of-service vulnerability results from insufficient validation of registered plugins and the treatment of plugin callbacks as mandatory trusted operations. The plugin registry does not verify that an address contains contract code or implements the expected interface. In addition, stake-change processing invokes every registered plugin even when the plugin indicates that notification is not required.</p>
+<p>A holder of PLUGIN_EDITOR_ROLE, or an attacker who compromises that role, can register an invalid, reverting, or deliberately gas-intensive plugin. Subsequent staking, claiming, exit, or view operations that interact with the registry may revert or consume excessive gas, preventing normal users from using core staking functionality. The impact can be reduced by validating plugin code and interfaces, bounding the number of plugins, honoring the requiresNotification setting, and isolating callback failures from core operations.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the StakingModule contract, specifically addPlugin(), _notifyStakeChangeAllPlugins(), claim(), and claimable(), together with the plugin registry and staking entry points that trigger plugin notifications</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the StakingModule plugin-management and callback paths, I confirmed that a PLUGIN_EDITOR_ROLE holder can register an arbitrary address without a nonzero-code check, interface validation, or plugin-count bound. The addPlugin function only checks pluginsMapping, after which the address is iterated by claimable, claimableAt, totalSupply, _claim, and _notifyStakeChangeAllPlugins. The requiresNotification guard is commented out, so every registered address receives notifyStakeChange during stake, exit, partial exit, and slash-related flows. A malicious contract can therefore deliberately revert in notifyStakeChange or any view/claim callback, causing affected operations to revert for all users. An EOA or incompatible contract can also cause ABI decoding failures in functions expected to return values such as claimable or totalClaimable. Although removePlugin allows an authorized operator to recover by removing the address, it does not prevent the denial of service while the plugin remains registered, and pausing does not make view calls succeed. SimplePlugin itself safely implements a no-op notification, but that does not constrain other registered addresses.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require nonzero contract code and validate the expected interface before registration; enforce a bounded plugin count; invoke notifyStakeChange only when requiresNotification returns true; consider isolating callback failures so one plugin cannot halt core staking operations.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/StakingModule.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 383-398</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function _notifyStakeChangeAllPlugins(address account, uint256 amountBefore, uint256 amountAfter) private {
+    // loop over all plugins
+    for (uint256 i = 0; i &lt; nPlugins; i++) {
+        // only notify if the plugin requires
+        // if (IPlugin(plugins[i]).requiresNotification()) {
+            IPlugin(plugins[i]).notifyStakeChange(account, amountBefore, amountAfter);
+        // }
+    }
+}
+
+
+/************************************************
+*   restricted functions
+************************************************/
+
+/// @notice Slashes stake of an account.</code></pre></div>
+            </div>
+            <div class="code-explanation">Stake changes synchronously invoke notifyStakeChange on every registered address, while the requiresNotification check is commented out. Any invalid, reverting, or gas-intensive plugin can therefore block staking and exit operations.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/SimplePlugin.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 103-119</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function requiresNotification() external override pure returns (bool) {
+    // This plugin does not require notifications from the staking module.
+    return false;
+}
+/// @notice Do nothing
+/// @dev If this function did anything, it would have onlyStaking modifier
+function notifyStakeChange(address, uint256, uint256) external override pure {}
+
+/************************************************
+*   onlyIncreaser functions
+************************************************/
+
+/// @notice increases rewards of an account
+/// @dev This function will pull TEL from the increaser, so this contract must be approved by the increaser first
+/// @param account account to credit tokens to
+/// @param amount amount to credit
+/// @return false if amount is 0, otherwise true</code></pre></div>
+            </div>
+            <div class="code-explanation">This plugin explicitly reports that notification is not required and provides a no-op callback, demonstrating the requiresNotification setting that StakingModule currently ignores.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Removing a plugin can permanently strand user rewards</h3>
+                <div class="vulnerability-description">
+                    <p>This asset-loss vulnerability is caused by removing a plugin without settling, preserving, or rerouting the user balances associated with that plugin. The active plugin registry is changed immediately, while the plugin's outstanding claimable balances remain recorded in the removed plugin.</p>
+<p>Because SimplePlugin.claim() is restricted to calls from the staking module, users cannot directly withdraw balances from a removed plugin. A plugin editor can therefore remove a plugin with outstanding rewards, permanently preventing claims unless the plugin is later restored. The system should require migration or settlement before removal, retain claim access until all liabilities are cleared, or provide an explicit recovery mechanism for affected users.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the StakingModule contract, specifically removePlugin(), totalSupply(), and claimable(), and the SimplePlugin contract, specifically claim(), along with the plugin registry and per-plugin claimable-balance storage</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing StakingModule.removePlugin, claim, claimFromIndividualPlugin, claimable, and SimplePlugin.claim, I confirmed that plugin removal can strand outstanding rewards. removePlugin removes the plugin from the active plugins array and sets pluginsMapping to false without checking totalClaimable, settling user balances, or preserving a claim route. All user-facing claim paths iterate only over the current active plugins, and SimplePlugin.claim is protected by onlyStaking, requiring the StakingModule as msg.sender; therefore users cannot call the removed plugin directly. The plugin retains each user’s checkpoints and _totalOwed, and its TEL balance remains reserved, but those assets are inaccessible through normal user functionality after removal. The PLUGIN_EDITOR_ROLE can technically restore access by calling addPlugin with the same address, so permanent loss is not mathematically inevitable from this code alone; however, users have no independent recovery mechanism if administrators decline to re-add it or the plugin is operationally deprecated. claimAndExitFor does not mitigate this because it also iterates only active plugins and is restricted to RECOVERY_ROLE. Thus, the core reward-stranding vulnerability is real, although the hypothesis&#39;s claim of irreversible loss is conditional.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require a migration or settlement procedure before removal, keep removed plugins claimable until all liabilities are zero, and maintain removed-plugin claim routing or an explicit recovery mechanism for affected users.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/StakingModule.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 420-431</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function removePlugin(uint256 index) external onlyRole(PLUGIN_EDITOR_ROLE) {
+    address plugin = plugins[index];
+
+    pluginsMapping[plugin] = false;
+    plugins[index] = plugins[nPlugins - 1];
+    plugins.pop();
+    nPlugins--;
+
+    emit PluginRemoved(plugin, nPlugins);
+}
+
+/// @notice Pause all unrestricted external functions</code></pre></div>
+            </div>
+            <div class="code-explanation">removePlugin immediately removes the plugin from the active registry and decrements nPlugins without checking or settling any outstanding balances held by that plugin.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/SimplePlugin.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 80-97</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function claim(address account, address to, bytes calldata) external override onlyStaking returns (uint256) {
+    uint256 amt = _claimable[account].latest();
+
+    // if claimable amount is 0, do nothing
+    if (amt &lt;= 0) {
+        return 0;
+    }
+    
+    // update _claimable checkpoints
+    _claimable[account].push(0);
+
+    // update _totalOwed
+    _totalOwed -= amt;
+
+    // transfer TEL
+    tel.safeTransfer(to, amt);
+
+    emit Claimed(account, amt);</code></pre></div>
+            </div>
+            <div class="code-explanation">SimplePlugin.claim is restricted to calls from the StakingModule and clears/transfers the plugin&#39;s stored claimable balance. Once the plugin is removed from the registry, users cannot directly invoke this function to recover those balances.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>FeeBuyback credits all residual TEL balance to the current referral</h3>
+                <div class="vulnerability-description">
+                    <p>This asset-loss vulnerability is caused by FeeBuyback deriving referral rewards from its entire current TEL balance rather than from the TEL generated by the current submission. Both the direct-TEL and aggregator paths pass the contract's full balance to SimplePlugin.increaseClaimableBy(), without recording a pre-operation balance or validating the incremental output.</p>
+<p>When FeeBuyback holds residual TEL, an authorized submission can credit a selected recipient with that entire balance and transfer it into SimplePlugin. The same issue can occur when a swap produces less TEL than expected, because pre-existing funds are treated as the current operation's proceeds. The contract should credit only the positive balance delta measured around the transfer or swap, validate minimum output, and isolate unsolicited or residual balances.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the FeeBuyback contract, specifically submit(), and the SimplePlugin contract, specifically increaseClaimableBy(), including the referral claimable-balance storage</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing FeeBuyback.submit in contracts/fee-buyback/FeeBuyback.sol, I confirmed the alleged asset-loss vulnerability. In the direct-TEL branch, the contract transfers only amount from _safe, but then approves and credits _telcoin.balanceOf(address(this)) to recipient through _referral.increaseClaimableBy. Consequently, any TEL already held by FeeBuyback is included in the recipient&#39;s reward. The aggregator branch has the same defect: after the swap, it uses the contract&#39;s entire current TEL balance rather than measuring the balance increase attributable to that swap. SimplePlugin.increaseClaimableBy then records the supplied amount as claimable and pulls exactly that amount from FeeBuyback using transferFrom, so the residual balance is transferred into the plugin and assigned to the chosen recipient. There is no before/after balance accounting, output validation, or guard excluding pre-existing TEL. Although submit is restricted by onlyOwner, that is an authorization boundary rather than protection against a malicious, compromised, or improperly acting owner, and the owner can select an arbitrary recipient. The hypothesis is therefore directly supported by the implementation.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Record the TEL balance immediately before the transfer or swap, calculate the positive balance delta afterward, and credit only that delta. Validate the swap output and use SafeERC20 for all token transfers and approvals; isolate or reject unsolicited and residual balances.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/fee-buyback/FeeBuyback.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 47-64</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function submit(address wallet, bytes memory walletData, address token, address recipient, uint256 amount, bytes memory swapData) external override payable onlyOwner() returns (bool) {
+  //Perform user swap first
+  //Verify success
+  (bool walletResult,) = wallet.call{value: 0}(walletData);
+  require(walletResult, &quot;FeeBuyback: wallet transaction failed&quot;);
+
+  //check if this is a referral transaction
+  //if not exit execution
+  if (token == address(0) || recipient == address(0) || amount == 0 ) {
+    return false;
+  }
+
+  //if swapped token is in TEL, no swap is necessary
+  //do simple transfer from and submit
+  if (token == address(_telcoin)) {
+    _telcoin.transferFrom(_safe, address(this), amount);
+    _telcoin.approve(address(_referral), _telcoin.balanceOf(address(this)));
+    require(_referral.increaseClaimableBy(recipient, _telcoin.balanceOf(address(this))), &quot;FeeBuyback: balance was not adjusted&quot;);</code></pre></div>
+            </div>
+            <div class="code-explanation">The submit function transfers the requested TEL amount into FeeBuyback, then derives the referral credit from the contract&#39;s entire TEL balance instead of the balance increase from this submission. Residual TEL can therefore be credited to the current recipient.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/SimplePlugin.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 120-137</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function increaseClaimableBy(address account, uint256 amount) external onlyIncreaser returns (bool) {
+    // if amount is zero do nothing
+    if (amount == 0) {
+        return false;
+    }
+
+    // keep track of old claimable and new claimable
+    uint256 oldClaimable = _claimable[account].latest();
+    uint256 newClaimable = oldClaimable + amount;
+
+    // update _claimable[account] with newClaimable
+    _claimable[account].push(newClaimable);
+
+    // update _totalOwed
+    _totalOwed += amount;
+
+    // transfer TEL
+    tel.safeTransferFrom(msg.sender, address(this), amount);</code></pre></div>
+            </div>
+            <div class="code-explanation">increaseClaimableBy records the caller-supplied amount as claimable and pulls exactly that amount from the increaser. It does not validate whether the amount represents only newly generated TEL, allowing FeeBuyback&#39;s full-balance value to become a user reward.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>RECOVERY_ROLE can redirect users’ migrated principal and rewards to an arbitrary recipient</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability allows RECOVERY_ROLE to redirect a user's migrated principal and rewards to an arbitrary recipient. The migration-only function relies solely on role authorization and does not authenticate the affected user, constrain the destination, or require proof that the migration was authorized by that user.</p>
+<p>A compromised or misused recovery account can call claimAndExitFor() with a victim as the source account and an attacker-controlled address as the recipient. The function then executes both the victim's claim and exit transfers, potentially transferring the victim's entire staking position and accrued rewards. The system should require a user-signed migration authorization with replay protection, restrict destinations to the user or an approved migration contract, and record migration nonces in events.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the StakingModule contract, specifically claimAndExitFor(), _claim(), and _exit(), the RECOVERY_ROLE authorization path, and stake storage</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing StakingModule.claimAndExitFor, _claim, and _exit, I confirmed that a holder of RECOVERY_ROLE can redirect both a user’s claimable rewards and staked TEL to an arbitrary address. claimAndExitFor accepts independent account and to parameters, invokes _claim(account, to, auxData), and then _exit(account, to); neither internal function authenticates the user, validates the destination, or requires migration authorization. _claim causes each plugin to send rewards directly to to, while _exit transfers the entire recorded stake to the same address after clearing the account’s checkpoint. The whenPaused modifier and nonReentrant guard do not prevent misuse once the contract is paused; importantly, RECOVERY_ROLE itself cannot pause the contract, so exploitation by that role alone requires an already-paused state or additional PAUSER_ROLE privilege. Nevertheless, the code provides no consent or cryptographic proof tying the migration to the affected account, making arbitrary redirection possible for a compromised or misused recovery operator. This is a privileged-role abuse issue rather than an unprivileged exploit.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require a user-signed migration authorization binding account, destination, nonce, and migration parameters, or restrict to to == account or an approved migration contract. Add replay protection and emit events containing the authorized destination and migration nonce.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/StakingModule.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 457-463</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>457
+458
+459
+460
+461
+462
+463</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function claimAndExitFor(address account, address to, bytes calldata auxData) external onlyRole(RECOVERY_ROLE) whenPaused nonReentrant returns (uint256, uint256) {
+    return (_claim(account, to, auxData), _exit(account, to));
+}
+
+/// @notice stake on behalf of a user
+/// @dev This function is in case of a token migration
+/// @dev We know this would be insanely gas intensive if there are a lot of users</code></pre></div>
+            </div>
+            <div class="code-explanation">The RECOVERY_ROLE-protected migration function accepts an arbitrary source account and recipient, with no user authorization, destination restriction, or replay protection, then claims rewards and exits the victim&#39;s full stake to the supplied address.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Owner-controlled arbitrary call enables FeeBuyback asset and approval exfiltration</h3>
+                <div class="vulnerability-description">
+                    <p>This access-control vulnerability gives the FeeBuyback owner a generic arbitrary-call capability. The submit() function accepts a caller-selected target address and calldata, then executes the call from the FeeBuyback contract without restricting the destination, function selector, or operation to the documented wallet transaction.</p>
+<p>If the FeeBuyback owner is compromised or an owner-controlled execution path is abused, an attacker can invoke token transfers, modify allowances, or perform other actions against assets held by FeeBuyback. The arbitrary call should be replaced with narrowly defined operations or constrained by an immutable or administratively governed target and selector allowlist, with explicit protection for token balances and allowances.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the FeeBuyback contract, specifically submit(), the FeeBuyback owner authorization path, and the configured wallet or service-wallet call target</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing FeeBuyback.submit in contracts/fee-buyback/FeeBuyback.sol, I confirmed that the contract grants an unrestricted arbitrary-call capability to any address recognized by onlyOwner(). The function accepts caller-controlled wallet and walletData parameters and executes wallet.call{value: 0}(walletData) without validating the target, function selector, or calldata contents. Consequently, an authorized owner can set wallet to an ERC20 token contract and provide transfer(address,uint256) calldata to move tokens held by FeeBuyback, or provide approve(address,uint256) calldata to grant an attacker-controlled spender an allowance. The call executes with FeeBuyback as msg.sender, so token contracts will treat the FeeBuyback balance and approvals as the affected assets. The subsequent token, recipient, and amount checks do not prevent this because the arbitrary call occurs first and execution can return early when those values are zero. Although onlyOwner restricts exploitation to the owner or a compromised owner key, it does not constrain the operation to the intended primary wallet transaction. No target or selector allowlist exists, so the reported access-control issue is real.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Replace the generic wallet.call with narrowly specified operations or enforce an immutable/administrative allowlist of wallet targets and permitted function selectors; validate calldata and prohibit calls that transfer FeeBuyback assets or modify arbitrary allowances.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/fee-buyback/FeeBuyback.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 47-51</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>47
+48
+49
+50
+51</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">function submit(address wallet, bytes memory walletData, address token, address recipient, uint256 amount, bytes memory swapData) external override payable onlyOwner() returns (bool) {
+  //Perform user swap first
+  //Verify success
+  (bool walletResult,) = wallet.call{value: 0}(walletData);
+  require(walletResult, &quot;FeeBuyback: wallet transaction failed&quot;);</code></pre></div>
+            </div>
+            <div class="code-explanation">The owner-gated submit function accepts both a caller-controlled target address and calldata, then executes wallet.call without restricting the destination, selector, or operation. This gives the owner-controlled path arbitrary execution from the FeeBuyback contract.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Successful aggregator call is accepted without verifying TEL output</h3>
+                <div class="vulnerability-description">
+                    <p>This asset-loss vulnerability occurs because FeeBuyback treats any successful low-level aggregator call as a valid swap without verifying that the required amount of TEL was received. The implementation transfers source tokens and checks only the call status, with no post-swap TEL balance increase or minimum-output requirement.</p>
+<p>A malformed or manipulated swap payload, adverse execution, or compromised aggregator can therefore return successfully while delivering little or no TEL after the source tokens have been transferred. The subsequent referral-credit logic may also use the contract's existing TEL balance, further obscuring the failed output. FeeBuyback should measure TEL before and after the swap, require the balance increase to meet a configured or caller-specified minimum, and validate the expected source amount and route.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the FeeBuyback contract, specifically submit(), the configured aggregator service, the source-token transfer path, and the TEL balance used for referral credits</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing FeeBuyback.submit in contracts/fee-buyback/FeeBuyback.sol, I confirmed that the alleged missing-output validation exists and can result in asset loss. For non-TEL tokens, the function first calls transferFrom(_safe, address(this), amount), approves the immutable _aggregator, and then executes _aggregator.call{value: msg.value}(swapData). The only swap validation is require(swapResult, &quot;FeeBuyback: swap transaction failed&quot;); there is no check of the TEL balance before and after the call, no minimum-output parameter, and no verification that the expected source amount was consumed through an approved route. Consequently, an aggregator invocation can return success while producing zero or insufficient TEL, leaving the safe’s source tokens spent without obtaining the intended reward asset. The subsequent approval and _referral.increaseClaimableBy call use the contract’s entire TEL balance, which does not establish that the current swap produced any TEL and may even credit zero or residual TEL. Although submit is restricted by onlyOwner, compromise, misconfiguration, or malicious behavior of the authorized service/aggregator still provides a clear exploitable path.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Record the TEL balance before the swap, require the post-swap increase to meet a caller-supplied or configured minimum output, and validate that the source token transfer and aggregator execution satisfy the expected amount and route.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/fee-buyback/FeeBuyback.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 47-64</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function submit(address wallet, bytes memory walletData, address token, address recipient, uint256 amount, bytes memory swapData) external override payable onlyOwner() returns (bool) {
+  //Perform user swap first
+  //Verify success
+  (bool walletResult,) = wallet.call{value: 0}(walletData);
+  require(walletResult, &quot;FeeBuyback: wallet transaction failed&quot;);
+
+  //check if this is a referral transaction
+  //if not exit execution
+  if (token == address(0) || recipient == address(0) || amount == 0 ) {
+    return false;
+  }
+
+  //if swapped token is in TEL, no swap is necessary
+  //do simple transfer from and submit
+  if (token == address(_telcoin)) {
+    _telcoin.transferFrom(_safe, address(this), amount);
+    _telcoin.approve(address(_referral), _telcoin.balanceOf(address(this)));
+    require(_referral.increaseClaimableBy(recipient, _telcoin.balanceOf(address(this))), &quot;FeeBuyback: balance was not adjusted&quot;);</code></pre></div>
+            </div>
+            <div class="code-explanation">The target submit function transfers tokens into the contract and later credits referral rewards based on the contract&#39;s TEL balance, illustrating the balance-based accounting that can obscure whether a swap actually produced TEL. The vulnerable aggregator call and unchecked success occur later in the same function.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Stake accounting can exceed actual TEL received for fee-on-transfer or nonstandard TEL</h3>
+                <div class="vulnerability-description">
+                    <p>This accounting error can cause recorded stakes to exceed the amount of TEL actually received by the contract. The staking logic records the requested transfer amount without comparing the contract's TEL balance before and after transferFrom(). As a result, it assumes that every configured TEL token transfers the full requested amount.</p>
+<p>If a fee-on-transfer, taxed, or otherwise nonstandard token is configured as TEL, a user can receive credit for more stake than the contract holds. The user may later exit for the fully credited amount, leaving the contract unable to honor withdrawals or causing losses to other users. TEL should be restricted to a known standard token, or the module should credit only the measured balance increase and validate the token during initialization.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the StakingModule contract, specifically initialize(), _stake(), and rescueTokens(), together with TEL configuration and stake accounting storage</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing StakingModule.initialize, _stake, _exit, and rescueTokens, I confirmed a conditional accounting vulnerability for fee-on-transfer or otherwise nonstandard TEL tokens. initialize assigns _telAddress directly to tel without validating its implementation or transfer semantics. In _stake, the requested amount is added to the user checkpoint and _totalStaked before safeTransferFrom executes, with no pre- and post-transfer balance comparison; therefore, if the token credits fewer tokens than requested, the contract records an overstated liability. _exit subsequently attempts to transfer the full recorded amount, which may revert when the contract lacks sufficient balance, or may consume other users’ funds if sufficient surplus exists. rescueTokens also assumes _totalStaked is backed by the token balance and can underflow when the balance is lower, potentially preventing recovery operations. SafeERC20 only validates call success and does not ensure the exact amount was received. The issue is conditional on deployment with an incompatible TEL token or an intentionally nonstandard token, but no source-level guard prevents that configuration.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Restrict TEL to a known standard token or measure the balance before and after transferFrom and credit only the amount actually received; validate the configured token during initialization.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/StakingModule.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 334-351</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-10').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351</pre></div>
+                <div class="code-content"><pre id="code-block-10"><code class="language-solidity">    // update _stakes
+    _stakes[account].push(stakedAfter);
+
+    // update _totalStaked
+    _totalStaked += amount;
+
+    // move the tokens
+    IERC20Upgradeable(tel).safeTransferFrom(from, address(this), amount);
+
+    emit StakeChanged(account, stakedBefore, stakedAfter);
+}
+
+/// @notice Claims yield and withdraws some of stake. Everything leftover remains staked
+/// @param account account
+/// @param amount amount to withdraw
+/// @param to account to send withdrawn funds to
+/// @dev The yield of the account is claimed to this contract
+/// @dev Call `notifyStakeChange` on all plugins</code></pre></div>
+            </div>
+            <div class="code-explanation">The function calculates and records the full requested amount in the user&#39;s stake and _totalStaked before calling safeTransferFrom(). It never measures the contract&#39;s TEL balance increase, so fee-on-transfer or nonstandard TEL tokens can cause accounting to exceed the tokens actually received.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>FeeBuyback ignores ERC20 transfer and approval return values</h3>
+                <div class="vulnerability-description">
+                    <p>This accounting error results from ignoring the return values of ERC20 transferFrom() and approve() calls in FeeBuyback.submit(). Tokens that return false instead of reverting can therefore cause funding or allowance setup to fail while execution continues as though the operation succeeded.</p>
+<p>The subsequent swap and referral-credit logic may then operate on existing TEL held by FeeBuyback, particularly because the credited amount is derived from the full current balance. This can produce incorrect credits or failed downstream operations. The implementation should use SafeERC20 wrappers, revert whenever transfers or allowance changes fail, and calculate credits from verified balance deltas after successful operations.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the FeeBuyback contract, specifically submit(), including its ERC20 transferFrom(), transfer(), and approve() operations</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing FeeBuyback.submit in contracts/fee-buyback/FeeBuyback.sol, I confirmed the unchecked ERC20 return-value vulnerability. In both the TEL branch and the general ERC20 branch, transferFrom and approve are invoked directly and their boolean results are discarded. An ERC20 token can therefore return false without reverting, after which execution continues as though funding and allowance setup succeeded. The TEL branch is particularly problematic: it credits _referral with the contract’s entire current TEL balance, not the balance increase attributable to this submission, so a failed transferFrom can cause pre-existing TEL to be assigned to the requested recipient. The general branch similarly proceeds to the aggregator call after a failed transferFrom or approve, potentially operating on existing balances or failing later depending on swap behavior. onlyOwner restricts who can invoke submit, but does not make configured tokens trustworthy or prevent accounting errors caused by false-return tokens. rescueERC20 also ignores transfer results, although it is separate from the stated path. SafeERC20 checks and balance-delta accounting are therefore warranted.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Replace raw transferFrom, transfer, and approve calls with SafeERC20.safeTransferFrom and forceApprove/safeApprove as appropriate. Revert whenever funding or allowance setup fails, and credit only measured balance deltas after successful operations.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">contracts/fee-buyback/FeeBuyback.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 49-66</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-11').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66</pre></div>
+                <div class="code-content"><pre id="code-block-11"><code class="language-solidity">//Verify success
+(bool walletResult,) = wallet.call{value: 0}(walletData);
+require(walletResult, &quot;FeeBuyback: wallet transaction failed&quot;);
+
+//check if this is a referral transaction
+//if not exit execution
+if (token == address(0) || recipient == address(0) || amount == 0 ) {
+  return false;
+}
+
+//if swapped token is in TEL, no swap is necessary
+//do simple transfer from and submit
+if (token == address(_telcoin)) {
+  _telcoin.transferFrom(_safe, address(this), amount);
+  _telcoin.approve(address(_referral), _telcoin.balanceOf(address(this)));
+  require(_referral.increaseClaimableBy(recipient, _telcoin.balanceOf(address(this))), &quot;FeeBuyback: balance was not adjusted&quot;);
+  return true;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">submit() directly calls transferFrom() and approve() without checking their boolean return values. It then uses the contract&#39;s full TEL balance for the referral credit, allowing pre-existing funds to be credited if either operation silently returns false.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_328ae686dd0d": {
+      "title": "FeeBuyback swap is exposed to sandwich and price manipulation due to missing slippage enforcement",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The buyback flow treats arbitrary aggregator execution as successful based only on the low-level call success and does not validate output quantity or execution price.\nATTACK VECTOR: An attacker front-runs the owner or executor's submit transaction, trades against the pool or route used by the aggregator to move the price, allows the buyback to execute with the supplied unconstrained swapData, and then reverses the trade. The attacker extracts value while the safe receives fewer TEL rewards.\nAFFECTED NODES: entry_fee_submit, contract_fee_buyback, service_aggregator, storage_fee_addresses\nAFFECTED CODE: contracts/fee-buyback/FeeBuyback.sol:submit, FeeBuyback.submit -> _aggregator.call{value: msg.value}(swapData), FeeBuyback.submit -> _referral.increaseClaimableBy(recipient, _telcoin.balanceOf(address(this)))\nSEVERITY: high\nREASONING: The swap is funded with assets controlled by the safe and accepts arbitrary swapData, while the shown implementation checks only low-level call success. No minimum output or output delta is supplied or verified in the buyback contract, so an attacker able to influence the market can cause economically unfavorable execution and capture the price difference.\nSUGGESTED MITIGATION: Require and enforce a minimum TEL output derived from an off-chain quote or trusted oracle, include a deadline and route-specific validation, and credit only the positive TEL balance delta produced by the current swap. Prefer aggregator calldata that embeds a checked minimum return amount and reject execution when the realized price is outside approved bounds.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "entry_fee_submit",
+        "contract_fee_buyback",
+        "service_aggregator",
+        "storage_fee_addresses"
+      ],
+      "evidence": [],
+      "reasoning": "The swap is funded with assets controlled by the safe and accepts arbitrary swapData, while the shown implementation checks only low-level call success. No minimum output or output delta is supplied or verified in the buyback contract, so an attacker able to influence the market can cause economically unfavorable execution and capture the price difference.",
+      "mitigation": "Require and enforce a minimum TEL output derived from an off-chain quote or trusted oracle, include a deadline and route-specific validation, and credit only the positive TEL balance delta produced by the current swap. Prefer aggregator calldata that embeds a checked minimum return amount and reject execution when the realized price is outside approved bounds.",
+      "finding_description": "FeeBuyback forwards caller-supplied swapData to the immutable aggregator after transferring the safe's tokens and approving the requested amount, but it does not enforce a minimum TEL output, maximum execution price, deadline, or balance-delta check. An attacker can manipulate the underlying market before or during the owner-submitted transaction, causing the buyback to execute at an unfavorable price. The contract then credits the entire TEL balance to the referral recipient without validating the output attributable to this swap.",
+      "impact": "The fee-rewards safe can lose substantial value through adverse execution, while referral recipients receive fewer TEL tokens than expected; repeated sandwiching can materially drain buyback funds and reduce recorded rewards.",
+      "vulnerable_code": [
+        {
+          "file": "contracts/fee-buyback/FeeBuyback.sol",
+          "contract": "FeeBuyback",
+          "function": "submit(address,address,bytes,address,address,uint256,bytes)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/fee-buyback/FeeBuyback.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_205739",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T20:58:24.856726",
+      "id": "hyp_328ae686dd0d",
+      "qa_comment": "After analyzing FeeBuyback.submit in contracts/fee-buyback/FeeBuyback.sol, I confirmed that the buyback execution lacks contract-level slippage and output validation. For non-TEL tokens, the function transfers exactly amount from _safe, approves _aggregator, and then executes arbitrary swapData through _aggregator.call{value: msg.value}(swapData). The only check is the low-level boolean swapResult, which confirms call success but does not verify the amount of TEL received, the realized exchange rate, a deadline, or a minimum output. Consequently, if the supplied aggregator calldata permits unconstrained execution, a market participant can front-run the owner transaction, manipulate the relevant liquidity, allow the swap to execute at an unfavorable price, and reverse the position afterward. The onlyOwner modifier restricts who submits the transaction but does not prevent public mempool sandwiching. Additionally, the subsequent referral credit uses _telcoin.balanceOf(address(this)) rather than the balance delta generated by this swap, potentially crediting prior retained TEL as well. Aggregator-side protections may reduce practical exploitability for particular routes, but they are not enforced by this contract."
+    }
+  },
+  "metadata": {
+    "total": 1,
+    "confirmed": 1,
+    "last_modified": "2026-10-12T20:58:24.858114"
+  }
+}

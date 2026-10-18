@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndD-gpt56_20261012-direct-2023-04-blueberry</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">BlueBerry Protocol</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndD-gpt56_20261012-direct-2023-04-blueberry<br>
+                <strong>Date:</strong> October 12, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the BlueBerry Protocol, examining its principal contracts, integrations, asset flows, oracle dependencies, vaults, wrappers, spells, and administrative configuration boundaries.</p>
+<p>The review covered the system architecture, including how users and integrations enter through BlueBerryBank and vault interfaces; how spells coordinate leveraged positions; how SoftVault and HardVault manage assets; how wrappers custody external Curve, Convex, Aura, and ICHI positions; and how oracle modules, protocol configuration, and fee management support valuation and execution.</p>
+<p>Our team identified several high-severity issues involving missing slippage protection and caller-controlled swap routes in CurveSpell, AuraSpell, and the Paraswap withdrawal path, as well as manipulable spot-price and Compound exchange-rate valuation paths. These issues can cause material asset loss, inaccurate collateral valuation, excessive borrowing, or bad debt. Additional oracle and collateral risks remain configuration-dependent or require further deployment-specific validation. The overall security posture should be considered high risk until the confirmed issues are remediated and the proposed oracle safeguards are independently validated.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The Hound team analyzed BlueBerryBank as the central lending and position-management component. It implements IBank, coordinates SoftVault and HardVault operations, consults CoreOracle for token and collateral valuation, and interacts with FeeManager for fee accounting. Spells such as BasicSpell, CurveSpell, ConvexSpell, AuraSpell, IchiSpell, and ShortLongSpell route user-controlled position actions through the bank, wrappers, external protocols, and swap integrations.</p>
+<p>SoftVault integrates with Compound-style ICErc20 markets and values deposited positions using the external market exchange rate. HardVault manages ERC1155-style position shares and uses ProtocolConfig and FeeManager for configuration and withdrawal-fee behavior. Wrapper contracts including WERC20, WCurveGauge, WConvexPools, WAuraPools, and WIchiFarm custody or tokenize external LP, gauge, farm, and reward positions while transferring underlying and reward assets across protocol boundaries.</p>
+<p>Our analysis revealed that the oracle architecture is highly interconnected. CoreOracle routes valuation requests to AggregatorOracle and specialized sources including CurveOracle, BalancerPairOracle, UniswapV2Oracle, IchiVaultOracle, ChainlinkAdapterOracle, BandAdapterOracle, and UniswapV3AdapterOracle. Administrative controls, source configuration, time-gap limits, and deviation checks provide some safeguards, but reserve-based Uniswap V2 pricing and balance-derived Balancer pricing can remain vulnerable when configured without independent, manipulation-resistant references or a sufficient source quorum.</p>
+<p>We discovered multiple execution paths that accept caller-controlled routers, token paths, or Paraswap calldata without effective local minimum-output enforcement. CurveSpell.closePositionFarm and AuraSpell.closePositionFarm perform reward liquidation with zero minimum output, while the ShortLongSpell withdrawal path forwards caller-selected Paraswap amounts without independently validating the received value. These boundaries expose harvested rewards and position assets to adverse execution, sandwiching, illiquid routes, and manipulated market prices.</p>
+<p>The architecture also exposes collateral valuation dependencies that require particular attention. SoftVault collateral valuation relies on the Compound market's stored exchange rate without demonstrated freshness, deviation, or same-transaction protections, creating a potential over-borrowing path if the rate is manipulated. Curve and Convex valuation concerns are more dependent on pool implementations and deployment configuration, while the Uniswap V3 adapter uses historical observations rather than an immediate spot read. Remediation should prioritize bounded swap execution, approved routers and paths, independent oracle validation, conservative collateral valuation, and deployment-level testing of every supported external market.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">5</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">0</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 1,1 125.00,25.00 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">5</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">5</div>
+                    <div style="color: #64738c; font-size: 12px;">(100.0%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Zero-slippage reward liquidation enables sandwich-based price manipulation</h3>
+                <div class="vulnerability-description">
+                    <p>This is a slippage-control logic error in the reward liquidation flow. CurveSpell.closePositionFarm() invokes swapExactTokensForTokens() with the entire harvested reward amount while setting amountOutMin to zero. The router and swap path are also supplied by the caller, and the function does not appear to enforce an approved router, validate the token route, or compare the execution price with an independent reference price.</p>
+<p>An attacker can monitor a closePositionFarm transaction, manipulate the relevant Uniswap V2 pool, or provide an adverse route that executes at an unfavorable price. Because the swap accepts any non-reverting output, the position can liquidate rewards for substantially less debt-token value than intended. The attacker can then reverse the temporary price manipulation and capture the resulting value loss, potentially impairing user positions and protocol solvency.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the CurveSpell contract, specifically the closePositionFarm() function, together with the Uniswap V2 router interface and the external Uniswap V2 deployment</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing CurveSpell.closePositionFarm in blueberry-core/contracts/spell/CurveSpell.sol, I confirmed the zero-slippage reward liquidation vulnerability. After harvesting rewards through _doCutRewardsFee(CRV), the function approves the caller-supplied swapRouter and invokes swapExactTokensForTokens with the entire reward balance, amountOutMin set to 0, the caller-supplied swapPath, and no oracle or execution-price validation. Consequently, an attacker can manipulate the relevant Uniswap V2 pool before this transaction executes, causing the reward-to-debt-token swap to receive materially less value, then reverse the manipulation afterward. The function also does not validate that the router, path endpoints, intermediate tokens, or liquidity sources are protocol-approved. Although subsequent Curve removal and repayment logic may cause the transaction to revert if insufficient debt tokens are received, a successful adverse swap can still impose value loss where the remaining flow succeeds; moreover, arbitrary routers introduce additional trust and token-transfer risks. The supplied oracle contracts do not protect this swap, as neither is consulted by closePositionFarm.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Require a caller-specified minimum output constrained by a protocol-configured maximum slippage, validate the router and token path against an allowlist, and preferably compare the execution price with a manipulation-resistant oracle or TWAP before accepting the swap.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/spell/CurveSpell.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 143-160</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function closePositionFarm(
+    ClosePosParam calldata param,
+    IUniswapV2Router02 swapRouter,
+    address[] calldata swapPath
+)
+    external
+    existingStrategy(param.strategyId)
+    existingCollateral(param.strategyId, param.collToken)
+{
+    address crvLp = strategies[param.strategyId].vault;
+    IBank.Position memory pos = bank.getCurrentPositionInfo();
+    if (pos.collToken != address(wCurveGauge))
+        revert Errors.INCORRECT_COLTOKEN(pos.collToken);
+    if (wCurveGauge.getUnderlyingToken(pos.collId) != crvLp)
+        revert Errors.INCORRECT_UNDERLYING(crvLp);
+
+    // 1. Take out collateral - Burn wrapped tokens, receive crv lp tokens and harvest CRV
+    bank.takeCollateral(param.amountPosRemove);</code></pre></div>
+            </div>
+            <div class="code-explanation">The target liquidation function accepts the Uniswap V2 router and swap path directly from the caller, without visible router or route validation, before proceeding with position closure.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>PSwapLib forwards caller-controlled Paraswap slippage without oracle or minimum-output enforcement</h3>
+                <div class="vulnerability-description">
+                    <p>This is an input-validation and slippage-protection logic flaw in the Paraswap integration. PSwapLib.megaSwap() forwards caller-controlled MegaSwapSellData directly to Paraswap without independently validating the minimum destination amount, expected execution price, or permitted route. In particular, a caller may be able to provide a near-zero toAmount, subject to any validation performed by the ShortLongSpell entry point.</p>
+<p>An attacker or malicious caller can submit swap data that causes assets to be exchanged at a materially unfavorable price, including during temporary market manipulation. The resulting loss may reduce the value returned from a withdrawal or distort the economics of a leveraged strategy. The integration should independently constrain toAmount and permitted assets and routes rather than relying solely on calldata supplied to Paraswap.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the PSwapLib library, specifically the megaSwap() function; the Utils library, specifically the MegaSwapSellData structure; the ShortLongSpell contract, specifically the _withdraw() function; and the external Paraswap deployment</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing PSwapLib.megaSwap and ShortLongSpell.closePosition/_withdraw, I confirmed that the spell performs no independent slippage or minimum-output validation for withdrawals. closePosition only verifies that swapData.fromToken matches the strategy’s underlying token, then passes the entire caller-controlled MegaSwapSellData to _withdraw. _withdraw checks param.sellSlippage against the configured maximum, but never relates that value to swapData.toAmount, expectedAmount, the withdrawn amount, or an oracle-derived valuation. PSwapLib merely approves fromAmount and invokes the unprotected IParaswap.megaSwap entry point. Although Paraswap may enforce the supplied toAmount as a minimum at execution, that minimum itself is selected by the caller and can be set near zero; expectedAmount is not checked during withdrawal, unlike _deposit, which explicitly compares the received balance against swapData.expectedAmount. Consequently, a caller can authorize a materially underpriced route or near-zero output, and the protocol has no local protection against it. The precise impact and whether an attacker can profit depend on caller authorization and broader position-management logic, but the stated missing validation is present.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Validate swapData.toAmount against an independently obtained oracle or strategy quote and enforce a bounded maximum slippage before calling Paraswap. Reject zero or insufficient minimum outputs, constrain allowed routes and tokens, and prefer the protected Paraswap entry point where its beneficiary and execution protections are applicable.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 20-30</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>20
+21
+22
+23
+24
+25
+26
+27
+28
+29</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">    function megaSwap(
+        address augustusSwapper,
+        address tokenTransferProxy,
+        Utils.MegaSwapSellData calldata data
+    ) external returns (uint256) {
+        _approve(IERC20(data.fromToken), tokenTransferProxy, data.fromAmount);
+
+        return IParaswap(augustusSwapper).megaSwap(data);
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">PSwapLib.megaSwap() approves the caller-supplied fromAmount and forwards the entire caller-controlled MegaSwapSellData directly to Paraswap without validating destination token, minimum output, execution price, or route.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/spell/ShortLongSpell.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 160-177</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function _withdraw(
+    ClosePosParam calldata param,
+    Utils.MegaSwapSellData calldata swapData
+) internal {
+    if (param.sellSlippage &gt; bank.config().maxSlippageOfClose())
+        revert Errors.RATIO_TOO_HIGH(param.sellSlippage);
+
+    Strategy memory strategy = strategies[param.strategyId];
+    ISoftVault vault = ISoftVault(strategy.vault);
+    uint256 positionId = bank.POSITION_ID();
+
+    // 1. Calculate actual amount to remove
+    uint256 amountPosRemove = param.amountPosRemove;
+    if (amountPosRemove == type(uint256).max) {
+        amountPosRemove = vault.balanceOf(address(this));
+    }
+
+    // 2. Withdraw from softvault</code></pre></div>
+            </div>
+            <div class="code-explanation">_withdraw() only bounds the separate sellSlippage parameter before withdrawing assets; it does not independently validate the swapData minimum output or expected execution price before the Paraswap swap performed later in the function.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>AggregatorOracle can return flash-loan-manipulated Uniswap V2 spot prices</h3>
+                <div class="vulnerability-description">
+                    <p>This is an oracle-design vulnerability caused by reliance on manipulable Uniswap V2 spot prices. AggregatorOracle permits configured price sources that may use reserve-based Uniswap V2 pricing without requiring a time-weighted average price, an independent reference, or sufficient source independence. Deviation checks alone do not prevent manipulation when a single source, or multiple correlated sources, are affected by the same pool movement.</p>
+<p>An attacker can temporarily trade against the underlying Uniswap V2 pool before a financially sensitive operation queries AggregatorOracle, causing the reported asset price to move in the attacker’s favor. The attacker can then reverse the trade after the operation completes. If the oracle is used for collateral valuation, borrowing, liquidation, or settlement, the manipulated price may enable undercollateralized borrowing or cause assets to be transferred at an incorrect value.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the AggregatorOracle contract and its configured route aggregation and deviation-validation logic, the UniswapV2Oracle contract and its reserve-based price calculation, the downstream oracle routing in the oracle core, and the external Uniswap V2 deployment</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing AggregatorOracle.getPrice, UniswapV2Oracle.getPrice, and CoreOracle._getPrice, I confirmed that the implementation permits a manipulable reserve-based oracle path. UniswapV2Oracle.getPrice reads pool.getReserves() directly and uses those current reserves in its fair LP pricing formula, without any TWAP, observation-period, liquidity-depth, or freshness validation. AggregatorOracle._setPrimarySources permits up to three arbitrary sources, does not require a minimum source count, does not verify source independence, and getPrice explicitly returns a single valid source without applying deviation checks. Consequently, if an administrator configures UniswapV2Oracle as the sole source, or configures correlated sources, a transaction that changes the pair state before the oracle call can cause the aggregator to return a transient valuation; CoreOracle then accepts any nonzero result from that route. The deviation logic only compares returned values and cannot detect synchronized manipulation or protect a single-source configuration. The supplied code does not show actual deployment routes or downstream liquidation logic, but the exploitable oracle design and missing safeguards are clearly present.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Disallow spot-reserve routes for collateral valuation, or require a sufficiently long TWAP and minimum-liquidity/depth checks. Require multiple independent sources, enforce a minimum source count, reject duplicate or correlated routes, and fail closed when sources deviate beyond the configured bound.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/oracle/AggregatorOracle.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 104-121</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function getPrice(address token) external view override returns (uint256) {
+    uint256 candidateSourceCount = primarySourceCount[token];
+    if (candidateSourceCount == 0) revert Errors.NO_PRIMARY_SOURCE(token);
+    uint256[] memory prices = new uint256[](candidateSourceCount);
+
+    // Get valid oracle sources
+    uint256 validSourceCount = 0;
+    for (uint256 idx = 0; idx &lt; candidateSourceCount; idx++) {
+        try primarySources[token][idx].getPrice(token) returns (
+            uint256 px
+        ) {
+            if (px != 0) prices[validSourceCount++] = px;
+        } catch {}
+    }
+    if (validSourceCount == 0) revert Errors.NO_VALID_SOURCE(token);
+    // Sort prices in ascending order
+    for (uint256 i = 0; i &lt; validSourceCount - 1; i++) {
+        for (uint256 j = 0; j &lt; validSourceCount - i - 1; j++) {</code></pre></div>
+            </div>
+            <div class="code-explanation">AggregatorOracle queries configured sources directly, accepts any nonzero result, and proceeds even when only one source is valid. This provides no requirement for independent sources or manipulation-resistant pricing before returning an oracle value.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/oracle/UniswapV2Oracle.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 33-50</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function getPrice(address pair) external view override returns (uint256) {
+    IUniswapV2Pair pool = IUniswapV2Pair(pair);
+    uint256 totalSupply = pool.totalSupply();
+    if (totalSupply == 0) return 0;
+
+    address token0 = pool.token0();
+    address token1 = pool.token1();
+
+    (uint256 r0, uint256 r1, ) = pool.getReserves();
+    uint256 px0 = base.getPrice(token0);
+    uint256 px1 = base.getPrice(token1);
+    uint256 t0Decimal = IERC20Metadata(token0).decimals();
+    uint256 t1Decimal = IERC20Metadata(token1).decimals();
+    uint256 sqrtK = BBMath.sqrt(
+        r0 * r1 * 10 ** (36 - t0Decimal - t1Decimal)
+    );
+
+    return (2 * sqrtK * BBMath.sqrt(px0 * px1)) / totalSupply;</code></pre></div>
+            </div>
+            <div class="code-explanation">The Uniswap V2 oracle derives pricing from the pair&#39;s current reserves via getReserves(). These spot reserves can be temporarily manipulated through a trade and are not protected by a TWAP mechanism.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>SoftVault Compound exchange-rate inflation can overvalue collateral</h3>
+                <div class="vulnerability-description">
+                    <p>This is a collateral-valuation and oracle-integrity vulnerability involving externally mutable Compound exchange rates. SoftVault appears to rely on the Compound market’s exchange rate when valuing shares or deposited assets, while no effective rate bounds, freshness checks, time-weighted accounting, donation resistance, or same-transaction manipulation protection are evident for this path. BlueBerryBank can then use the resulting SoftVault position as collateral.</p>
+<p>An attacker may acquire or flash-borrow underlying assets and supply or donate them to the Compound market to increase its exchange rate. If the inflated rate is used during a deposit or collateral valuation, the attacker may obtain excess borrowing capacity from BlueBerryBank against overvalued collateral. After the market rate normalizes, the position may become undercollateralized, leaving the bank and its depositors exposed to losses.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the SoftVault contract and its deposit and share-valuation logic, the external Compound market and its exchange-rate accounting, and the BlueBerryBank contract and its collateral-valuation and borrowing logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing SoftVault.deposit, BlueBerryBank.lend, and BlueBerryBank.getIsolatedCollateralValue, I confirmed a spot exchange-rate manipulation vulnerability in the collateral valuation path. SoftVault issues shares equal to the cToken balance increase returned by Compound mint, while getIsolatedCollateralValue converts those shares to underlying using ICErc20(bToken).exchangeRateStored() multiplied by pos.underlyingVaultShare and divided by PRICE_PRECISION. This value is then passed directly to oracle.getTokenValue without any bound, freshness, historical-rate, deviation, or same-transaction protection. An attacker can acquire SoftVault shares, manipulate the Compound market’s cash balance and exchange rate by supplying or directly transferring underlying to the cToken contract, and then invoke a borrowing path that relies on the inflated isolated collateral value. The bank’s only relevant control is the liquidation-threshold check in execute, which itself uses the same manipulated valuation and therefore does not prevent over-borrowing. Although exact profitability depends on market liquidity, share ownership, and Compound implementation details, the code clearly exposes collateral valuation to a mutable spot exchange rate and provides no mitigation in the reviewed components.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Use a conservative, bounded Compound exchange-rate adapter; base collateral value on a historical or independently verified rate, cap per-block changes, apply deviation checks, and prevent same-transaction deposits or valuation from using an attacker-controlled rate update.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/BlueBerryBank.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 433-450</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function getIsolatedCollateralValue(
+    uint256 positionId
+) public view override returns (uint256 icollValue) {
+    Position memory pos = positions[positionId];
+    // NOTE: exchangeRateStored has 18 decimals.
+    uint256 underlyingAmount;
+    if (_isSoftVault(pos.underlyingToken)) {
+        underlyingAmount =
+            (ICErc20(banks[pos.debtToken].bToken).exchangeRateStored() *
+                pos.underlyingVaultShare) /
+            Constants.PRICE_PRECISION;
+    } else {
+        underlyingAmount = pos.underlyingVaultShare;
+    }
+    icollValue = oracle.getTokenValue(
+        pos.underlyingToken,
+        underlyingAmount
+    );</code></pre></div>
+            </div>
+            <div class="code-explanation">The isolated collateral valuation directly multiplies the position&#39;s SoftVault share balance by Compound&#39;s externally mutable exchangeRateStored() value, with no visible bounds, freshness, TWAP, or same-transaction manipulation checks. This inflated result is then passed to the oracle as the collateral amount.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Aura reward liquidation may use manipulable Uniswap spot pricing without an effective minimum-output bound</h3>
+                <div class="vulnerability-description">
+                    <p>This is a reward-liquidation pricing and slippage-control vulnerability in the Aura integration. The Aura reward-conversion path is connected to an external Uniswap market, but it does not demonstrate effective validation against a manipulation-resistant oracle, a time-weighted price, or a strictly enforced minimum-output amount. Consequently, the amount received for harvested rewards may depend on an attacker-influenceable single-block market price.</p>
+<p>An attacker can manipulate the relevant Uniswap pool immediately before an Aura position is burned or harvested, causing AuraSpell to liquidate rewards at a distorted rate. The attacker can then unwind the manipulation after the liquidation and capture excess value, or cause the protocol or position owner to receive materially fewer underlying assets than expected. This may reduce user returns and create losses for positions that depend on the reward conversion.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the AuraSpell contract and its reward-liquidation flow, the external Uniswap deployment and relevant swap pool, and the WAuraPools wrapper contracts and their reward-claiming logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing AuraSpell.closePositionFarm and WAuraPools.burn, I confirmed that the reward liquidation path performs an unprotected Uniswap V2-style swap. After burning the position and receiving rewardTokens, closePositionFarm calls swapRouter.swapExactTokensForTokens(rewards, 0, swapPath[i], address(this), type(uint256).max), explicitly setting amountOutMin to zero and using an effectively unlimited deadline. The caller also supplies the router and each swap path, while no TWAP, oracle quote, price-impact limit, or deviation check is performed before or after execution. Consequently, an attacker able to influence the selected Uniswap pool can sandwich or otherwise distort reserves immediately before the transaction, causing rewards to be exchanged at an arbitrarily poor rate without reverting. WAuraPools.burn only calculates and transfers reward amounts; it provides no valuation or slippage protection. The UniswapV2Oracle shown is an LP pricing oracle and is not consulted by this liquidation path. Although the direct economic impact may depend on who invokes the close operation and the resulting debt accounting, the absence of any minimum-output bound and reliance on router spot execution clearly establish the reported vulnerability.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Use a bounded minimum-output parameter derived from a trusted TWAP or Chainlink-style oracle, enforce a maximum price-impact/deviation check, and reject swaps whose execution price deviates from the reference price beyond a strict threshold. Avoid valuing harvested rewards using a single-block Uniswap spot quote.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/spell/AuraSpell.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 149-166</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-7').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166</pre></div>
+                <div class="code-content"><pre id="code-block-7"><code class="language-solidity">function closePositionFarm(
+    ClosePosParam calldata param,
+    IUniswapV2Router02 swapRouter,
+    address[][] calldata swapPath
+)
+    external
+    existingStrategy(param.strategyId)
+    existingCollateral(param.strategyId, param.collToken)
+{
+    address lpToken = strategies[param.strategyId].vault;
+    IBank.Position memory pos = bank.getCurrentPositionInfo();
+    if (pos.collToken != address(wAuraPools))
+        revert Errors.INCORRECT_COLTOKEN(pos.collToken);
+    if (wAuraPools.getUnderlyingToken(pos.collId) != lpToken)
+        revert Errors.INCORRECT_UNDERLYING(lpToken);
+
+    // 1. Take out collateral - Burn wrapped tokens, receive BPT tokens and harvest AURA
+    bank.takeCollateral(param.amountPosRemove);</code></pre></div>
+            </div>
+            <div class="code-explanation">This is the entry point for closing an Aura position. It burns the wrapped position and begins harvesting rewards before the later reward-liquidation swaps; the function does not establish any minimum-output protection at this stage.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/wrapper/WAuraPools.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 228-245</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-8').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245</pre></div>
+                <div class="code-content"><pre id="code-block-8"><code class="language-solidity">function burn(
+    uint256 id,
+    uint256 amount
+)
+    external
+    nonReentrant
+    returns (address[] memory rewardTokens, uint256[] memory rewards)
+{
+    if (amount == type(uint256).max) {
+        amount = balanceOf(msg.sender, id);
+    }
+    (uint256 pid, ) = decodeId(id);
+    _burn(msg.sender, id, amount);
+
+    (address lpToken, , , address balRewarder, , ) = getPoolInfoFromPoolId(
+        pid
+    );
+    // Claim Rewards</code></pre></div>
+            </div>
+            <div class="code-explanation">Burning an Aura wrapper position withdraws the farm position, claims rewards, and transfers both LP and reward tokens to the caller. These harvested reward tokens are subsequently passed into AuraSpell&#39;s swap path.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">blueberry-core/contracts/oracle/UniswapV3AdapterOracle.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 60-77</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-9').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77</pre></div>
+                <div class="code-content"><pre id="code-block-9"><code class="language-solidity">function getPrice(address token) external view override returns (uint256) {
+    // Maximum cap of timeGap is 2 days(172,800), safe to convert
+    uint32 secondsAgo = timeGaps[token].toUint32();
+    if (secondsAgo == 0) revert Errors.NO_MEAN(token);
+
+    address stablePool = stablePools[token];
+    if (stablePool == address(0)) revert Errors.NO_STABLEPOOL(token);
+
+    address poolToken0 = IUniswapV3Pool(stablePool).token0();
+    address poolToken1 = IUniswapV3Pool(stablePool).token1();
+    address stablecoin = poolToken0 == token ? poolToken1 : poolToken0; // get stable token address
+
+    uint8 stableDecimals = IERC20Metadata(stablecoin).decimals();
+    uint8 tokenDecimals = IERC20Metadata(token).decimals();
+
+    (int24 arithmeticMeanTick, ) = UniV3WrappedLibMockup.consult(
+        stablePool,
+        secondsAgo</code></pre></div>
+            </div>
+            <div class="code-explanation">The repository contains a separate Uniswap V3 oracle using an arithmetic-mean tick over a configured time gap, illustrating the type of manipulation-resistant pricing mechanism that is not visibly applied to AuraSpell&#39;s reward liquidation.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>

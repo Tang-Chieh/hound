@@ -1,0 +1,136 @@
+{
+  "repo_id": "2023-04-blueberry",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_a9bce5911080",
+      "title": "ERC20 approval return values are ignored",
+      "description": "_approve calls approve(spender, 0) and approve(spender, amount) directly and ignores both return values. Tokens that return false without reverting can leave the allowance unset while execution continues to Paraswap, causing a failed or inconsistent swap; nonstandard approval behavior is not safely handled.",
+      "impact": "Swaps can fail or become unavailable for affected assets, potentially blocking withdrawals, liquidations, or strategy operations; integrations that do not atomically revert all surrounding state may also experience inconsistent execution.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/libraries/Paraswap/PSwapLib.sol",
+          "contract": "PSwapLib",
+          "function": "_approve"
+        }
+      ],
+      "mitigation": "Use OpenZeppelin SafeERC20.safeApprove or safeIncreaseAllowance-compatible logic, and explicitly handle tokens requiring zero-before-nonzero approval. Restrict supported assets if token behavior cannot be normalized.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_882646e07dc8",
+      "title": "Unvalidated Base Oracle Address Can Permanently Disable Pricing",
+      "description": "UsingBaseOracle stores the constructor-supplied IBaseOracle without checking that it is nonzero or a deployed contract. IchiVaultOracle subsequently relies on this immutable dependency for base-token prices, so deployment with address(0), an EOA, or a nonresponsive implementation causes price queries to revert or fail permanently.",
+      "impact": "The Ichi vault oracle can become unusable, causing supported-token checks, valuations, liquidations, and other operations depending on prices to revert or halt.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/oracle/UsingBaseOracle.sol",
+          "contract": "UsingBaseOracle",
+          "function": "constructor(IBaseOracle _base)"
+        },
+        {
+          "file": "blueberry-core/contracts/oracle/IchiVaultOracle.sol",
+          "contract": "IchiVaultOracle",
+          "function": "getPrice(address token)"
+        }
+      ],
+      "mitigation": "Reject address(0) and require address(_base).code.length > 0 in the constructor. Validate that the supplied oracle returns a valid nonzero price for required base assets before registering the deployment.",
+      "severity": "low"
+    },
+    {
+      "finding_id": "hyp_3db220d87b96",
+      "title": "Curve gauge remapping can strand or misroute existing wrapped positions",
+      "description": "WCurveGauge encodes only the gauge id and reward-per-share snapshot in each ERC1155 id. During burn it resolves the current gauge from gaugeController.gauges(gid) instead of preserving the gauge address used at mint time. If the controller mapping changes, existing positions are redeemed against a different gauge than the one holding the wrapper's deposited LP tokens.",
+      "impact": "Users can be unable to redeem LP collateral and accrued rewards, potentially causing liquidation failures and permanent loss of access to positions until an external mapping restoration; a malicious replacement can also influence the token and withdrawal behavior used by redemption.",
+      "vulnerable_code": [
+        {
+          "file": "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "contract": "WCurveGauge",
+          "function": "burn(uint256,uint256)"
+        },
+        {
+          "file": "blueberry-core/contracts/wrapper/WCurveGauge.sol",
+          "contract": "WCurveGauge",
+          "function": "mint(uint256,uint256)"
+        }
+      ],
+      "mitigation": "Store the resolved gauge address or a mapping version in the position identity and redeem against that immutable value. Alternatively reject burns when the current controller mapping differs from the mapping recorded at mint and provide an explicit migration path.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_ba50fa645121",
+      "title": "Privileged route configuration can inject arbitrary asset prices",
+      "description": "CoreOracle dispatches pricing to owner-configured route contracts without an on-chain validation that the route is an approved oracle, supports the requested token, or derives a trustworthy price. A compromised owner, governance misconfiguration, or malicious upgrade can therefore install an oracle that returns an attacker-selected price for collateral or debt assets.",
+      "impact": "An attacker able to control the route authority can make collateral appear overvalued or debt appear undervalued, enabling undercollateralized borrowing or wrongful liquidation and potentially causing protocol-wide bad debt or loss of user collateral.",
+      "vulnerable_code": [],
+      "mitigation": "Restrict route updates to a tightly governed authority and maintain an immutable or timelocked allowlist of approved oracle implementations and token-route pairs. Validate that each route is a contract, supports the configured token, returns a nonzero value within documented bounds, and preserves required decimals and freshness guarantees; emit events and provide delayed review for route changes.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_557fc3bd6a2c",
+      "title": "Unbounded Chainlink feed decimals can distort or disable price conversion",
+      "description": "The adapter relies on feed-provided decimals when normalizing the signed answer to an 18-decimal price, but no bounded-decimal validation is documented. An improperly configured or nonstandard registry feed can return an excessively large decimals value, causing exponentiation or scaling to revert; high-decimal feeds can also produce materially rounded or zero prices.",
+      "impact": "A malformed feed can make the Chainlink route revert and block borrowing, liquidation, or valuation operations; unsafe normalization can also produce incorrect collateral prices and cause undercollateralized positions or unfair liquidations.",
+      "vulnerable_code": [],
+      "mitigation": "Validate feed decimals against an explicit supported range before exponentiation and normalize using checked arithmetic with separate branches for decimals above and below 18. Reject unsupported feeds or scaling results that overflow, underflow, or round to zero.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_6602baa69112",
+      "title": "CurveSpell reward swaps allow zero minimum output and are sandwichable",
+      "description": "CurveSpell is marked as performing reward swaps with a zero minimum output. When harvested CRV or other gauge rewards are sold through the Uniswap V2 router without an effective amountOutMin bound, an attacker can front-run and back-run the swap, moving the pool price and forcing the spell to accept a severely unfavorable execution price.",
+      "impact": "Harvested rewards can be exchanged for substantially less debt-repayment or collateral value than intended, causing direct losses to the leveraged position and potentially impairing solvency when the reward value is relied on to repay debt.",
+      "vulnerable_code": [],
+      "mitigation": "Require a nonzero minimum output computed from a trusted quote with a bounded slippage tolerance, or use a protected execution mechanism such as a deadline plus validated oracle/TWAP pricing; reject swaps whose output is below the bound and ensure the bound cannot be attacker-controlled without validation.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_24b8867d8ad2",
+      "title": "AuraSpell reward swaps may be executable with zero or caller-controlled slippage protection",
+      "description": "AuraSpell integrates directly with Uniswap for token conversions, but the available component context does not establish a nonzero minimum output or a bounded deadline for those swaps. If its swap parameters permit zero minimum output or an attacker-controlled path, a searcher can sandwich the transaction and force the spell to accept severely unfavorable execution.",
+      "impact": "Reward or collateral tokens can be exchanged at a heavily manipulated rate, causing direct value loss for the position or reducing users' received proceeds.",
+      "vulnerable_code": [],
+      "mitigation": "Require a nonzero, position-appropriate minimum output and a short user-specified deadline; validate swap paths and reject unsafe parameters before invoking Uniswap.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_2d360559a6aa",
+      "title": "ShortLongSpell Paraswap execution permits insufficient-output swaps",
+      "description": "ShortLongSpell delegates asset conversion to Paraswap, but the available component evidence does not show enforcement of a protocol-level minimum output, deadline, or route-price bound. A caller or a transaction manipulator can therefore cause the spell to execute a materially underpriced swap, including a zero-minimum route, while the resulting position or repayment accounting proceeds with the reduced output.",
+      "impact": "Collateral or borrowed assets can be exchanged at a severe discount, reducing position value and potentially causing user losses, undercollateralized positions, or protocol bad debt.",
+      "vulnerable_code": [],
+      "mitigation": "Require a caller-supplied minimum output that is checked against the actual Paraswap result, reject zero or otherwise unbounded minimums where appropriate, validate the source token, destination token, and input amount against the operation, and require a bounded deadline or equivalent freshness condition. Independently verify returned balances before finalizing position accounting.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_c110e51a3107",
+      "title": "Externally Mutable Curve Address Provider Can Replace the Trusted Registry",
+      "description": "CurveOracle depends on a Curve address provider and registry rather than a self-contained, immutable registry implementation. If the configured address provider can be upgraded or otherwise returns a different registry, CurveOracle will trust the replacement registry's pool mappings and virtual-price responses without independently authenticating or validating them.",
+      "impact": "Collateral LP tokens can be materially overvalued, allowing excessive borrowing, or undervalued, causing wrongful liquidations; a malicious registry can also make all Curve-backed price requests return arbitrary values or revert.",
+      "vulnerable_code": [],
+      "mitigation": "Pin a vetted registry address at deployment where possible, or restrict and timelock any provider changes. Validate the resolved registry against an allowlist and verify expected code/interface behavior before accepting prices; add monitoring and emergency pause controls for registry changes.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_7327eeaffee2",
+      "title": "Unbounded token decimals can break or distort Uniswap V2 price normalization",
+      "description": "UniswapV2Oracle reads ERC20 decimals from both pool assets and uses decimal powers to normalize reserve-based prices. Without an explicit upper bound and checked normalization policy, a token reporting an excessively large decimals value can make 10**decimals overflow and revert, while inconsistent or nonstandard decimals can produce materially incorrect prices.",
+      "impact": "A configured pair containing a nonstandard token can make oracle calls revert, disabling dependent protocol operations, or can cause collateral to be over- or undervalued and enable unsafe borrowing or liquidation decisions.",
+      "vulnerable_code": [],
+      "mitigation": "Enforce a documented decimals range, avoid unchecked exponentiation, and fail closed for tokens whose metadata cannot be safely normalized.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_a7767c474abe",
+      "title": "BaseOracleExt deviation arithmetic can overflow and brick dependent price reads",
+      "description": "The relative-deviation calculation operates on uint256 oracle prices normalized to 1e18 and multiplies prices or price differences by 1e18 and a deviation factor without an evident upper-bound check. A sufficiently large externally returned price can overflow checked arithmetic and revert the deviation check, causing every dependent oracle query to fail.",
+      "impact": "Oracle reads can revert, disabling collateral valuation, borrowing, liquidation, or other protocol operations that depend on the affected route.",
+      "vulnerable_code": [],
+      "mitigation": "Validate that all input prices and the configured deviation are within safe bounds before arithmetic; calculate deviations using division-first or full-precision mulDiv logic, and reject values that cannot be represented safely.",
+      "severity": "medium"
+    }
+  ]
+}

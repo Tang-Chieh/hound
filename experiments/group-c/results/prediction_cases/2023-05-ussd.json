@@ -1,0 +1,183 @@
+{
+  "repo_id": "2023-05-ussd",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_32f367364f7b",
+      "title": "Permissionless rebalancing is manipulable through the Uniswap V3 spot price and pool balances",
+      "description": "rebalance() is publicly callable and bases both the trigger and trade size on uniPool.slot0() and ERC20 balances held by the pool. An attacker can temporarily manipulate the pool price or balances, invoke rebalance(), and cause the rebalancer to execute swaps using amountOutMinimum = 0, after which the attacker can restore the pool state or arbitrage the resulting trade.",
+      "impact": "The rebalancer can sell USSD or collateral at an attacker-controlled price, causing direct loss of reserve assets and destabilizing the USSD peg.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/USSDRebalancer.sol",
+          "contract": "USSDRebalancer",
+          "function": "rebalance"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSDRebalancer.sol",
+          "contract": "USSDRebalancer",
+          "function": "getOwnValuation"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSDRebalancer.sol",
+          "contract": "USSDRebalancer",
+          "function": "getSupplyProportion"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "UniV3SwapInput"
+        }
+      ],
+      "mitigation": "Use a sufficiently long TWAP or independently validated oracle for the trigger and sizing, validate pool liquidity/state, impose nonzero minimum outputs and deadlines, and restrict execution to an authorized keeper or enforce a commit/validation mechanism.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_e0ad06a8b8bc",
+      "title": "Peg-down rebalance can revert from unsigned subtraction underflow",
+      "description": "When ownval is below the lower threshold, rebalance() computes (USSDamount - DAIamount / 1e12) / 2 without checking that USSDamount is at least the normalized DAI amount. If the pool has more normalized DAI than USSD, Solidity 0.8 reverts before recovery can execute. The same function also evaluates 1e6 - threshold without validating threshold <= 1e6.",
+      "impact": "Rebalancing becomes unavailable precisely during a depeg condition, preventing recovery and potentially leaving the pool exposed to prolonged insolvency or further arbitrage.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/USSDRebalancer.sol",
+          "contract": "USSDRebalancer",
+          "function": "rebalance"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSDRebalancer.sol",
+          "contract": "USSDRebalancer",
+          "function": "setTreshold"
+        }
+      ],
+      "mitigation": "Clamp trade sizes when the balance difference is negative, branch explicitly on the balance relation, and require threshold <= 1e6 in setTreshold before storing it.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_419275c1d0b3",
+      "title": "Collateral exclusion check is always true and can swap pool base assets incorrectly",
+      "description": "SellUSSDBuyCollateral intends to avoid swapping collateral tokens that are already the pool legs, but uses if (token != token0 || token != token1). For any token, at least one inequality is true, including when the token equals token0 or token1. The rebalancer can therefore execute pathbuy for a pool leg or base asset, potentially performing an unintended self/invalid swap or reverting during rebalancing.",
+      "impact": "Rebalancing may revert or spend newly acquired base assets through an unintended route, causing denial of service or reserve loss.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/USSDRebalancer.sol",
+          "contract": "USSDRebalancer",
+          "function": "SellUSSDBuyCollateral"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "UniV3SwapInput"
+        }
+      ],
+      "mitigation": "Replace the condition with token != uniPool.token0() && token != uniPool.token1(), validate every configured path against its input/output tokens, and skip or explicitly handle pool-leg collateral.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_cfd90452ecdd",
+      "title": "Unrestricted mintRebalancer and burnRebalancer permit unauthorized supply manipulation",
+      "description": "USSD.mintRebalancer() and burnRebalancer() are public and do not apply the defined onlyBalancer modifier. Any account can mint arbitrary USSD to the USSD contract or burn any USSD currently held there, including tokens intended for rebalancing.",
+      "impact": "An attacker can alter supply and collateralization accounting, force rebalancing decisions based on unauthorized supply changes, or destroy inventory accumulated for reserve operations, causing peg instability or denial of service.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "mintRebalancer"
+        },
+        {
+          "file": "ussd-contracts/contracts/USSD.sol",
+          "contract": "USSD",
+          "function": "burnRebalancer"
+        }
+      ],
+      "mitigation": "Apply onlyBalancer to both functions, or use an explicit role restricted to the configured rebalancer; reject zero or invalid rebalancer addresses during configuration.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_45848f4e4bbf",
+      "title": "Oracle implementations accept invalid or unavailable prices",
+      "description": "StableOracleWETH and StableOracleWBTC cast signed Chainlink prices directly to uint256 and ignore round completeness and timestamp freshness. A negative answer becomes a huge unsigned value, while stale data remains usable. StableOracleDAI initializes ethOracle to address(0), so any getPriceUSD call dereferences a zero address and reverts. Configured collateral using these feeds can therefore be mispriced or make minting, accounting, and rebalancing fail.",
+      "impact": "Collateral can be valued at an enormous incorrect price, enabling unbacked USSD issuance or destructive rebalance trades; DAI-dependent operations can be permanently unavailable.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWETH.sol",
+          "contract": "StableOracleWETH",
+          "function": "getPriceUSD"
+        },
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWBTC.sol",
+          "contract": "StableOracleWBTC",
+          "function": "getPriceUSD"
+        },
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleDAI.sol",
+          "contract": "StableOracleDAI",
+          "function": "getPriceUSD"
+        }
+      ],
+      "mitigation": "Require price > 0, validate updatedAt and answeredInRound against the current round, enforce a maximum staleness bound, and inject and validate a nonzero ETH oracle before enabling the collateral.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_4d2b0be6be76",
+      "title": "\"description\": \"SellUSSDBuyCollateral intends to avoid swapping collateral tokens that are already the pool legs, but uses if (token != token0",
+      "description": "token != token1). For any token, at least one inequality is true, including when the token equals token0 or token1. The rebalancer can therefore execute pathbuy for a pool leg or base asset, potentially performing an unintended self/invalid swap or reverting during rebalancing.\", \"type\": \"logic_error\", \"root_cause\": \"An OR condition is used where an AND condition is required for exclusion from both pool-leg addresses.\", \"attack_vector\": \"Configure a collateral entry whose token is token0 or token1, or otherwise reach a collateralization branch involving that entry, then invoke the over-peg rebalancing path.\", \"impact\": \"Rebalancing may revert or spend newly acquired base assets through an unintended route, causing denial of service or reserve loss.\", \"node_ids\": [ \"function_rebalancer_sellUSSD\", \"function_USSD_UniV3SwapInput\" ], \"affected_code\": [ \"ussd-contracts/contracts/USSDRebalancer.sol:SellUSSDBuyCollateral\", \"ussd-contracts/contracts/USSD.sol:UniV3SwapInput\" ], \"vulnerable_code\": [ { \"file\": \"ussd-contracts/contracts/USSDRebalancer.sol\", \"contract\": \"USSDRebalancer\", \"function\": \"SellUSSDBuyCollateral\", \"start_line\": null, \"end_line\": null }, { \"file\": \"ussd-contracts/contracts/USSD.sol\", \"contract\": \"USSD\", \"function\": \"UniV3SwapInput\", \"start_line\": null, \"end_line\": null } ], \"severity\": \"medium\", \"confidence\": \"high\", \"reasoning\": \"The condition token != token0",
+      "impact": "Not provided in the Hound output.",
+      "vulnerable_code": [],
+      "mitigation": "Not provided in the Hound output.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_daf2317bedbf",
+      "title": "Network-specific hardcoded Chainlink feed can invalidate WETH pricing on non-mainnet deployments",
+      "description": "The constructor permanently assigns the Ethereum-mainnet WETH/USD feed address 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419 without checking chain ID, feed code, interface support, or deployment configuration. If this contract is deployed on another network, the address may be unset, unrelated, or expose incompatible data, causing getPriceUSD to revert or return an incorrect value that downstream minting and collateral valuation rely on.",
+      "impact": "USSD minting and collateral valuation can be halted by oracle-call reverts or performed at a materially incorrect WETH price, potentially enabling undercollateralized issuance or loss of funds.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWETH.sol",
+          "contract": "StableOracleWETH",
+          "function": "constructor"
+        },
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWETH.sol",
+          "contract": "StableOracleWETH",
+          "function": "getPriceUSD"
+        }
+      ],
+      "mitigation": "Pass the intended feed address as a constructor parameter or select it from a chain-validated configuration; verify the target has contract code, supports AggregatorV3Interface, reports the expected asset pair and decimals, and reject deployment when the configured network/feed combination is invalid.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_3956a14a1446",
+      "title": "StableOracleWBTC uses the ETH/USD Chainlink feed instead of BTC/USD",
+      "description": "The constructor initializes priceFeed with 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419, which is the Chainlink ETH/USD feed, while the source comment identifies 0xf4030086522a5beea4988f8ca5b36dbc97bee88c as the intended BTC/USD feed. getPriceUSD therefore reports ETH's price as WBTC's price, and downstream oracle-priced minting and collateral calculations use the wrong asset valuation.",
+      "impact": "WBTC-backed users may mint materially more or less USSD than their collateral warrants, enabling loss of protocol collateral or under-collateralized USSD issuance.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/oracles/StableOracleWBTC.sol",
+          "contract": "StableOracleWBTC",
+          "function": "constructor"
+        }
+      ],
+      "mitigation": "Use the verified BTC/USD feed address for the target deployment, inject the feed address through a controlled constructor parameter, and validate that the configured feed's description, decimals, and network match BTC/USD before enabling the collateral.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_00bfa4ce9b37",
+      "title": "Unrestricted SimOracle price setter allows arbitrary oracle-price manipulation",
+      "description": "SimOracle.setPriceUSD is public and has no access control, so any account can overwrite the price consumed through getPriceUSD. If this oracle is configured for USSD collateral valuation, an attacker can set an artificially high price to mint excess USSD for little collateral or set a zero/low price to distort collateral factors and rebalancer trades.",
+      "impact": "Unauthorized callers can cause undercollateralized USSD issuance, mispriced collateral-factor calculations, or unfavorable protocol trades, potentially resulting in direct loss of backing assets and insolvency.",
+      "vulnerable_code": [
+        {
+          "file": "ussd-contracts/contracts/oracles/SimOracle.sol",
+          "contract": "SimOracle",
+          "function": "setPriceUSD(uint256)"
+        }
+      ],
+      "mitigation": "Restrict setPriceUSD to a narrowly authorized governance or test-only role, or remove this oracle from production deployments. Enforce nonzero and protocol-specific bounds, and use a time-delayed, auditable update mechanism where mutable simulation pricing is required.",
+      "severity": "critical"
+    }
+  ]
+}

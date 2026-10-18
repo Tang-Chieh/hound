@@ -1,0 +1,186 @@
+{
+  "version": "1.0",
+  "items": {
+    "frame_16ab1de91003": {
+      "frame_id": "frame_16ab1de91003",
+      "session_id": "sess_agent_20261012_200221",
+      "question": "Vulnerability analysis of Pool",
+      "artifact_refs": [
+        "Reserve-based swap pricing and whether spot reserves can be manipulated within or across transactions",
+        "Balance-delta swap input accounting and unsolicited token transfers affecting quoted prices",
+        "LP redemption pricing and interactions between pool reserves, balances, and share supply",
+        "Cross-pool pricing assumptions that may enable flash-loan or donation-based price distortion"
+      ],
+      "priority": 10,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:02:27.385686",
+      "updated_at": "2026-10-12T20:03:39.037486",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:02:27.385898",
+          "status": "planned",
+          "rationale": "WHY NOW: Pool is the core pricing component, and the graph explicitly identifies reserve-based swap pricing, balance-delta inputs, and reserve-based LP redemption as central behaviors. These mechanisms are the highest-priority surface for determining whether an attacker can manipulate spot prices through transient trades, token donations, or reserve/balance desynchronization and then extract value through swaps or withdrawals. EXIT CRITERIA: Trace all state changes affecting reserves, balances, pricing formulas, LP supply, and redemption outputs; identify every caller and dependent pricing path; determine whether same-transaction manipulation is possible and whether any invariant, oracle, minimum-output, or synchronization control prevents exploitation; document a concrete exploit path or conclude that price manipulation is adequately bounded.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:02:27.395457",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:03:39.037619",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_6364bb0ac887": {
+      "frame_id": "frame_6364bb0ac887",
+      "session_id": "sess_agent_20261012_200221",
+      "question": "Vulnerability analysis of DaoVault",
+      "artifact_refs": [
+        "Spot-price-dependent LP valuation and weight recalculation",
+        "Deposit, harvest, and withdrawal accounting that can be influenced by pool reserves",
+        "Whether temporary AMM price manipulation enables disproportionate vault shares, rewards, or withdrawals"
+      ],
+      "priority": 9,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:03:49.127993",
+      "updated_at": "2026-10-12T20:04:22.760846",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:03:49.128458",
+          "status": "planned",
+          "rationale": "WHY NOW: DaoVault is an unvisited major component explicitly annotated as using spot-valued weights and recalculating weight on deposit, while Pool has already established mutable spot pricing as a confirmed price-manipulation risk. This makes DaoVault a high-priority downstream consumer that may convert a transient pool price distortion into persistent share, reward, or redemption value. EXIT CRITERIA: Trace all DaoVault valuation and weight calculations through deposit, harvest, and withdrawal; identify every price/reserve source and whether it is manipulable within the same transaction or surrounding transactions; verify whether share issuance, rewards, or LP redemption can be profitably distorted; conclude with either a concrete exploit path and affected state or documented evidence that manipulation is bounded or independently protected.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:03:49.146341",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:04:22.761179",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_942b4e0c2d41": {
+      "frame_id": "frame_942b4e0c2d41",
+      "session_id": "sess_agent_20261012_200221",
+      "question": "Vulnerability analysis of BASE / SPARTA token",
+      "artifact_refs": [
+        "Transfer-fee and burn behavior affecting pool balance-delta accounting",
+        "Minting, burning, and transferAndCall paths that can alter AMM reserves or spot prices",
+        "Whether token supply or balance changes enable price manipulation before oracle-dependent actions"
+      ],
+      "priority": 8,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:04:29.922116",
+      "updated_at": "2026-10-12T20:05:49.567684",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:04:29.922487",
+          "status": "planned",
+          "rationale": "WHY NOW: This unvisited token component directly affects balances used by Pool reserve and swap pricing, while existing hypotheses identify spot-price manipulation as a high-priority risk. Its transfer fee, burn, and callback semantics may create balance/reserve discrepancies that can be exploited to distort prices or influence downstream spot-valued calculations. EXIT CRITERIA: Trace every externally reachable mint, burn, transfer, and transferAndCall path; map effects on pool balances and recorded reserves; identify whether an attacker can create a profitable price distortion or bypass expected reserve accounting; conclude with either a concrete price-manipulation finding and affected flows or documented evidence that these token operations cannot materially influence pricing.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:04:29.938490",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:05:49.567940",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_e134e18cc97a": {
+      "frame_id": "frame_e134e18cc97a",
+      "session_id": "sess_agent_20261012_200221",
+      "question": "Vulnerability analysis of SynthFactory token-to-synth and isSynth registries",
+      "artifact_refs": [
+        "Whether token-to-synth mappings can be manipulated to redirect synth pricing or valuation",
+        "Whether isSynth classification can be forged, stale, duplicated, or inconsistently cleared",
+        "Whether registry lookups used by swaps, vaults, or pricing paths accept attacker-controlled synth identities"
+      ],
+      "priority": 7,
+      "status": "done",
+      "rationale": "Completed investigation",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:05:55.386142",
+      "updated_at": "2026-10-12T20:06:43.522226",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:05:55.386633",
+          "status": "planned",
+          "rationale": "WHY NOW: This is the remaining non-interface component and directly controls asset identity used by synth-related pricing and swap paths. A manipulated or inconsistent registry could cause protocols to treat an attacker-selected token as a valid synth or resolve the wrong synth for valuation. EXIT CRITERIA: Trace every write and read of token-to-synth and isSynth state, identify all callers that use these values in price-sensitive calculations or asset routing, and determine whether any permissionless or stale mapping can alter a victim's effective price or synth valuation. Stop when all registry mutation and consumption paths are covered with no exploitable price impact found.",
+          "created_by": "strategist"
+        },
+        {
+          "timestamp": "2026-10-12T20:05:55.407682",
+          "status": "in_progress",
+          "rationale": "Execution started",
+          "investigation_id": null
+        },
+        {
+          "timestamp": "2026-10-12T20:06:43.522394",
+          "status": "done",
+          "rationale": "Completed investigation",
+          "investigation_id": null
+        }
+      ]
+    },
+    "frame_9ec2abc034ce": {
+      "frame_id": "frame_9ec2abc034ce",
+      "session_id": "sess_agent_20261012_200221",
+      "question": "System component review: iBEP677 (i_bep677)",
+      "artifact_refs": [
+        "i_bep677@SystemArchitecture"
+      ],
+      "priority": 7,
+      "status": "planned",
+      "rationale": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+      "created_by": "strategist",
+      "assigned_to": null,
+      "investigation_id": null,
+      "created_at": "2026-10-12T20:06:46.592698",
+      "updated_at": "2026-10-12T20:06:46.593220",
+      "history": [
+        {
+          "timestamp": "2026-10-12T20:06:46.593526",
+          "status": "planned",
+          "rationale": "Coverage-phase fallback: map entrypoints, auth, and value/state flows; annotate nodes; avoid deep dives.",
+          "created_by": "strategist"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "total": 5,
+    "last_modified": "2026-10-12T20:06:46.593798"
+  }
+}

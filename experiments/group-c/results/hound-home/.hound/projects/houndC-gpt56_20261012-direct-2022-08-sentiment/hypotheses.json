@@ -1,0 +1,1244 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_38d8a25f645d": {
+      "title": "Stale Chainlink rounds are accepted for collateral valuation",
+      "description": "VULNERABILITY TYPE: oracle\nROOT CAUSE: Missing freshness and round-completeness validation for Chainlink responses.\nATTACK VECTOR: An attacker borrows against collateral while the token or ETH/USD feed is stale and the market price has moved materially, or otherwise exploits the outdated ratio before an administrator updates the feed.\nAFFECTED NODES: chainlink_oracle, chainlink_feed, oracle_facade, risk_engine\nAFFECTED CODE: oracle/src/chainlink/ChainlinkOracle.sol:getPrice, oracle/src/chainlink/ChainlinkOracle.sol:getEthPrice, protocol/src/core/RiskEngine.sol:_valueInWei\nSEVERITY: high\nREASONING: Both functions destructure all round metadata but only inspect answer < 0. The resulting price directly feeds RiskEngine collateral and borrow calculations.\nSUGGESTED MITIGATION: Validate updatedAt against a configured maximum age, require updatedAt != 0, require answeredInRound >= roundId where applicable, and revert when the round is incomplete or stale. Apply equivalent checks to the ETH/USD feed.",
+      "vulnerability_type": "oracle",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "chainlink_oracle",
+        "chainlink_feed",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "Both functions destructure all round metadata but only inspect answer < 0. The resulting price directly feeds RiskEngine collateral and borrow calculations.",
+      "mitigation": "Validate updatedAt against a configured maximum age, require updatedAt != 0, require answeredInRound >= roundId where applicable, and revert when the round is incomplete or stale. Apply equivalent checks to the ETH/USD feed.",
+      "finding_description": "getPrice and getEthPrice consume latestRoundData but ignore updatedAt, answeredInRound, and roundId. During a feed outage, stalled transmission, or incomplete round, an old price remains usable by OracleFacade and RiskEngine as current collateral and debt valuation.",
+      "impact": "RiskEngine can approve undercollateralized borrowing or reject valid withdrawals based on obsolete prices, potentially causing protocol bad debt or preventing solvent users from withdrawing.",
+      "vulnerable_code": [
+        {
+          "file": "oracle/src/chainlink/ChainlinkOracle.sol",
+          "contract": "ChainlinkOracle",
+          "function": "getPrice(address)"
+        },
+        {
+          "file": "oracle/src/chainlink/ChainlinkOracle.sol",
+          "contract": "ChainlinkOracle",
+          "function": "getEthPrice()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "oracle/src/chainlink/AggregatorV3Interface.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/chainlink/ChainlinkOracle.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:26:40.842444",
+      "id": "hyp_38d8a25f645d",
+      "qa_comment": "Upon reviewing ChainlinkOracle.sol:getPrice and getEthPrice, I confirmed that stale or incomplete Chainlink rounds are accepted and used in valuation. Both functions call latestRoundData() but discard roundId, startedAt, updatedAt, and answeredInRound, checking only whether answer is negative. Consequently, a nonnegative answer with updatedAt == 0, an arbitrarily old timestamp, or answeredInRound < roundId is accepted. getPrice computes the token price using the stale token/USD answer and getEthPrice, which applies the same insufficient validation to the ETH/USD feed. OracleFacade.getPrice forwards this value without additional checks, and RiskEngine._valueInWei directly uses it for collateral balances, borrow values, withdrawals, and health-factor calculations. The deployment configures these Chainlink feeds for DAI, WBTC, USDC, and USDT, while ETH/USD is used as the denominator, establishing a clear affected path. Although feed administration is restricted, that does not provide freshness protection during outages or delayed updates; an attacker can transact while stale prices materially misrepresent market value."
+    },
+    "hyp_2f7090d887c2": {
+      "title": "Feed decimal mismatch can arbitrarily mis-scale token prices",
+      "description": "VULNERABILITY TYPE: oracle\nROOT CAUSE: Hardcoded, undocumented decimal assumption with no feed-decimal normalization or compatibility check.\nATTACK VECTOR: A configured feed with 18 decimals, 6 decimals, or any precision different from the ETH/USD feed is registered for a collateral token. RiskEngine then uses the mis-scaled result for deposits, borrowing, and withdrawals.\nAFFECTED NODES: chainlink_oracle, chainlink_feed, oracle_facade, risk_engine, deployment_script\nAFFECTED CODE: oracle/src/chainlink/ChainlinkOracle.sol:getPrice, protocol/src/core/RiskEngine.sol:_valueInWei, protocol/deployments/Deploy.sol:configureChainLinkOracle\nSEVERITY: high\nREASONING: The code performs raw answer arithmetic and contains only a comment stating the token feed should return 8 decimals. The interface does not enforce that requirement, and no runtime validation exists.\nSUGGESTED MITIGATION: Read decimals() from both feeds and normalize answers to a common fixed-point scale before division, or enforce and verify an immutable expected decimal value for every configured feed during setFeed.",
+      "vulnerability_type": "oracle",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "chainlink_oracle",
+        "chainlink_feed",
+        "oracle_facade",
+        "risk_engine",
+        "deployment_script"
+      ],
+      "evidence": [],
+      "reasoning": "The code performs raw answer arithmetic and contains only a comment stating the token feed should return 8 decimals. The interface does not enforce that requirement, and no runtime validation exists.",
+      "mitigation": "Read decimals() from both feeds and normalize answers to a common fixed-point scale before division, or enforce and verify an immutable expected decimal value for every configured feed during setFeed.",
+      "finding_description": "The implementation assumes token feed answers are scaled by 8 decimals and converts the raw token answer directly against the raw ETH/USD answer. It never queries or validates AggregatorV3Interface.decimals(), so feeds with differing decimal precision produce prices scaled by the precision difference.",
+      "impact": "Collateral may be overvalued by orders of magnitude, allowing excessive borrowing and protocol bad debt; alternatively it may be undervalued and make collateral unusable.",
+      "vulnerable_code": [
+        {
+          "file": "oracle/src/chainlink/ChainlinkOracle.sol",
+          "contract": "ChainlinkOracle",
+          "function": "getPrice(address)"
+        },
+        {
+          "file": "oracle/src/chainlink/ChainlinkOracle.sol",
+          "contract": "ChainlinkOracle",
+          "function": "getEthPrice()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "oracle/src/chainlink/AggregatorV3Interface.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/chainlink/ChainlinkOracle.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:26:45.677936",
+      "id": "hyp_2f7090d887c2",
+      "qa_comment": "Upon reviewing ChainlinkOracle.sol, RiskEngine.sol, and Deploy.sol, I confirmed that the oracle implementation has an exploitable decimal-normalization flaw when a configured feed uses decimals different from the ETH/USD feed. ChainlinkOracle.getPrice performs `(uint(answer) * 1e18) / getEthPrice()` and only documents, via a comment, that token feeds should return eight decimals; it neither reads feed decimals nor verifies compatibility with the immutable ETH/USD feed. The AggregatorV3Interface also omits a decimals() function. Consequently, a feed with a different precision produces a price scaled by the corresponding power-of-ten factor, and RiskEngine._valueInWei trusts that result for collateral and debt valuation after only normalizing token units. ChainlinkOracle.setFeed accepts any AggregatorV3Interface without validation, and Deploy.configureChainLinkOracle provides no additional check. The deployment\u2019s listed feeds may conventionally use eight decimals, but this is not enforced and future administrative reconfiguration can introduce the mismatch. Exploitation requires an authorized feed-setting or deployment action, rather than an arbitrary permissionless attacker, but the underlying vulnerability is real."
+    },
+    "hyp_0abd59c5e2c2": {
+      "title": "Zero answers can disable pricing or create zero-valued collateral",
+      "description": "VULNERABILITY TYPE: oracle\nROOT CAUSE: No validation that Chainlink answers are strictly positive before conversion.\nATTACK VECTOR: A feed outage or misconfigured feed returns answer == 0. Calls to getPrice either revert because the ETH answer is zero or return zero for the token feed, propagating into RiskEngine valuation and account health checks.\nAFFECTED NODES: chainlink_oracle, chainlink_feed, oracle_facade, risk_engine\nAFFECTED CODE: oracle/src/chainlink/ChainlinkOracle.sol:getPrice, oracle/src/chainlink/ChainlinkOracle.sol:getEthPrice\nSEVERITY: medium\nREASONING: The explicit condition is answer < 0, so answer == 0 passes. getPrice divides by getEthPrice(), and a zero token answer is returned as zero without rejection.\nSUGGESTED MITIGATION: Require both token and ETH answers to be greater than zero and revert with a dedicated invalid-answer error before any arithmetic or price use.",
+      "vulnerability_type": "oracle",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "chainlink_oracle",
+        "chainlink_feed",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "The explicit condition is answer < 0, so answer == 0 passes. getPrice divides by getEthPrice(), and a zero token answer is returned as zero without rejection.",
+      "mitigation": "Require both token and ETH answers to be greater than zero and revert with a dedicated invalid-answer error before any arithmetic or price use.",
+      "finding_description": "Only negative answers are rejected. A zero ETH/USD answer causes division by zero in getPrice, making every token price request through that ChainlinkOracle revert. A zero token answer returns zero and can make collateral valuation unusable; if a zero-producing or incorrectly configured feed is accepted, the oracle can be selectively disabled or misprice assets.",
+      "impact": "A zero ETH price can cause protocol-wide denial of service for assets using this oracle, while a zero token price can distort health calculations and block withdrawals or operations involving that asset.",
+      "vulnerable_code": [
+        {
+          "file": "oracle/src/chainlink/ChainlinkOracle.sol",
+          "contract": "ChainlinkOracle",
+          "function": "getPrice(address)"
+        },
+        {
+          "file": "oracle/src/chainlink/ChainlinkOracle.sol",
+          "contract": "ChainlinkOracle",
+          "function": "getEthPrice()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "oracle/src/chainlink/AggregatorV3Interface.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/chainlink/ChainlinkOracle.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:26:51.079010",
+      "id": "hyp_0abd59c5e2c2",
+      "qa_comment": "Upon reviewing ChainlinkOracle.getPrice and getEthPrice in oracle/src/chainlink/ChainlinkOracle.sol, I confirmed the reported oracle validation weakness. Both functions reject only negative answers, allowing answer == 0 to pass the int-to-uint conversion. When the token feed returns zero and the ETH/USD feed is positive, getPrice returns zero, and OracleFacade performs no additional validation before exposing that value to RiskEngine._valueInWei. Consequently, collateral can be valued at zero, disabling withdrawals or borrowing for affected accounts, while a zero-valued borrow feed could cause debt to be omitted from health calculations. If the ETH/USD feed returns zero, getEthPrice returns zero and getPrice reverts on division by zero, allowing pricing-dependent protocol operations to be disabled. The relevant RiskEngine balance and borrow aggregation paths directly consume these prices without safeguards. Although an ordinary user cannot arbitrarily set Chainlink answers, a feed outage, migration, or misconfiguration provides a realistic triggering condition, and no strictly-positive answer check exists to fail safely with a dedicated validation error."
+    },
+    "hyp_ca7683b1deaf": {
+      "title": "Spot liquidity can be flash-manipulated to suppress borrow interest",
+      "description": "VULNERABILITY TYPE: economic_manipulation\nROOT CAUSE: Interest-rate calculation relies on a manipulable spot balanceOf-based liquidity input without a time-weighted or otherwise protected liquidity measure.\nATTACK VECTOR: Obtain temporary underlying liquidity, transfer it to the LToken, invoke updateState while the inflated balance is present, then remove or repay the temporary liquidity in the same transaction or block.\nAFFECTED NODES: rate_model, ltoken, external_protocol\nAFFECTED CODE: protocol/src/core/DefaultRateModel.sol:getBorrowRatePerSecond, protocol/src/tokens/LToken.sol:updateState, protocol/src/tokens/LToken.sol:getBorrows\nSEVERITY: high\nREASONING: The model computes utilization as borrows divided by liquidity plus borrows, while the loaded LToken integration uses the underlying balance as liquidity and exposes updateState publicly. ERC-20 balances can be temporarily inflated with flash liquidity before state accrual, directly lowering the computed rate for the accrued period.\nSUGGESTED MITIGATION: Do not base accrual on an unprotected instantaneous token balance. Use a liquidity measure that cannot be temporarily inflated for the accrual call, such as a stored or time-weighted liquidity value, and ensure state updates use a trusted pre-update accounting snapshot. Consider restricting or carefully sequencing balance-changing operations around interest accrual.",
+      "vulnerability_type": "economic_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "rate_model",
+        "ltoken",
+        "external_protocol"
+      ],
+      "evidence": [],
+      "reasoning": "The model computes utilization as borrows divided by liquidity plus borrows, while the loaded LToken integration uses the underlying balance as liquidity and exposes updateState publicly. ERC-20 balances can be temporarily inflated with flash liquidity before state accrual, directly lowering the computed rate for the accrued period.",
+      "mitigation": "Do not base accrual on an unprotected instantaneous token balance. Use a liquidity measure that cannot be temporarily inflated for the accrual call, such as a stored or time-weighted liquidity value, and ensure state updates use a trusted pre-update accounting snapshot. Consider restricting or carefully sequencing balance-changing operations around interest accrual.",
+      "finding_description": "DefaultRateModel derives utilization directly from the caller-supplied liquidity value. LToken supplies the underlying token balance as liquidity, so an attacker can temporarily transfer or flash-borrow a large amount of the underlying into the LToken, call the public updateState function, and withdraw or repay the temporary liquidity afterward. The rate model then observes an artificially low utilization for the entire elapsed accrual interval.",
+      "impact": "Borrowers can avoid a substantial portion of accrued interest, reducing lender yield and reserve accrual and potentially causing protocol-wide financial loss when large outstanding borrows exist.",
+      "vulnerable_code": [
+        {
+          "file": "protocol/src/core/DefaultRateModel.sol",
+          "contract": "DefaultRateModel",
+          "function": "getBorrowRatePerSecond(uint,uint)"
+        },
+        {
+          "file": "protocol/src/tokens/LToken.sol",
+          "contract": "LToken",
+          "function": "updateState()"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/tokens/LToken.sol",
+          "protocol/src/core/DefaultRateModel.sol",
+          "controller/src/core/IController.sol",
+          "protocol/src/interface/tokens/ILToken.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/interface/core/IRateModel.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:27:47.104967",
+      "id": "hyp_ca7683b1deaf",
+      "qa_comment": "Upon reviewing LToken.sol, particularly updateState(), getRateFactor(), and the public asset-balance access in getRateFactor(), I confirmed that the alleged economic manipulation is exploitable. updateState() is callable by any address and, when the timestamp changes, calculates accrued interest using rateModel.getBorrowRatePerSecond(asset.balanceOf(address(this)), borrows). DefaultRateModel.sol then computes utilization as borrows divided by liquidity plus borrows, so temporarily transferring underlying tokens to the LToken reduces utilization and the resulting borrow rate. An attacker can supply temporary liquidity, invoke updateState() while that balance is present, and remove or repay the liquidity in the same transaction or block. The only guard is the lastUpdated == block.timestamp check, which prevents repeated accrual within a timestamp but does not prevent the first manipulated update. Other state-changing paths, including beforeDeposit(), beforeWithdraw(), and lendTo(), also invoke the same vulnerable update logic, while no trusted snapshot, minimum holding period, or balance-change sequencing protection exists. Therefore, a flash-loan-funded attacker can suppress interest accrued for the elapsed interval since the prior update."
+    },
+    "hyp_afc81e1857e5": {
+      "title": "useEth flag is not validated against the Curve pool coin index",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Missing validation linking useEth to the pool coin address returned by coins(i) or coins(j), depending on the swap direction and native-asset convention.\nATTACK VECTOR: A caller submits an exchange calldata payload with useEth=true for a pool/index whose corresponding coin is an ERC20 or an unexpected sentinel. If the downstream account execution path relies on the controller's token arrays to determine ETH transfers and accounting, the empty token list can bypass ERC20 flow validation or cause ETH to be sent/accounted for incorrectly.\nAFFECTED NODES: curve_crypto_controller, controller_facade, controller_interface\nAFFECTED CODE: controller/src/curve/CurveCryptoSwapController.sol:canCall, controller/src/curve/CurveCryptoSwapController.sol:canExchange\nSEVERITY: medium\nREASONING: The loaded implementation explicitly returns true with new address[](0) when useEth is set, while the shown code performs pool coin lookups but does not compare the relevant coin to a trusted native-token address. Other controllers perform explicit ETH/path handling, making this missing binding security-relevant if the account uses the returned token arrays for execution authorization and accounting.\nSUGGESTED MITIGATION: Require useEth to be true only when the native-asset position is the selected Curve coin and validate that coin against the deployment's canonical ETH/WETH sentinel. Reject ETH mode for ERC20-only indices and ensure the returned token-flow metadata matches the actual exchange direction.",
+      "vulnerability_type": "security_issue",
+      "severity": "medium",
+      "confidence": 0.9,
+      "status": "proposed",
+      "node_refs": [
+        "curve_crypto_controller",
+        "controller_facade",
+        "controller_interface"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded implementation explicitly returns true with new address[](0) when useEth is set, while the shown code performs pool coin lookups but does not compare the relevant coin to a trusted native-token address. Other controllers perform explicit ETH/path handling, making this missing binding security-relevant if the account uses the returned token arrays for execution authorization and accounting.",
+      "mitigation": "Require useEth to be true only when the native-asset position is the selected Curve coin and validate that coin against the deployment's canonical ETH/WETH sentinel. Reject ETH mode for ERC20-only indices and ensure the returned token-flow metadata matches the actual exchange direction.",
+      "finding_description": "The Curve crypto swap controller returns canCall=true and an empty tokensOut array whenever useEth is true, but it never verifies that the relevant Curve coin address is the native-ETH/WETH representation. The controller therefore trusts a caller-supplied ETH mode independently of the pool's actual coin at the exchange index.",
+      "impact": "An account may send native ETH to an exchange that does not consume ETH at the selected index, or the account's asset-flow checks may omit the actual ERC20 leg, potentially causing transaction loss, incorrect internal accounting, or unauthorized protocol interaction.",
+      "vulnerable_code": [
+        {
+          "file": "controller/src/curve/CurveCryptoSwapController.sol",
+          "contract": "CurveCryptoSwapController",
+          "function": "canExchange"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/core/IController.sol",
+          "controller/src/curve/CurveCryptoSwapController.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "controller/src/core/IControllerFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:29:09.554079",
+      "id": "hyp_afc81e1857e5"
+    },
+    "hyp_c951f0969ba0": {
+      "title": "Caller-supplied proxy administrator permits unauthorized upgrade control",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: The factory trusts an externally supplied proxy-admin address without enforcing that it is the intended account owner, a trusted governance address, or a nonzero validated administrator.\nATTACK VECTOR: An attacker calls the permissionless account-creation function with an attacker-controlled administrator address, or causes an integration to create an account with that address. The administrator then exercises proxy upgrade authority to install malicious account logic and control assets held by the proxy.\nAFFECTED NODES: account_factory, account_proxy, account, beacon\nAFFECTED CODE: AccountFactory account-proxy creation and administrator argument handling, BeaconProxy administrator and upgrade-control configuration\nSEVERITY: high\nREASONING: The architecture explicitly records that AccountFactory is permissionless and that the proxy administrator is a caller-supplied argument. The available context does not show validation tying this administrator to the account owner or trusted governance. Exploitability depends on whether the factory is used to create accounts for parties other than the caller and whether the proxy type exposes upgrade authority to the supplied administrator.\nSUGGESTED MITIGATION: Restrict account creation or bind the administrator to the authenticated account owner; reject zero and unsuitable administrator addresses; preferably derive the administrator from immutable trusted governance or the initialized owner rather than accepting an unconstrained caller-supplied value. Add tests proving that an untrusted caller cannot obtain upgrade authority over another user's account.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "account_factory",
+        "account_proxy",
+        "account",
+        "beacon"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records that AccountFactory is permissionless and that the proxy administrator is a caller-supplied argument. The available context does not show validation tying this administrator to the account owner or trusted governance. Exploitability depends on whether the factory is used to create accounts for parties other than the caller and whether the proxy type exposes upgrade authority to the supplied administrator.",
+      "mitigation": "Restrict account creation or bind the administrator to the authenticated account owner; reject zero and unsuitable administrator addresses; preferably derive the administrator from immutable trusted governance or the initialized owner rather than accepting an unconstrained caller-supplied value. Add tests proving that an untrusted caller cannot obtain upgrade authority over another user's account.",
+      "finding_description": "AccountFactory creates account proxies while accepting the proxy administrator as a caller-controlled argument. No factory-level validation or binding to the account owner is shown, so any caller can select an arbitrary administrator, including an attacker-controlled address or contract, when creating an account. If accounts are created on behalf of users or through integrations that do not independently verify this parameter, the selected administrator can upgrade the proxy implementation and replace account logic with malicious code.",
+      "impact": "An attacker-controlled proxy administrator can drain assets held by affected account proxies, alter authorization checks, or permanently brick account functionality through a malicious implementation upgrade.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/proxy/Beacon.sol",
+          "protocol/src/proxy/BeaconProxy.sol",
+          "protocol/src/interface/core/IAccountFactory.sol",
+          "protocol/src/proxy/BaseProxy.sol",
+          "protocol/src/core/AccountFactory.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/interface/proxy/IBeacon.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:30:31.855271",
+      "id": "hyp_c951f0969ba0",
+      "qa_comment": "Upon reviewing AccountFactory.create and the proxy administrator logic in BeaconProxy and BaseProxy, I confirmed that the factory accepts an arbitrary caller-supplied administrator without authorization or ownership validation. AccountFactory.create(accountManager) is external and permissionless, and it directly constructs BeaconProxy(beacon, accountManager). BeaconProxy passes that value to BaseProxy._setAdmin, which only rejects address(0); it does not require the administrator to be the account owner, factory, governance, or another trusted address. The resulting administrator can invoke changeBeacon() through the adminOnly modifier and replace the account\u2019s beacon with an attacker-controlled beacon whose implementation contains arbitrary logic. Because the proxy delegates all account calls and may hold assets, this can enable asset theft if an integration creates or funds an account while assigning an attacker-controlled administrator. Beacon ownership does not mitigate this issue because the proxy administrator can change the beacon itself. The supplied code does not demonstrate a victim-facing integration flow, so exploitation against a funded third-party account depends on external usage, but the access-control flaw is directly present."
+    },
+    "hyp_38e8d437ec4c": {
+      "title": "ERC4626 recursive pricing lacks cycle and depth protection",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: Recursive oracle composition is not visibly constrained by a maximum depth or visited-asset set.\nATTACK VECTOR: Cause or induce registration of an ERC4626 vault with a cyclic or excessively deep underlying-asset dependency, then invoke collateral, withdrawal, or borrowing paths that call RiskEngine valuation.\nAFFECTED NODES: risk_engine, oracle_facade, erc4626_oracle\nAFFECTED CODE: RiskEngine collateral valuation, OracleFacade recursive price dispatch, ERC4626Oracle recursive asset pricing\nSEVERITY: medium\nREASONING: The graph explicitly identifies recursive asset pricing in ERC4626Oracle and RiskEngine dependence on OracleFacade, while no recursion bound or cycle validation is shown. This is a distinct availability issue from stale, zero, or decimal-mismatch prices.\nSUGGESTED MITIGATION: Add a strict recursion-depth limit and cycle detection using a visited-token set for every recursive valuation. Reject cyclic or excessively deep oracle configurations during registration and return a controlled valuation failure rather than exhausting gas.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "risk_engine",
+        "oracle_facade",
+        "erc4626_oracle"
+      ],
+      "evidence": [],
+      "reasoning": "The graph explicitly identifies recursive asset pricing in ERC4626Oracle and RiskEngine dependence on OracleFacade, while no recursion bound or cycle validation is shown. This is a distinct availability issue from stale, zero, or decimal-mismatch prices.",
+      "mitigation": "Add a strict recursion-depth limit and cycle detection using a visited-token set for every recursive valuation. Reject cyclic or excessively deep oracle configurations during registration and return a controlled valuation failure rather than exhausting gas.",
+      "finding_description": "The ERC4626 oracle performs recursive asset pricing through OracleFacade and uses previewRedeem, but the architecture exposes no cycle detection or bounded recursion. A configured vault whose underlying asset path loops, or a maliciously configured nested vault graph, can cause recursive calls to exhaust gas or revert whenever RiskEngine evaluates an account using that asset.",
+      "impact": "Risk checks can consistently revert, freezing withdrawals, deposits, or borrowing for accounts whose collateral uses the affected oracle and potentially causing protocol-wide denial of service if the asset is widely accepted.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "oracle/src/erc4626/ERC4626Oracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/erc4626/IERC4626.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:31:24.075351",
+      "id": "hyp_38e8d437ec4c"
+    },
+    "hyp_049bade91d2e": {
+      "title": "ERC4626 previewRedeem exchange rates can overvalue collateral through instantaneous vault-state manipulation",
+      "description": "VULNERABILITY TYPE: economic_manipulation\nROOT CAUSE: Collateral valuation trusts a spot previewRedeem result from an external ERC4626 vault without an independent rate bound, freshness mechanism, or deviation check.\nATTACK VECTOR: Manipulate the underlying vault's reported share conversion or exploit donation/rounding behavior, deposit or hold the affected shares, pass RiskEngine's health check at the inflated value, and borrow assets before the rate normalizes.\nAFFECTED NODES: risk_engine, oracle_facade, erc4626_oracle, external_protocol\nAFFECTED CODE: RiskEngine collateral valuation, OracleFacade ERC4626 price routing, ERC4626Oracle previewRedeem-based share pricing\nSEVERITY: high\nREASONING: The architecture explicitly states that ERC4626Oracle uses previewRedeem and that RiskEngine relies on oracle-based collateral valuation. previewRedeem is a spot vault conversion result and is not inherently an oracle or manipulation-resistant price feed.\nSUGGESTED MITIGATION: Use a bounded and independently validated exchange-rate source, enforce deviation limits against a trusted reference or historical rate, apply conservative collateral haircuts, and reject vaults whose conversion rate changes beyond configured limits within a valuation window.",
+      "vulnerability_type": "economic_manipulation",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "risk_engine",
+        "oracle_facade",
+        "erc4626_oracle",
+        "external_protocol"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly states that ERC4626Oracle uses previewRedeem and that RiskEngine relies on oracle-based collateral valuation. previewRedeem is a spot vault conversion result and is not inherently an oracle or manipulation-resistant price feed.",
+      "mitigation": "Use a bounded and independently validated exchange-rate source, enforce deviation limits against a trusted reference or historical rate, apply conservative collateral haircuts, and reject vaults whose conversion rate changes beyond configured limits within a valuation window.",
+      "finding_description": "ERC4626Oracle values shares using previewRedeem, an instantaneous vault conversion result. If RiskEngine accepts those shares as collateral without a time-weighted or otherwise manipulation-resistant exchange-rate source, a depositor may temporarily alter the vault exchange rate or exploit vault-specific accounting and rounding behavior before borrowing against the inflated valuation.",
+      "impact": "The attacker can obtain undercollateralized borrowing and leave losses to lenders if the manipulated share valuation falls after the borrow.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "oracle/src/erc4626/ERC4626Oracle.sol",
+          "controller/src/core/IController.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/erc4626/IERC4626.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:31:28.086029",
+      "id": "hyp_049bade91d2e"
+    },
+    "hyp_3b2a848ff1f3": {
+      "title": "Oracle mapping accepts unset or zero oracle addresses, causing valuation denial of service",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: Oracle registration and/or price lookup lacks an explicit nonzero-oracle check and defined handling for unconfigured assets.\nATTACK VECTOR: An authorized configuration actor, compromised administrator, or deployment mistake sets an asset's oracle to address(0) or leaves it unset; accounts using that asset then trigger reverting valuation calls.\nAFFECTED NODES: oracle_facade, risk_engine\nAFFECTED CODE: OracleFacade token-to-oracle mapping and price resolution, RiskEngine oracle-based valuation\nSEVERITY: medium\nREASONING: The architecture explicitly identifies administrator-controlled oracle mappings and RiskEngine dependence on OracleFacade. No validation or fallback behavior for absent mappings is shown. This is distinct from stale, zero, or decimal-invalid Chainlink answers because the failure occurs before an adapter returns a price.\nSUGGESTED MITIGATION: Reject zero oracle addresses during registration, expose an explicit configured check, and make price resolution fail with a controlled, asset-specific error before downstream valuation. Do not enable an asset in RiskEngine until a valid oracle is configured.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly identifies administrator-controlled oracle mappings and RiskEngine dependence on OracleFacade. No validation or fallback behavior for absent mappings is shown. This is distinct from stale, zero, or decimal-invalid Chainlink answers because the failure occurs before an adapter returns a price.",
+      "mitigation": "Reject zero oracle addresses during registration, expose an explicit configured check, and make price resolution fail with a controlled, asset-specific error before downstream valuation. Do not enable an asset in RiskEngine until a valid oracle is configured.",
+      "finding_description": "OracleFacade maintains token-to-oracle configuration, but the available component evidence does not indicate validation that a configured oracle is nonzero before price resolution. A missing, removed, or accidentally zeroed mapping can cause the facade or downstream ABI decoding to revert whenever RiskEngine values that asset.",
+      "impact": "RiskEngine-based deposits, withdrawals, health checks, or liquidations involving the affected asset can revert, potentially freezing collateral operations and preventing liquidations during a market event.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:33:33.854743",
+      "id": "hyp_3b2a848ff1f3",
+      "qa_comment": "Upon reviewing the alleged oracle-mapping availability vulnerability in OracleFacade and RiskEngine, I determined this is a false positive as described. OracleFacade.getPrice explicitly checks whether oracle[token] is the zero address and reverts with Errors.PriceUnavailable() when the asset is unset or mapped to address(0), providing the exact configured failure handling claimed to be missing. OracleFacade.setOracle does accept a zero address, but it is restricted by adminOnly, so no unprivileged user can alter mappings; a compromised or authorized administrator could intentionally misconfigure the system, but that represents a trusted-admin or deployment risk rather than an exploitable protocol vulnerability. RiskEngine._valueInWei correctly delegates to OracleFacade, and any unavailable price fails closed rather than producing an incorrect valuation. Although accounts involving an unconfigured asset will revert during valuation, this behavior is explicit, deterministic, and already aligned with the suggested controlled-error mitigation. The source therefore does not demonstrate a distinct vulnerability beyond the consequences of privileged misconfiguration."
+    },
+    "hyp_27e7f34e4faf": {
+      "title": "Token-to-oracle mappings are not shown to validate asset compatibility, enabling wrong-asset valuation",
+      "description": "VULNERABILITY TYPE: oracle\nROOT CAUSE: Oracle registration appears to trust administrator-supplied token and adapter addresses without an on-chain compatibility or unit-consistency check.\nATTACK VECTOR: A compromised administrator, unsafe deployment configuration, or governance misconfiguration maps a collateral token to an adapter for a different token or pricing domain. RiskEngine then accepts the adapter's unrelated output as the collateral price.\nAFFECTED NODES: oracle_facade, risk_engine, atoken_oracle, erc4626_oracle, yearn_oracle, curve_oracle, univ2_lp_oracle, balancer_lp_oracle\nAFFECTED CODE: OracleFacade administrator oracle registration, OracleFacade adapter dispatch, RiskEngine oracle-based collateral valuation\nSEVERITY: high\nREASONING: The architecture explicitly states that OracleFacade administration sets oracle mappings and that multiple adapters consume different asset-specific inputs. No compatibility validation is visible in the supplied component context. This is separate from Chainlink decimal mismatch and stale-round handling because the issue is binding the wrong pricing implementation to an asset.\nSUGGESTED MITIGATION: Require each adapter to validate the requested token, or maintain an immutable adapter-to-supported-asset relationship. During registration, verify supported-token identity, pricing denomination, and decimals; reject incompatible mappings and require a separate activation step after validation.",
+      "vulnerability_type": "oracle",
+      "severity": "high",
+      "confidence": 0.57,
+      "status": "proposed",
+      "node_refs": [
+        "oracle_facade",
+        "risk_engine",
+        "atoken_oracle",
+        "erc4626_oracle",
+        "yearn_oracle",
+        "curve_oracle",
+        "univ2_lp_oracle",
+        "balancer_lp_oracle"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly states that OracleFacade administration sets oracle mappings and that multiple adapters consume different asset-specific inputs. No compatibility validation is visible in the supplied component context. This is separate from Chainlink decimal mismatch and stale-round handling because the issue is binding the wrong pricing implementation to an asset.",
+      "mitigation": "Require each adapter to validate the requested token, or maintain an immutable adapter-to-supported-asset relationship. During registration, verify supported-token identity, pricing denomination, and decimals; reject incompatible mappings and require a separate activation step after validation.",
+      "finding_description": "OracleFacade allows administrators to assign oracle adapters to tokens, while the system contains adapters with materially different assumptions, including recursive asset, LP, lending-token, and external protocol pricing. If registration does not verify that the adapter supports the mapped token and that its returned units are correct, a token can be priced using another asset's adapter or an incompatible adapter.",
+      "impact": "The affected collateral may be materially overvalued, allowing excess borrowing, or undervalued, causing unjustified liquidations and loss of protocol solvency or user funds.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "oracle/src/curve/Stable2CurveOracle.sol",
+          "oracle/src/balancer/IVault.sol",
+          "oracle/src/erc4626/ERC4626Oracle.sol",
+          "oracle/src/uniswap/UniV2LPOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/erc4626/IERC4626.sol",
+          "oracle/src/balancer/WeightedBalancerLPOracle.sol",
+          "oracle/src/aave/ATokenOracle.sol",
+          "oracle/src/yearn/YTokenOracle.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/core/OracleFacade.sol",
+          "oracle/src/balancer/IPool.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:33:39.490181",
+      "id": "hyp_27e7f34e4faf"
+    },
+    "hyp_292a55dbf920": {
+      "title": "Aave V3 supply and withdraw recipients are not constrained to the Account",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Calldata validation is limited to selector and asset mapping and does not bind protocol recipient fields to the Account whose funds are being operated.\nATTACK VECTOR: Submit supply calldata with onBehalfOf set to an attacker-controlled address or withdraw calldata with to set to an attacker-controlled address through the Account/controller execution path.\nAFFECTED NODES: aave_v3_controller, controller_facade, account\nAFFECTED CODE: AaveV3Controller supply calldata validation, AaveV3Controller withdraw calldata validation, ControllerFacade controller routing\nSEVERITY: high\nREASONING: Aave V3 supply and withdraw APIs include independent beneficiary and recipient parameters. The available component observations mention only asset/aToken mapping and do not show recipient binding; this must be verified in the controller implementation and the Account execution authorization path.\nSUGGESTED MITIGATION: Decode and validate onBehalfOf for supply and to for withdraw, requiring each to equal the Account being operated on unless an explicitly approved destination model is intended. Add negative tests for third-party beneficiaries and recipients, and ensure ControllerFacade cannot bypass these checks.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "aave_v3_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "Aave V3 supply and withdraw APIs include independent beneficiary and recipient parameters. The available component observations mention only asset/aToken mapping and do not show recipient binding; this must be verified in the controller implementation and the Account execution authorization path.",
+      "mitigation": "Decode and validate onBehalfOf for supply and to for withdraw, requiring each to equal the Account being operated on unless an explicitly approved destination model is intended. Add negative tests for third-party beneficiaries and recipients, and ensure ControllerFacade cannot bypass these checks.",
+      "finding_description": "The AaveV3Controller is described as mapping supply and withdraw assets, but no validation is shown for Aave V3's onBehalfOf parameter on supply or to parameter on withdraw. If the controller forwards these fields without requiring them to equal the calling Account, an authorized or improperly exposed account-call path can deposit assets into another user's Aave position or withdraw the Account's supplied assets directly to an attacker-controlled address.",
+      "impact": "Collateral or supplied assets held by an Account can be redirected to an arbitrary Aave beneficiary or recipient, causing direct loss of user funds and potentially leaving the Account with debt or reduced collateral backing.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/aave/AaveV3Controller.sol",
+          "protocol/src/interface/core/IAccount.sol",
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "controller/src/aave/IPoolV3.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:34:54.031412",
+      "id": "hyp_292a55dbf920",
+      "qa_comment": "Upon reviewing AaveV3Controller.canCall in controller/src/aave/AaveV3Controller.sol, I confirmed that recipient binding is absent for both supported Aave operations. For SUPPLY, the controller decodes only the first argument, asset, from data[4:] and checks the corresponding aToken allowance; it never decodes or validates the third argument, onBehalfOf. For WITHDRAW, it likewise decodes only asset and does not inspect the third argument, to. ControllerFacade.canCall merely forwards calldata to the configured controller and adds no independent validation. Account.exec in protocol/src/core/Account.sol authorizes the accountManager but then forwards arbitrary calldata directly using target.call, without constraining protocol recipient parameters. Consequently, an otherwise authorized execution through this path can supply assets from the Account while crediting aToken ownership to a different address, or withdraw Account-owned aTokens while directing underlying assets to an attacker-controlled recipient. The shown code contains no guard requiring onBehalfOf or to to equal the Account, so the hypothesis is exploitable assuming the normal controller-approved execution path invokes Account.exec."
+    },
+    "hyp_c483411d218a": {
+      "title": "Aave V3 controller may permit calls to non-canonical pool targets",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Controller validation appears to be described in terms of selectors and asset mappings without demonstrated binding to a trusted Aave V3 Pool target.\nATTACK VECTOR: Route supply or withdraw calldata through ControllerFacade with the destination set to a malicious contract exposing the expected Aave selector, then have that contract transfer Account-held assets or execute arbitrary logic.\nAFFECTED NODES: aave_v3_controller, controller_facade, account\nAFFECTED CODE: AaveV3Controller supply validation, AaveV3Controller withdraw validation, ControllerFacade controller routing\nSEVERITY: high\nREASONING: The graph records Aave V3 supply/aToken and withdraw/asset mappings but does not expose canonical pool-target validation. Because Account execution is mediated by ControllerFacade, failure to constrain the destination would turn selector-compatible malicious contracts into protocol-call targets; this requires confirmation in the implementation.\nSUGGESTED MITIGATION: Require AaveV3Controller or ControllerFacade to validate the destination against the configured Aave V3 Pool address before forwarding supply and withdraw calls. Also verify the reserve asset and aToken pair against the canonical pool and reject all alternate targets.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "aave_v3_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "The graph records Aave V3 supply/aToken and withdraw/asset mappings but does not expose canonical pool-target validation. Because Account execution is mediated by ControllerFacade, failure to constrain the destination would turn selector-compatible malicious contracts into protocol-call targets; this requires confirmation in the implementation.",
+      "mitigation": "Require AaveV3Controller or ControllerFacade to validate the destination against the configured Aave V3 Pool address before forwarding supply and withdraw calls. Also verify the reserve asset and aToken pair against the canonical pool and reject all alternate targets.",
+      "finding_description": "The available AaveV3Controller observations show supply and withdraw asset/aToken mappings but do not show validation that the call target is the configured canonical Aave V3 Pool. If ControllerFacade relies only on selector and asset checks, an Account could be induced to execute matching calldata against an attacker-controlled contract implementing the same selectors, which could steal approved or held assets or fabricate protocol interactions.",
+      "impact": "An attacker-controlled target could receive Account calls and transfer tokens or ETH from the Account, causing direct loss of user funds and bypassing intended Aave V3 risk controls.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/aave/AaveV3Controller.sol",
+          "protocol/src/interface/core/IAccount.sol",
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "controller/src/aave/IPoolV3.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:35:15.838041",
+      "id": "hyp_c483411d218a",
+      "qa_comment": "Upon reviewing AaveV3Controller.canCall and ControllerFacade.canCall, I determined this hypothesis is not demonstrated as a permissionless vulnerability. ControllerFacade routes validation through controllerFor[target], and this mapping must be populated by updateController, which is restricted by adminOnly. Consequently, an attacker cannot simply select an arbitrary malicious destination and have it validated by AaveV3Controller unless that destination has already been explicitly configured by the protocol administrator. AaveV3Controller does lack an intrinsic canonical Aave Pool address check: it invokes IPoolV3(target).getReserveData(asset), and the withdraw branch returns true after deriving the aToken address. However, the facade's per-target controller mapping functions as the target allowlist, while the supplied code does not show an attacker-controlled way to modify it or bypass it. Account.exec is likewise restricted to accountManagerOnly. A malicious target could become dangerous if administrators intentionally or mistakenly register it, but that is a privileged configuration failure rather than the proposed exploitable path. Additional AccountManager code could clarify integration assumptions, but the presented code does not establish a high-severity vulnerability."
+    },
+    "hyp_1a74b17c48ff": {
+      "title": "Aave V2 withdrawals are accepted without sufficient authorization checks",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: The withdrawal validation path does not enforce a complete allowlist check for the target pool, underlying asset, and corresponding aToken before approving the call.\nATTACK VECTOR: Submit an Aave V2 withdrawal through the controller facade using an unapproved asset, pool, or reserve configuration that reaches the controller's always-permitted withdrawal branch.\nAFFECTED NODES: aave_v2_controller, controller_facade, account\nAFFECTED CODE: AaveV2Controller withdrawal validation, ControllerFacade controller routing, Account external protocol call authorization\nSEVERITY: high\nREASONING: The architecture explicitly records that AaveV2Controller withdrawals are always permitted, unlike the deposit path which performs an aToken-to-asset mapping. This indicates an authorization asymmetry in the operation that transfers assets out of Aave V2.\nSUGGESTED MITIGATION: Require every withdrawal to validate the canonical Aave V2 pool, verify that the asset has a registered reserve and expected aToken mapping, and reject assets or targets not present in the configured allowlist.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "aave_v2_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records that AaveV2Controller withdrawals are always permitted, unlike the deposit path which performs an aToken-to-asset mapping. This indicates an authorization asymmetry in the operation that transfers assets out of Aave V2.",
+      "mitigation": "Require every withdrawal to validate the canonical Aave V2 pool, verify that the asset has a registered reserve and expected aToken mapping, and reject assets or targets not present in the configured allowlist.",
+      "finding_description": "The AaveV2Controller is annotated as allowing withdrawals unconditionally while mapping the asset to an aToken. If the controller facade relies on this validation before allowing an account call, a caller can submit withdrawals for assets or targets that are not explicitly authorized by the account's configured Aave V2 position.",
+      "impact": "Unauthorized account assets may be withdrawn from Aave V2 positions, or calls may be routed to an unintended pool, causing direct loss of collateral and bypassing protocol integration restrictions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/aave/IProtocolDataProvider.sol",
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/aave/AaveV2Controller.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:35:56.805680",
+      "id": "hyp_1a74b17c48ff",
+      "qa_comment": "Upon reviewing AaveV2Controller.canCall and ControllerFacade.canCall, I confirmed an authorization gap in the withdrawal validation path. For the WITHDRAW selector, AaveV2Controller decodes only the asset, populates accounting arrays using dataProvider.getReserveTokensAddresses(asset), and unconditionally returns true. It does not verify controllerFacade.isTokenAllowed for the asset or returned aToken, does not validate that the target is the canonical Aave V2 pool, and ignores both the target and useEth parameters. By contrast, the DEPOSIT branch requires the returned aToken to be allowed. ControllerFacade merely dispatches based on controllerFor[target] and adds no independent validation. Account.exec is restricted by accountManagerOnly, which prevents arbitrary external callers from directly executing calls, but it does not correct the missing protocol-specific authorization when the account manager relies on canCall. The underlying Aave pool may revert for nonexistent reserves, and successful withdrawal still requires a corresponding aToken balance, but valid yet unapproved reserves or targets can pass this policy check. Therefore, the claimed withdrawal authorization asymmetry is real, although the practical impact depends on the omitted account-manager execution flow."
+    },
+    "hyp_893fd5b14fe4": {
+      "title": "Aave V2 withdrawals allow redirecting proceeds to arbitrary recipients",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Withdrawal validation checks the protocol operation and asset mapping without binding the withdrawal recipient to the account executing the call or to an approved beneficiary.\nATTACK VECTOR: Craft the Aave V2 withdraw calldata with an attacker-controlled recipient and invoke it through the account/controller facade for an otherwise valid reserve.\nAFFECTED NODES: aave_v2_controller, controller_facade, account\nAFFECTED CODE: AaveV2Controller withdrawal calldata validation, ControllerFacade routed Aave V2 calls, Account external call execution\nSEVERITY: high\nREASONING: Aave V2's withdrawal interface takes an explicit recipient, while the loaded architecture only documents asset-to-aToken mapping and states that withdrawal is always permitted. No recipient restriction is shown for this controller.\nSUGGESTED MITIGATION: Decode the withdrawal recipient and require it to equal the managed account or an explicitly configured trusted recipient; reject arbitrary recipients before forwarding the call.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "aave_v2_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "Aave V2's withdrawal interface takes an explicit recipient, while the loaded architecture only documents asset-to-aToken mapping and states that withdrawal is always permitted. No recipient restriction is shown for this controller.",
+      "mitigation": "Decode the withdrawal recipient and require it to equal the managed account or an explicitly configured trusted recipient; reject arbitrary recipients before forwarding the call.",
+      "finding_description": "Aave V2 withdraw calls include a recipient parameter, but the controller description does not indicate that the recipient is constrained to the managed account or another explicitly authorized address. A permitted withdrawal can therefore send underlying assets directly to an attacker-controlled address.",
+      "impact": "Underlying collateral can be transferred out of the managed account to an arbitrary address, bypassing account withdrawal controls and causing irreversible loss of funds.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/aave/IProtocolDataProvider.sol",
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/aave/AaveV2Controller.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:36:00.387623",
+      "id": "hyp_893fd5b14fe4"
+    },
+    "hyp_60fbdc7789d9": {
+      "title": "ERC4626 calls are not bound to an approved vault or underlying asset",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Selector-based authorization is not accompanied by target-vault allowlisting and ERC4626 asset verification.\nATTACK VECTOR: A caller able to cause the Account to execute a supported ERC4626 selector supplies an unapproved vault address or a contract mimicking the ERC4626 interface. The target can redirect assets, mint worthless shares, or execute malicious logic while passing selector validation.\nAFFECTED NODES: erc4626_controller, controller_facade, account\nAFFECTED CODE: ERC4626Controller: ERC4626 deposit/mint/withdraw/redeem selector validation, ControllerFacade: routing of ERC4626 selectors, Account: execution of validated external calls\nSEVERITY: high\nREASONING: The architecture explicitly describes ERC4626Controller as defining ERC4626 selectors, while no approved-vault registry or target/asset binding is shown. Peer-controller findings also indicate that selector validation is used as a security boundary, making missing target validation materially exploitable.\nSUGGESTED MITIGATION: Maintain an explicit allowlist of ERC4626 vault addresses and require every target to be allowlisted. For each vault, verify that target.asset() equals the expected underlying token and that the vault/share token configuration is registered before permitting any operation.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "erc4626_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly describes ERC4626Controller as defining ERC4626 selectors, while no approved-vault registry or target/asset binding is shown. Peer-controller findings also indicate that selector validation is used as a security boundary, making missing target validation materially exploitable.",
+      "mitigation": "Maintain an explicit allowlist of ERC4626 vault addresses and require every target to be allowlisted. For each vault, verify that target.asset() equals the expected underlying token and that the vault/share token configuration is registered before permitting any operation.",
+      "finding_description": "ERC4626Controller exposes generic deposit, mint, withdraw, and redeem selector validation, but the available architecture does not show validation that the target is an approved ERC4626 vault or that its asset matches the intended collateral. If ControllerFacade routes these selectors for arbitrary targets, an account can invoke a malicious or unintended contract implementing the same selectors.",
+      "impact": "Collateral can be transferred to an attacker-controlled or unintended contract, or worthless shares can be accepted as protocol positions, causing direct asset loss and incorrect risk valuation.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "controller/src/erc4626/ERC4626Controller.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:36:41.138589",
+      "id": "hyp_60fbdc7789d9",
+      "qa_comment": "Upon reviewing the alleged missing ERC4626 target authorization in ControllerFacade.canCall and ERC4626Controller.canCall, I determined this is a false positive for the stated attack path. ControllerFacade does not route solely by selector: it first indexes controllerFor[target], which is populated only through the admin-only updateController function. Consequently, an arbitrary unapproved vault supplied by a caller has no controller and cannot pass validation through this facade. ERC4626Controller additionally calls IERC4626(target).asset() and derives the reported token flows from the selected target, so the code does not blindly assume an unrelated asset. Although there is no separate ERC4626 registry or explicit comparison against an expected underlying token, that omission does not permit a caller to introduce an unapproved target; configuring a malicious or mismatched vault would require the trusted administrator to register it. Account.exec is also restricted by accountManagerOnly, providing an independent execution boundary. The provided code therefore shows administrative target allowlisting rather than selector-only authorization, although stronger per-vault asset metadata could improve defense in depth."
+    },
+    "hyp_25b8f68ebbca": {
+      "title": "ERC4626 deposit and mint operations may direct shares to arbitrary receivers",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Receiver parameters in deposit and mint calldata are not proven to be authorization-bound to the calling Account.\nATTACK VECTOR: A caller causes an Account to execute deposit or mint with the Account as the asset source and an attacker-controlled address as receiver. The vault credits shares to the attacker while debiting the Account's underlying assets.\nAFFECTED NODES: erc4626_controller, controller_facade, account\nAFFECTED CODE: ERC4626Controller: deposit(uint256,uint256,address), ERC4626Controller: mint(uint256,uint256,address), Account: ERC4626 call execution\nSEVERITY: high\nREASONING: The controller is specifically responsible for validating ERC4626 calldata, and deposit/mint both expose an externally supplied receiver. No receiver restriction is shown in the loaded architecture. This is a distinct authorization issue from vault-target validation.\nSUGGESTED MITIGATION: For deposit and mint, require receiver to equal the executing Account or a narrowly defined, explicitly authorized beneficiary. Alternatively, derive the receiver internally rather than accepting an unrestricted calldata value.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "erc4626_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "The controller is specifically responsible for validating ERC4626 calldata, and deposit/mint both expose an externally supplied receiver. No receiver restriction is shown in the loaded architecture. This is a distinct authorization issue from vault-target validation.",
+      "mitigation": "For deposit and mint, require receiver to equal the executing Account or a narrowly defined, explicitly authorized beneficiary. Alternatively, derive the receiver internally rather than accepting an unrestricted calldata value.",
+      "finding_description": "The ERC4626 deposit and mint interfaces include a receiver argument. The available component description does not show that ERC4626Controller constrains receiver to the Account or an explicitly authorized beneficiary. If unconstrained, assets can be deposited from the Account while the resulting vault shares are sent to another address.",
+      "impact": "Underlying collateral held by an Account can be exchanged for ERC4626 shares delivered to an arbitrary address, resulting in loss of the Account's assets and potentially inconsistent collateral accounting.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "controller/src/erc4626/ERC4626Controller.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:36:48.204956",
+      "id": "hyp_25b8f68ebbca",
+      "qa_comment": "Upon reviewing ERC4626Controller.canCall in controller/src/erc4626/ERC4626Controller.sol and Account.exec in protocol/src/core/Account.sol, I determined that the alleged access-control vulnerability is not demonstrated by the provided code. The controller does accept deposit and mint calldata without decoding or restricting the ERC4626 receiver, and therefore an authorized execution could direct shares to an arbitrary address. However, Account.exec is protected by the accountManagerOnly modifier, which requires msg.sender to equal the Account's stored accountManager. Consequently, an arbitrary external caller cannot cause an Account to execute the crafted deposit or mint transaction through the shown interface. The supplied code does not establish that accountManager is attacker-controlled, improperly authorized, or otherwise untrusted; exploiting the behavior would require compromising or abusing that privileged actor. The missing receiver validation may be a defense-in-depth or policy concern, but it is not a confirmed unauthorized-access vulnerability based on these files alone."
+    },
+    "hyp_a96f63171b0d": {
+      "title": "ERC4626 withdrawal and redemption authorization may permit arbitrary owners and receivers",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: The controller's validation boundary does not demonstrably enforce authorization of the ERC4626 owner and destination fields.\nATTACK VECTOR: A caller supplies withdraw or redeem calldata with an owner whose shares are accessible to the Account and an attacker-controlled receiver, or uses the Account as owner while redirecting proceeds to the attacker. The vault transfers assets to the supplied receiver.\nAFFECTED NODES: erc4626_controller, controller_facade, account\nAFFECTED CODE: ERC4626Controller: withdraw(uint256,address,address), ERC4626Controller: redeem(uint256,address,address), Account: ERC4626 call execution\nSEVERITY: high\nREASONING: Withdraw and redeem expose owner and receiver independently of the caller. Since the component is a calldata validator and no binding checks are visible in the loaded context, these fields represent an authorization boundary that must be explicitly enforced.\nSUGGESTED MITIGATION: Require owner to be the executing Account unless a separately authorized allowance model is implemented, and restrict receiver to the Account or an explicitly approved destination. Validate the full calldata before forwarding the call.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "erc4626_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "Withdraw and redeem expose owner and receiver independently of the caller. Since the component is a calldata validator and no binding checks are visible in the loaded context, these fields represent an authorization boundary that must be explicitly enforced.",
+      "mitigation": "Require owner to be the executing Account unless a separately authorized allowance model is implemented, and restrict receiver to the Account or an explicitly approved destination. Validate the full calldata before forwarding the call.",
+      "finding_description": "ERC4626 withdraw and redeem operations contain both receiver and owner parameters. The available ERC4626Controller summary does not show checks binding owner to the Account and receiver to the Account or an authorized destination. An unrestricted owner/receiver pair can permit share withdrawals from an approved owner and redirect assets away from the Account.",
+      "impact": "ERC4626 shares or the assets obtained by redeeming them can be drained or redirected, causing loss of collateral and bypassing intended account ownership controls.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "controller/src/erc4626/ERC4626Controller.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:36:54.657594",
+      "id": "hyp_a96f63171b0d",
+      "qa_comment": "Upon reviewing the ERC4626Controller.canCall function and the forwarding path through ControllerFacade.canCall and Account.exec, I confirmed that the validator does not enforce authorization of ERC4626 withdrawal or redemption parameters. For REDEEM and WITHDRAW selectors, ERC4626Controller only identifies the vault asset and share token, then returns true; it never decodes or checks the owner or receiver arguments. Consequently, calldata such as withdraw(assets, attacker, account) or redeem(shares, attacker, account) is accepted by the controller, and the more direct case of using the Account as owner while specifying an attacker-controlled receiver is also accepted. Account.exec restricts invocation to accountManagerOnly, but it does not constrain target calldata or the destination encoded within it, so that guard does not provide the missing owner/receiver policy enforcement when the manager executes user-supplied or otherwise attacker-influenced calldata. ERC4626 vault-level authorization may reject arbitrary third-party owners absent allowance, but it does not prevent redirecting assets owned by the Account to an arbitrary receiver. Therefore, the validation boundary is insufficient and the hypothesis is exploitable wherever this controller governs Account execution."
+    },
+    "hyp_62ac97d46e92": {
+      "title": "Uniswap V3 swap recipient is not constrained to the managed account",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Swap validation focuses on selector and input-token/path checks without enforcing a trusted recipient for the Uniswap V3 swap.\nATTACK VECTOR: Submit or induce execution of an allowed exactInput, exactOutput, or multicall swap whose recipient field is an attacker-controlled address, causing the Account's approved assets or swap proceeds to be transferred to the attacker.\nAFFECTED NODES: univ3_controller, controller_facade, account\nAFFECTED CODE: UniV3Controller swap calldata validation, ControllerFacade routing of UniV3Controller-validated calls, Account execution of validated external protocol calls\nSEVERITY: high\nREASONING: The available component observations mention input-token allowlisting and path parsing, but do not identify recipient validation. Uniswap V3 swap functions commonly include a caller-supplied recipient, so failing to bind it to the Account is an exploitable fund-redirection condition when execution is externally triggerable or insufficiently authorized.\nSUGGESTED MITIGATION: Decode every supported swap payload, including swaps nested in multicall, and require the recipient to be the executing Account or an explicitly approved protocol-controlled destination. Reject arbitrary recipient values and ensure all relevant swap selectors are covered.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "univ3_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "The available component observations mention input-token allowlisting and path parsing, but do not identify recipient validation. Uniswap V3 swap functions commonly include a caller-supplied recipient, so failing to bind it to the Account is an exploitable fund-redirection condition when execution is externally triggerable or insufficiently authorized.",
+      "mitigation": "Decode every supported swap payload, including swaps nested in multicall, and require the recipient to be the executing Account or an explicitly approved protocol-controlled destination. Reject arbitrary recipient values and ensure all relevant swap selectors are covered.",
+      "finding_description": "UniV3Controller is observed to validate the input token and parse the swap path, but there is no evidence that the recipient encoded in swap calldata is required to equal the calling Account or another approved destination. If the controller permits a caller to cause an Account to execute an approved swap, the caller can encode their own address as the recipient and redirect swap proceeds away from the Account.",
+      "impact": "Managed-account funds can be exchanged and delivered directly to an attacker, resulting in loss of the account's input assets and any resulting swap proceeds.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/uniswap/UniV3Controller.sol",
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:38:02.127297",
+      "id": "hyp_62ac97d46e92",
+      "qa_comment": "Upon reviewing UniV3Controller.canCall and all supported parsing functions, I confirmed that recipient validation is absent. parseExactInputSingle, parseExactOutputSingle, parseExactInput, and parseExactOutput decode the swap parameters but only validate token allowlisting; they never compare params.recipient with the executing Account or another trusted destination. The multicall handlers, including parseExactInputSingleMulticall, parseExactOutputSingleMulticall, parseExactInputMulticall, and parseExactOutputMulticall, likewise decode the swap while ignoring its recipient field. Consequently, a call can pass ControllerFacade.canCall while directing swap output to an arbitrary address. Account.exec restricts execution to accountManagerOnly, which prevents an entirely unauthenticated caller from invoking exec directly, but it does not compensate for the controller\u2019s incomplete policy if the account manager accepts or forwards controller-approved calldata. The source therefore demonstrates a clear fund-redirection condition for any execution path relying on this validation, including all listed swap selectors and supported multicalls."
+    },
+    "hyp_5bdf78b1ea8b": {
+      "title": "Only the input token is allowlisted, permitting unsupported output and intermediate assets",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Token-path validation is incomplete: validation is limited to the path's input token rather than all hop tokens and the final output token, with direction-specific handling required for exact-input and exact-output paths.\nATTACK VECTOR: Provide a valid Uniswap V3 path beginning with an allowlisted token but ending in an attacker-selected or unsupported token, or include an unapproved intermediate token in a multihop route, then execute the swap through the Account.\nAFFECTED NODES: univ3_controller, controller_facade, account, risk_engine, oracle_facade\nAFFECTED CODE: UniV3Controller token-path parsing and allowlist validation, ControllerFacade validation of UniV3 swap calls, RiskEngine valuation of assets received by Account\nSEVERITY: medium\nREASONING: The explicit observation that the controller checks the input token allowlist, combined with path-based Uniswap V3 swaps, supports a gap for output and intermediate tokens. Exact-output paths are encoded in reverse order, so validation must also correctly account for path direction rather than validating only one endpoint.\nSUGGESTED MITIGATION: Decode and validate every token address in every supported path, including all intermediate hops and the final output token, with correct direction handling for exact-input and exact-output swaps. Require each token to be explicitly approved and supported by the protocol's asset and oracle policy.",
+      "vulnerability_type": "security_issue",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "univ3_controller",
+        "controller_facade",
+        "account",
+        "risk_engine",
+        "oracle_facade"
+      ],
+      "evidence": [],
+      "reasoning": "The explicit observation that the controller checks the input token allowlist, combined with path-based Uniswap V3 swaps, supports a gap for output and intermediate tokens. Exact-output paths are encoded in reverse order, so validation must also correctly account for path direction rather than validating only one endpoint.",
+      "mitigation": "Decode and validate every token address in every supported path, including all intermediate hops and the final output token, with correct direction handling for exact-input and exact-output swaps. Require each token to be explicitly approved and supported by the protocol's asset and oracle policy.",
+      "finding_description": "UniV3Controller is observed to check the input token allowlist while parsing Uniswap V3 token paths. A multihop path can therefore contain an unapproved intermediate or final output token unless every token encoded in the path is validated. This allows approved assets to be exchanged into arbitrary or worthless tokens and can introduce assets that the risk engine and controller policy do not support.",
+      "impact": "The Account may lose approved collateral in exchange for unsupported or worthless assets; the resulting asset may be unpriceable, excluded from risk controls, or cause downstream accounting and liquidation failures.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/uniswap/UniV3Controller.sol",
+          "protocol/deployments/Deploy.sol",
+          "controller/src/core/IControllerFacade.sol",
+          "oracle/src/core/OracleFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/core/RiskEngine.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:38:08.785825",
+      "id": "hyp_5bdf78b1ea8b",
+      "qa_comment": "Upon reviewing UniV3Controller functions parseExactInput, parseExactOutput, and their single-swap and multicall variants, I confirmed incomplete token-path validation. For exact-output multihop swaps, Uniswap encodes the path in reverse order, and parseExactOutput validates only params.path.toAddress(params.path.length - ADDR_SIZE), the input token, while params.path.toAddress(0), the output token, is neither allowlisted nor otherwise checked. Consequently, an allowlisted input can be swapped into an unsupported output. Conversely, parseExactInput validates only the final path address, the output token, leaving the input endpoint unchecked. No parser iterates through the path to validate intermediate hop tokens. The same endpoint-only behavior exists in the single-swap functions, and the multicall parsers preserve this gap. ControllerFacade merely delegates to the controller and adds no validation, while the supplied RiskEngine and OracleFacade do not reject unsupported assets before valuation; OracleFacade only fails when no oracle exists. Thus, a properly formed route using an unsupported output or intermediate token can pass controller validation, subject to available liquidity and downstream execution assumptions."
+    },
+    "hyp_500af5044715": {
+      "title": "Compound operations are not bound to approved cToken markets",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Validation relies on function selectors and an attacker-supplied target's underlying() response instead of authenticating the target against approved Compound markets.\nATTACK VECTOR: Submit a permitted Compound selector with a counterfeit cToken address whose underlying() returns a chosen token and whose selected method performs malicious transfers or state changes.\nAFFECTED NODES: compound_controller, controller_facade, account\nAFFECTED CODE: compound_controller: selector-based Compound call validation, compound_controller: cToken underlying-token lookup, controller_facade: dispatches calls to protocol controllers, account: executes validated external protocol calls\nSEVERITY: high\nREASONING: The architecture explicitly records selector-based allowlisting and cToken underlying lookup, but does not record canonical cToken or Compound comptroller validation. This leaves the target address and its underlying response as attacker-controlled inputs unless validation exists elsewhere, which is not shown.\nSUGGESTED MITIGATION: Maintain an allowlist or registry of canonical Compound cToken addresses, verify each target against that registry before accepting any selector, and derive the underlying asset from trusted configuration or verified market metadata rather than an untrusted target response.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "compound_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records selector-based allowlisting and cToken underlying lookup, but does not record canonical cToken or Compound comptroller validation. This leaves the target address and its underlying response as attacker-controlled inputs unless validation exists elsewhere, which is not shown.",
+      "mitigation": "Maintain an allowlist or registry of canonical Compound cToken addresses, verify each target against that registry before accepting any selector, and derive the underlying asset from trusted configuration or verified market metadata rather than an untrusted target response.",
+      "finding_description": "The CompoundController uses selector-based validation and obtains the underlying token from the supplied target, but no evidence shows that the target is checked against a registry of canonical Compound cTokens. An attacker who can cause a managed Account to execute a permitted selector can supply a malicious contract implementing the expected cToken interface; its underlying() result can identify an attacker-controlled token while the permitted mint, redeem, borrow, or repayment call executes arbitrary logic.",
+      "impact": "Managed accounts may approve or transfer assets to a counterfeit market contract, allowing loss of ERC-20 balances or execution of unintended external logic.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/compound/CompoundController.sol",
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:40:20.261210",
+      "id": "hyp_500af5044715",
+      "qa_comment": "Upon reviewing the alleged missing Compound-market authentication in CompoundController.canCall and ControllerFacade.canCall, I determined that the proposed permissionless attack path is not demonstrated by this source. Although CompoundController validates only the selectors and queries ICToken(target).underlying() or symbol(), the facade dispatches to a controller through controllerFor[target], an exact-address mapping controlled by adminOnly updateController. An attacker cannot cause an arbitrary counterfeit cToken to use CompoundController unless that counterfeit address has first been explicitly registered by the protocol administrator. Targets without a registered controller do not receive CompoundController validation. Account.exec is additionally restricted by accountManagerOnly, so arbitrary users cannot directly execute validated calls through the shown Account implementation. Therefore, the code does lack defense-in-depth checks such as a canonical cToken registry, and improper administrative configuration could introduce risk, but the claimed attacker-supplied counterfeit target is not exploitable solely from the reviewed code. Confirming a broader issue would require the controller-registration and account-manager validation flows."
+    },
+    "hyp_7cac84c12b28": {
+      "title": "CompoundController ignores native-asset mode when resolving Compound assets",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The controller does not branch on useEth before resolving and validating the asset associated with a Compound operation.\nATTACK VECTOR: Invoke a Compound native-ETH mint or redemption path with useEth enabled; the controller nevertheless performs ERC-20-style underlying resolution and validation.\nAFFECTED NODES: compound_controller, controller_facade, account\nAFFECTED CODE: compound_controller: useEth handling and cToken underlying lookup, controller_facade: forwards native-asset operation metadata, account: executes Compound native-asset calls\nSEVERITY: medium\nREASONING: The system architecture explicitly notes that CompoundController ignores useEth. Compound's native ETH market differs from ERC-20 cToken markets because it has no normal underlying ERC-20 lookup, making unconditional underlying resolution a concrete incompatibility and denial-of-service condition.\nSUGGESTED MITIGATION: Handle useEth explicitly: require the target to be an approved native Compound market, use a native-asset sentinel instead of calling underlying(), validate msg.value and payable call semantics, and reject inconsistent combinations of useEth, token address, and calldata.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "compound_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "The system architecture explicitly notes that CompoundController ignores useEth. Compound's native ETH market differs from ERC-20 cToken markets because it has no normal underlying ERC-20 lookup, making unconditional underlying resolution a concrete incompatibility and denial-of-service condition.",
+      "mitigation": "Handle useEth explicitly: require the target to be an approved native Compound market, use a native-asset sentinel instead of calling underlying(), validate msg.value and payable call semantics, and reject inconsistent combinations of useEth, token address, and calldata.",
+      "finding_description": "The CompoundController is recorded as ignoring the useEth flag while also resolving assets through cToken underlying lookup. For native ETH markets, the cToken may not expose an ERC-20 underlying address, so the controller can reject valid native deposits or misclassify the asset and apply ERC-20 approval/validation logic to an ETH operation.",
+      "impact": "Native Compound markets can become unusable through systematic reverts, preventing deposits, withdrawals, or collateral management and potentially leaving positions unable to be liquidated or safely unwound.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/compound/CompoundController.sol",
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:40:20.285595",
+      "id": "hyp_7cac84c12b28",
+      "qa_comment": "Upon reviewing the alleged availability vulnerability in CompoundController.canCall, I determined this is a false positive. Although the bool useEth parameter is unnamed and ignored, the implementation dispatches based on calldata selector rather than requiring useEth for native operations. For MINT_ETH (0x1249c58b), the function immediately returns true with target as the input asset and does not call ICToken(target).underlying(). For REDEEM, it assigns target as the output and explicitly detects the cETH market by hashing ICToken(target).symbol(); when the symbol matches cETH, it returns without resolving an underlying ERC-20. Only MINT_ERC20 and non-cETH REDEEM paths call underlying(), which is consistent with their ERC-20 semantics. ControllerFacade merely forwards useEth and Account.exec performs the requested call, but neither demonstrates an unconditional native-path lookup or a guard that causes native ETH operations to fail. Ignoring useEth may permit inconsistent metadata combinations, but the claimed denial-of-service path is not shown by this source."
+    },
+    "hyp_01ceec59a59b": {
+      "title": "Stable2CurveOracle may mis-scale LP prices when underlying tokens use different decimals",
+      "description": "VULNERABILITY TYPE: oracle\nROOT CAUSE: Missing explicit decimal normalization across underlying balances, underlying oracle prices, Curve virtual price, and LP total supply.\nATTACK VECTOR: Configure or register a two-coin Curve pool containing tokens with non-18-decimal units, then use the resulting incorrectly scaled LP valuation as collateral; an attacker may borrow more than the LP position is worth when the calculation overvalues the share.\nAFFECTED NODES: curve_oracle, oracle_facade, risk_engine\nAFFECTED CODE: Stable2CurveOracle underlying-asset and LP-share price calculation, OracleFacade delegated pricing of Curve pool coins\nSEVERITY: high\nREASONING: The oracle explicitly depends on OracleFacade prices for Curve assets, while the loaded architecture provides no evidence that Stable2CurveOracle validates or normalizes the decimals of the pool coins and LP token. This is distinct from a feed-level decimal mismatch because the error is introduced when aggregating heterogeneous Curve asset units.\nSUGGESTED MITIGATION: Read and normalize each underlying token's decimals and the LP token's decimals before aggregation; use checked fixed-point arithmetic with explicit scale conversions and enforce a documented output denomination such as 1e18.",
+      "vulnerability_type": "oracle",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "curve_oracle",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "The oracle explicitly depends on OracleFacade prices for Curve assets, while the loaded architecture provides no evidence that Stable2CurveOracle validates or normalizes the decimals of the pool coins and LP token. This is distinct from a feed-level decimal mismatch because the error is introduced when aggregating heterogeneous Curve asset units.",
+      "mitigation": "Read and normalize each underlying token's decimals and the LP token's decimals before aggregation; use checked fixed-point arithmetic with explicit scale conversions and enforce a documented output denomination such as 1e18.",
+      "finding_description": "The Stable2CurveOracle derives a Curve LP-token price from underlying token prices and Curve pool accounting, but the available component evidence does not show normalization of each underlying token's decimals or the LP token's total-supply scale. If balances or virtual-price values are combined with facade prices using a fixed 1e18 assumption, pools containing 6-, 8-, or other non-18-decimal assets can be materially overvalued or undervalued.",
+      "impact": "Collateral can be overvalued by powers-of-ten, allowing undercollateralized borrowing and protocol losses; alternatively valid collateral can become unusable through severe undervaluation.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/curve/Stable2CurveOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:41:45.982138",
+      "id": "hyp_01ceec59a59b",
+      "qa_comment": "Upon reviewing the alleged oracle scaling vulnerability in Stable2CurveOracle.getPrice and RiskEngine._valueInWei, I determined this is a false positive for heterogeneous underlying token decimals. Stable2CurveOracle does not aggregate raw underlying balances or token-denominated quantities; it retrieves each coin's already-denominated price through OracleFacade.getPrice, selects the lower price, and multiplies it by Curve's get_virtual_price(), which is conventionally a 1e18-scaled value. RiskEngine then independently normalizes the returned token price by the collateral token's decimals in _valueInWei. Consequently, differing decimals among the pool's underlying assets do not introduce a scale mismatch in the shown calculation. The code does not explicitly validate the LP token's decimals or enforce that all delegated oracle prices use a common denomination, so a malformed or nonstandard pool/oracle implementation could create a separate integration risk. However, the proposed attack based solely on underlying tokens having different decimals is not demonstrated by this source, and no balance aggregation exists here. Oracle registration is also restricted by OracleFacade.adminOnly."
+    },
+    "hyp_2b6834932940": {
+      "title": "Stable2CurveOracle can recurse through OracleFacade and become unavailable on cyclic Curve-oracle dependencies",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: Recursive oracle composition through OracleFacade lacks demonstrated cycle detection and bounded recursion for Curve LP dependencies.\nATTACK VECTOR: Create or configure a chain of Curve LP-token mappings that contains a cycle, or register a Curve pool whose underlying asset resolves back to the original LP token; trigger collateral valuation through RiskEngine.\nAFFECTED NODES: curve_oracle, oracle_facade, risk_engine\nAFFECTED CODE: Stable2CurveOracle recursive underlying-coin pricing, OracleFacade oracle dispatch for Curve LP tokens\nSEVERITY: medium\nREASONING: The architecture shows a direct curve_oracle -> oracle_facade dependency and OracleFacade mappings for composable assets. No cycle/depth protection is shown for Stable2CurveOracle; therefore cyclic LP compositions are a concrete denial-of-service configuration and should be rejected or bounded.\nSUGGESTED MITIGATION: Track visited asset/oracle addresses and enforce a small maximum recursion depth during valuation; reject cycles and validate the complete dependency graph when registering Curve LP oracles.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "curve_oracle",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture shows a direct curve_oracle -> oracle_facade dependency and OracleFacade mappings for composable assets. No cycle/depth protection is shown for Stable2CurveOracle; therefore cyclic LP compositions are a concrete denial-of-service configuration and should be rejected or bounded.",
+      "mitigation": "Track visited asset/oracle addresses and enforce a small maximum recursion depth during valuation; reject cycles and validate the complete dependency graph when registering Curve LP oracles.",
+      "finding_description": "Stable2CurveOracle obtains prices for Curve pool coins through OracleFacade. If a Curve LP token is itself an underlying coin of another registered Curve pool, or a pool is configured with itself or a dependency cycle, the facade can recursively invoke Curve pricing without a cycle or depth guard. The recursive view call eventually exhausts gas or reverts during risk checks.",
+      "impact": "Valuation calls revert or consume excessive gas, preventing deposits, withdrawals, liquidations, or risk checks for affected assets and potentially leaving positions unliquidatable.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/curve/Stable2CurveOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:41:50.490144",
+      "id": "hyp_2b6834932940",
+      "qa_comment": "Upon reviewing the alleged recursive-oracle availability issue in Stable2CurveOracle.getPrice and OracleFacade.getPrice/setOracle, I determined this is not an independently exploitable vulnerability based on the provided code. Stable2CurveOracle does recursively query OracleFacade for coins(0) and coins(1), and neither function implements cycle detection or a recursion limit. However, OracleFacade.setOracle is protected by adminOnly, and no permissionless function or attacker-controlled path is shown that can register a Curve pool, alter its coin composition, or create cyclic oracle mappings. The deployment configures the two-coin Curve oracle only for TWOPOOL, whose underlying assets are mapped to ordinary Chainlink-backed tokens, so the demonstrated deployment has no cycle. A malicious or compromised administrator could intentionally configure mutually recursive mappings and cause valuation calls to revert, but that is privileged misconfiguration rather than a clear external attack vector; an administrator can already disable pricing by assigning an invalid oracle. Therefore, the absence of recursion guards is a robustness improvement, not a confirmed medium-severity vulnerability from the supplied implementation."
+    },
+    "hyp_87ff2c3bc6f5": {
+      "title": "Yearn share pricing trusts potentially stale or externally manipulable pricePerShare",
+      "description": "VULNERABILITY TYPE: oracle\nROOT CAUSE: The adapter treats the Yearn vault's reported price-per-share as authoritative collateral value without validating its age or bounding changes against independently priced assets and vault balances.\nATTACK VECTOR: After a vault loss, before the next accounting report, an attacker deposits or uses existing Yearn shares as collateral while the adapter still returns the stale higher price-per-share. The attacker borrows against the inflated valuation and leaves the system with undercollateralized debt.\nAFFECTED NODES: yearn_oracle, oracle_facade, risk_engine\nAFFECTED CODE: YTokenOracle share-price calculation, OracleFacade Yearn-oracle dispatch, RiskEngine collateral valuation\nSEVERITY: high\nREASONING: Yearn vault share prices are accounting values updated by vault reporting rather than continuously independently verified prices. Without freshness and sanity checks in the adapter, stale or incorrect vault accounting directly propagates into collateral valuation. This is distinct from Chainlink round staleness and from ERC4626 previewRedeem behavior because it concerns Yearn-specific reporting and price-per-share state.\nSUGGESTED MITIGATION: Require a vault accounting timestamp or equivalent freshness signal and reject values older than a configured maximum age. Add bounds and sanity checks against total assets, total supply, underlying decimals, and an independently priced underlying asset; configure conservative collateral factors or disable borrowing against the vault when accounting is stale or anomalous.",
+      "vulnerability_type": "oracle",
+      "severity": "high",
+      "confidence": 0.6,
+      "status": "proposed",
+      "node_refs": [
+        "yearn_oracle",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "Yearn vault share prices are accounting values updated by vault reporting rather than continuously independently verified prices. Without freshness and sanity checks in the adapter, stale or incorrect vault accounting directly propagates into collateral valuation. This is distinct from Chainlink round staleness and from ERC4626 previewRedeem behavior because it concerns Yearn-specific reporting and price-per-share state.",
+      "mitigation": "Require a vault accounting timestamp or equivalent freshness signal and reject values older than a configured maximum age. Add bounds and sanity checks against total assets, total supply, underlying decimals, and an independently priced underlying asset; configure conservative collateral factors or disable borrowing against the vault when accounting is stale or anomalous.",
+      "finding_description": "YTokenOracle derives the Yearn vault share value from the vault's reported share-price/accounting state and the underlying OracleFacade price, without evidence of a freshness bound, monotonicity check, or independent sanity validation. Yearn accounting can remain at a prior high value between reports or reflect an incorrect strategy report, allowing the oracle to value shares above their realizable underlying assets.",
+      "impact": "The risk engine can accept insufficient collateral and lenders can incur bad debt when Yearn shares are liquidated for less than their oracle-assigned value.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/yearn/YTokenOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:42:40.668192",
+      "id": "hyp_87ff2c3bc6f5"
+    },
+    "hyp_8d5e3a57cc95": {
+      "title": "ATokenOracle permits recursive oracle cycles through underlying-asset resolution",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: Recursive delegation through OracleFacade lacks cycle detection and bounded recursion for aToken underlying-asset resolution.\nATTACK VECTOR: An administrator or compromised configuration authority registers an aToken/underlying mapping that forms a direct or indirect oracle cycle; an attacker then triggers collateral valuation, liquidation, borrowing, or withdrawal requiring the affected price.\nAFFECTED NODES: atoken_oracle, oracle_facade, risk_engine\nAFFECTED CODE: ATokenOracle underlying-asset price delegation, OracleFacade token-to-oracle dispatch, RiskEngine oracle-based valuation\nSEVERITY: medium\nREASONING: The architecture explicitly shows ATokenOracle reading OracleFacade while OracleFacade dispatches to ATokenOracle. No cycle or recursion-depth protection is shown. Although configuration is privileged, a bad or compromised mapping can make the valuation path permanently revert.\nSUGGESTED MITIGATION: Track visited assets or enforce a maximum oracle-delegation depth across OracleFacade and adapters; reject configurations where an aToken's underlying resolves back to the same asset or adapter, and validate mappings before activation.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "atoken_oracle",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly shows ATokenOracle reading OracleFacade while OracleFacade dispatches to ATokenOracle. No cycle or recursion-depth protection is shown. Although configuration is privileged, a bad or compromised mapping can make the valuation path permanently revert.",
+      "mitigation": "Track visited assets or enforce a maximum oracle-delegation depth across OracleFacade and adapters; reject configurations where an aToken's underlying resolves back to the same asset or adapter, and validate mappings before activation.",
+      "finding_description": "ATokenOracle delegates the price of an aToken's underlying asset back to OracleFacade. If the underlying asset is mapped to ATokenOracle directly or through a chain of configured oracle adapters that returns to the original asset, price resolution recurses without a cycle or depth guard. A RiskEngine valuation request can then exhaust gas and revert.",
+      "impact": "Valuation-dependent protocol operations revert or become unusable for assets in the cycle, potentially blocking liquidations and withdrawals and causing denial of service for affected accounts.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/aave/ATokenOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:44:48.371173",
+      "id": "hyp_8d5e3a57cc95",
+      "qa_comment": "Upon reviewing the recursive price path in OracleFacade.getPrice and ATokenOracle.getPrice, I confirmed that the implementation lacks cycle detection or a recursion bound. OracleFacade.getPrice first dispatches to oracle[token].getPrice(token), while ATokenOracle.getPrice calls IAToken(aToken).UNDERLYING_ASSET_ADDRESS() and then recursively invokes the immutable OracleFacade. An administrator can therefore register a token whose underlying is itself, or configure two token contracts whose underlying references form a cycle, by assigning them to the ATokenOracle through OracleFacade.setOracle. Each call then performs another external getPrice invocation until execution exhausts gas or reverts. RiskEngine._valueInWei directly depends on oracle.getPrice, and its balance, borrow, health, withdrawal, and borrowing checks consequently fail whenever the affected asset is valued. The only OracleFacade guard checks for a zero oracle address; neither contract validates the underlying token, tracks visited assets, or limits delegation depth. Exploitation requires privileged or compromised oracle configuration, but under that stated threat model the availability impact is real."
+    },
+    "hyp_f7cf756afa46": {
+      "title": "UniV2 LP valuation may mis-scale reserves for tokens with different decimals",
+      "description": "VULNERABILITY TYPE: oracle\nROOT CAUSE: Reserve amounts are token-denomination values, but the valuation path does not demonstrably normalize reserve decimals before combining them with OracleFacade prices.\nATTACK VECTOR: An administrator registers a UniV2 pair containing tokens with differing decimals, or an attacker supplies such an LP token as collateral. The oracle returns an incorrectly scaled value, allowing excess borrowing when overvalued or causing valid collateral to be rejected when undervalued.\nAFFECTED NODES: univ2_lp_oracle, oracle_facade, risk_engine\nAFFECTED CODE: UniV2LPOracle LP reserve valuation, OracleFacade underlying-token price lookup, RiskEngine collateral valuation\nSEVERITY: high\nREASONING: The component is explicitly an LP oracle that reads OracleFacade for both underlying assets; correctness depends on converting raw pair reserves and oracle prices into consistent units. No loaded evidence shows decimal normalization in this path.\nSUGGESTED MITIGATION: Read both underlying token decimals and normalize reserve quantities and oracle prices to a single fixed-point scale before calculating the LP value; add tests covering common 6/8/18-decimal pair combinations and reject unsupported decimal configurations.",
+      "vulnerability_type": "oracle",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "univ2_lp_oracle",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "The component is explicitly an LP oracle that reads OracleFacade for both underlying assets; correctness depends on converting raw pair reserves and oracle prices into consistent units. No loaded evidence shows decimal normalization in this path.",
+      "mitigation": "Read both underlying token decimals and normalize reserve quantities and oracle prices to a single fixed-point scale before calculating the LP value; add tests covering common 6/8/18-decimal pair combinations and reject unsupported decimal configurations.",
+      "finding_description": "UniV2LPOracle derives an LP price from pair reserve balances and underlying prices obtained from OracleFacade. If raw reserve amounts are combined without normalizing each token to a common decimal basis, pairs containing 6-, 8-, or other non-18-decimal assets receive materially incorrect LP valuations.",
+      "impact": "Collateral can be overvalued by orders of magnitude, allowing an account to borrow more assets than the LP position supports and leaving protocol bad debt after liquidation.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/uniswap/UniV2LPOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:45:37.790605",
+      "id": "hyp_f7cf756afa46",
+      "qa_comment": "Upon reviewing the UniV2LpOracle.getPrice function in oracle/src/uniswap/UniV2LPOracle.sol, I confirmed a reserve-decimal scaling vulnerability. The function reads raw getReserves() values and combines them with OracleFacade prices using mulWadDown, but never reads token0 or token1 decimals or normalizes reserves to whole-token units. Its calculation effectively assumes both reserves use 18 decimals. OracleFacade.getPrice merely forwards the underlying price and performs no normalization, while RiskEngine._valueInWei only divides the final LP amount by the LP token's decimals; it cannot correct incorrectly scaled underlying reserves. Consequently, a pair containing, for example, a 6-decimal token and an 18-decimal token produces an LP price mis-scaled by the square root of the decimal-factor difference. No guard in the shown code rejects differing decimals or restricts LP registration to compatible pairs. If such an LP is accepted as collateral, the resulting overvaluation can increase borrowing capacity, while undervaluation can incorrectly reject collateral."
+    },
+    "hyp_c9d4a7c29adf": {
+      "title": "UniV2 LP valuation can be influenced by manipulable pair state",
+      "description": "VULNERABILITY TYPE: economic_manipulation\nROOT CAUSE: The oracle relies on instantaneous Uniswap V2 pair reserves rather than a TWAP, historical observation, or an independently verified liquidity/asset-balance valuation.\nATTACK VECTOR: An attacker temporarily changes the pair state before depositing or borrowing against LP collateral, invokes the risk engine while the manipulated state is observed, and later reverses the position or allows liquidation after the reserve state normalizes.\nAFFECTED NODES: univ2_lp_oracle, oracle_facade, risk_engine\nAFFECTED CODE: UniV2LPOracle reserve-based valuation, RiskEngine oracle-based collateral checks\nSEVERITY: high\nREASONING: The architecture identifies UniV2LPOracle as the price source for risk valuation and shows no separate TWAP or observation component. The exploitability depends on the exact valuation formula: reserve-sum or otherwise non-invariant formulas are especially susceptible, while a geometric-mean formula still requires validation against donations, fees, and reserve updates.\nSUGGESTED MITIGATION: Use a sufficiently long Uniswap V2 cumulative-price TWAP or an independently sourced price combined with verified underlying balances; enforce manipulation-resistant update windows and avoid using a single same-transaction reserve snapshot for collateral valuation.",
+      "vulnerability_type": "economic_manipulation",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "univ2_lp_oracle",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture identifies UniV2LPOracle as the price source for risk valuation and shows no separate TWAP or observation component. The exploitability depends on the exact valuation formula: reserve-sum or otherwise non-invariant formulas are especially susceptible, while a geometric-mean formula still requires validation against donations, fees, and reserve updates.",
+      "mitigation": "Use a sufficiently long Uniswap V2 cumulative-price TWAP or an independently sourced price combined with verified underlying balances; enforce manipulation-resistant update windows and avoid using a single same-transaction reserve snapshot for collateral valuation.",
+      "finding_description": "The LP oracle prices a position using the pair's current reserves together with OracleFacade prices. Pair reserves are mutable state controlled by swaps, donations, sync operations, and other liquidity actions, so a valuation performed in the same transaction can observe attacker-influenced reserves unless the implementation uses a time-weighted or otherwise manipulation-resistant source.",
+      "impact": "The attacker may obtain undercollateralized borrowing or cause incorrect liquidations, transferring losses to lenders when the manipulated LP valuation falls back to its normal value.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/uniswap/UniV2LPOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:45:47.844323",
+      "id": "hyp_c9d4a7c29adf",
+      "qa_comment": "Upon reviewing the alleged economic manipulation in UniV2LpOracle.getPrice at oracle/src/uniswap/UniV2LPOracle.sol, I determined that the stated high-severity attack is not established by the implementation. The oracle uses the geometric-mean formula sqrt(r0 * r1 * p0 * p1) multiplied by two and divided by totalSupply, while the underlying token prices are obtained from the OracleFacade and, in the deployment shown, Chainlink-based feeds. A normal Uniswap V2 swap changes the reserve ratio but approximately preserves the reserve product, so temporarily moving reserves and reversing the trade does not materially inflate the LP price; the attacker instead pays swap costs and fees. Direct token donations followed by reserve synchronization could alter the product, but the donation is an economic cost and the source does not demonstrate a profitable borrowing or liquidation path. RiskEngine merely consumes oracle.getPrice and contains no independent LP valuation, but that alone does not make this formula exploitable as described. Additional issues, such as token-decimal handling or donation economics, may warrant separate review, but the specific instantaneous-reserve manipulation hypothesis is not confirmed."
+    },
+    "hyp_059fd37a0a6d": {
+      "title": "Recursive UniV2 LP oracle mappings can cause valuation denial of service",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The recursive OracleFacade dependency graph is not shown to enforce cycle detection or a bounded recursion depth for UniV2 LP pricing.\nATTACK VECTOR: A privileged mapping configuration, or an otherwise accepted token-oracle registration, creates a direct or indirect LP-token pricing cycle. Any risk check, liquidation, or account operation that values the affected asset then reverts or consumes excessive gas.\nAFFECTED NODES: univ2_lp_oracle, oracle_facade, risk_engine\nAFFECTED CODE: UniV2LPOracle recursive underlying price calls, OracleFacade oracle dispatch, RiskEngine collateral valuation\nSEVERITY: medium\nREASONING: UniV2LPOracle explicitly reads OracleFacade, and LP constituents may themselves be oracle-mapped assets. Existing architecture provides no evidence of recursion guards for this implementation, so cyclic configurations can make price queries revert.\nSUGGESTED MITIGATION: Track visited assets during a pricing request and reject repeated nodes; enforce a strict maximum recursion depth and validate oracle registrations so an LP cannot directly or indirectly depend on itself.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "univ2_lp_oracle",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "UniV2LPOracle explicitly reads OracleFacade, and LP constituents may themselves be oracle-mapped assets. Existing architecture provides no evidence of recursion guards for this implementation, so cyclic configurations can make price queries revert.",
+      "mitigation": "Track visited assets during a pricing request and reject repeated nodes; enforce a strict maximum recursion depth and validate oracle registrations so an LP cannot directly or indirectly depend on itself.",
+      "finding_description": "UniV2LPOracle obtains prices for both pair tokens through OracleFacade. If a pair token is itself mapped to a UniV2 LP oracle that eventually references the original pair, the recursive calls can cycle indefinitely until the transaction runs out of gas or reverts.",
+      "impact": "Borrowing, withdrawals, liquidations, and health-factor checks involving the affected collateral can be permanently blocked, creating a denial of service and potentially preventing timely liquidations.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/uniswap/UniV2LPOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:46:03.390666",
+      "id": "hyp_059fd37a0a6d",
+      "qa_comment": "Upon reviewing UniV2LpOracle.getPrice, OracleFacade.getPrice and setOracle, I confirmed that recursive oracle evaluation has no cycle detection or recursion-depth limit. UniV2LpOracle.getPrice obtains the pair constituents and directly invokes oracle.getPrice for both token0 and token1. OracleFacade.getPrice then dispatches to the configured oracle for that token, allowing an LP oracle to call back into the facade and traverse an arbitrary dependency graph. If configuration creates a direct or indirect cycle, the nested calls continue until the transaction exhausts gas or reaches the EVM call-depth limit and reverts. RiskEngine._valueInWei invokes oracle.getPrice during _getBalance, _getBorrows, and account health, withdrawal, and borrowing checks, so affected assets can make these operations unavailable. OracleFacade.setOracle is restricted by adminOnly, meaning an unprivileged attacker cannot freely create the cycle, but the implementation provides no validation or runtime protection against an administrator or compromised configuration introducing one. Therefore, the availability issue is real, although its exploitability depends on privileged oracle configuration."
+    },
+    "hyp_8331f546abd5": {
+      "title": "Empty or zero-supply UniV2 pairs can make LP price queries revert",
+      "description": "VULNERABILITY TYPE: availability\nROOT CAUSE: The LP valuation path may not guard against totalSupply being zero before performing per-share price arithmetic.\nATTACK VECTOR: A zero-supply pair is registered or an existing pair is fully burned while still mapped in OracleFacade. Any account or risk-engine operation that queries its price encounters division-by-zero and reverts.\nAFFECTED NODES: univ2_lp_oracle, oracle_facade, risk_engine\nAFFECTED CODE: UniV2LPOracle per-share price calculation, OracleFacade token pricing, RiskEngine collateral valuation\nSEVERITY: medium\nREASONING: LP price calculations necessarily divide a pool value by LP total supply, and the architecture does not show lifecycle validation for zero-supply pairs. This requires confirmation against the implementation's explicit zero checks.\nSUGGESTED MITIGATION: Reject zero-supply pairs during oracle registration and return a defined invalid-price result rather than reverting when totalSupply is zero; ensure the risk engine treats invalid prices as unusable collateral.",
+      "vulnerability_type": "availability",
+      "severity": "medium",
+      "confidence": 0.4,
+      "status": "proposed",
+      "node_refs": [
+        "univ2_lp_oracle",
+        "oracle_facade",
+        "risk_engine"
+      ],
+      "evidence": [],
+      "reasoning": "LP price calculations necessarily divide a pool value by LP total supply, and the architecture does not show lifecycle validation for zero-supply pairs. This requires confirmation against the implementation's explicit zero checks.",
+      "mitigation": "Reject zero-supply pairs during oracle registration and return a defined invalid-price result rather than reverting when totalSupply is zero; ensure the risk engine treats invalid prices as unusable collateral.",
+      "finding_description": "A newly created or fully burned Uniswap V2 pair can have zero total LP supply. If UniV2LPOracle divides its reserve-derived value by totalSupply without explicitly handling zero supply, pricing the pair reverts.",
+      "impact": "Collateral checks and other operations involving the mapped asset can become unavailable until governance changes the mapping, potentially blocking withdrawals or liquidations.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "protocol/src/core/RiskEngine.sol",
+          "oracle/src/uniswap/UniV2LPOracle.sol",
+          "protocol/deployments/Deploy.sol",
+          "oracle/src/core/OracleFacade.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:46:12.191663",
+      "id": "hyp_8331f546abd5"
+    },
+    "hyp_abd673fb073e": {
+      "title": "Balancer join and exit recipients are not constrained to the managed account",
+      "description": "VULNERABILITY TYPE: access_control\nROOT CAUSE: Missing validation of Balancer Vault request sender and recipient against the managed account address.\nATTACK VECTOR: Submit or induce a Balancer joinPool or exitPool request with an attacker-controlled recipient, while preserving otherwise valid pool and token fields; the Account executes the request and transfers resulting assets to the attacker.\nAFFECTED NODES: balancer_controller, controller_facade, account\nAFFECTED CODE: BalancerController joinPool/exitPool request decoding and validation\nSEVERITY: high\nREASONING: The available component observations specifically identify Balancer join-request decoding and pool-token querying, but do not identify recipient or sender binding. Balancer Vault join and exit requests contain explicit sender and recipient fields, so validating only pool/token data is insufficient to preserve account ownership.\nSUGGESTED MITIGATION: Require the Balancer request sender and recipient to equal the managed Account, or use controller-generated values that cannot be caller-supplied; reject requests containing arbitrary recipients before forwarding them to the Vault.",
+      "vulnerability_type": "access_control",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "balancer_controller",
+        "controller_facade",
+        "account"
+      ],
+      "evidence": [],
+      "reasoning": "The available component observations specifically identify Balancer join-request decoding and pool-token querying, but do not identify recipient or sender binding. Balancer Vault join and exit requests contain explicit sender and recipient fields, so validating only pool/token data is insufficient to preserve account ownership.",
+      "mitigation": "Require the Balancer request sender and recipient to equal the managed Account, or use controller-generated values that cannot be caller-supplied; reject requests containing arbitrary recipients before forwarding them to the Vault.",
+      "finding_description": "BalancerController validates join/exit request structure and pool-token information but does not appear to constrain the sender and recipient fields embedded in Balancer Vault requests to the managed Account. If an untrusted caller can cause the Account to submit a validated request, the request can direct pool shares, withdrawn assets, or other proceeds to an attacker-controlled address.",
+      "impact": "Managed-account assets or Balancer pool proceeds can be transferred to an arbitrary recipient, causing direct loss of user collateral or liquidity-provider positions.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "controller/src/core/IControllerFacade.sol",
+          "controller/src/balancer/BalancerController.sol",
+          "controller/src/core/ControllerFacade.sol",
+          "protocol/src/core/Account.sol",
+          "protocol/src/interface/core/IAccount.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261012_212520",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T21:47:03.117508",
+      "id": "hyp_abd673fb073e",
+      "qa_comment": "Upon reviewing the BalancerController canJoin and canExit functions, I confirmed that Balancer Vault recipient and sender fields are decoded but discarded. Both functions decode the tuple as `(bytes32 poolId, address, address, request)` and use only poolId and request assets; they never validate that the sender or recipient equals the Account, nor do they replace those values with a controller-controlled address. Consequently, a call to Vault.joinPool or exitPool can use the Account as sender while directing minted BPT or withdrawn tokens to an attacker-controlled recipient. Account.exec only restricts who may initiate the external call through accountManagerOnly; it does not validate Balancer calldata or invoke ControllerFacade itself. Thus, assuming the account manager executes calldata after consulting canCall, the facade will approve a request with an arbitrary recipient, allowing assets generated from Account-held funds to be sent elsewhere. The missing recipient binding is therefore a genuine authorization/integrity gap, although exploitation requires inducing or compromising the authorized account manager."
+    }
+  },
+  "metadata": {
+    "total": 30,
+    "confirmed": 14,
+    "last_modified": "2026-10-12T21:47:03.118546"
+  }
+}

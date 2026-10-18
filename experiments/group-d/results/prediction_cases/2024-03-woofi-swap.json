@@ -1,0 +1,34 @@
+{
+  "repo_id": "2024-03-woofi-swap",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_c98dbe4e89a7",
+      "title": "Unsolicited asset donation can manipulate vault share price and dilute deposits",
+      "description": "WOOFiVaultV2 calculates new shares as amount * totalSupply / balanceBefore, where balanceBefore is the vault's current want balance immediately before the user's transfer. Because unsolicited want-token transfers can increase balanceBefore without increasing totalSupply, an attacker can acquire shares, donate want tokens directly to the vault, and front-run a victim deposit. The victim receives materially fewer shares, while the attacker can later withdraw a disproportionate share of the donated assets and the victim's deposit. The deposit path has no virtual assets/shares protection and no user-provided minimum-share or maximum-price constraint.",
+      "impact": "Victim deposits can be substantially diluted or reduced to a near-zero share amount, allowing the attacker to extract part or all of the victim's deposited want assets and any donated assets through withdrawal.",
+      "vulnerable_code": [
+        {
+          "file": "WooPoolV2/contracts/earn/VaultV2.sol",
+          "contract": "WOOFiVaultV2",
+          "function": "deposit(uint256)"
+        },
+        {
+          "file": "WooPoolV2/contracts/earn/VaultV2.sol",
+          "contract": "WOOFiVaultV2",
+          "function": "balance()"
+        },
+        {
+          "file": "WooPoolV2/contracts/earn/VaultV2.sol",
+          "contract": "WOOFiVaultV2",
+          "function": "withdraw(uint256)"
+        }
+      ],
+      "mitigation": "Use virtual assets and virtual shares or another ERC-4626 inflation-attack defense; alternatively maintain internally accounted assets rather than using the raw token balance, and expose deposit minimum-shares/max-price parameters so users can reject manipulated issuance rates.",
+      "severity": "high"
+    }
+  ]
+}

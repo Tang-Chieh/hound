@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_eb2bda3c6b3d": {
+      "title": "Manipulable Uniswap spot tick controls option solvency and liquidation economics",
+      "description": "VULNERABILITY TYPE: security_issue\nROOT CAUSE: Financially sensitive option valuation and liquidation calculations depend on the instantaneous Uniswap tick, which is directly movable by an attacker.\nATTACK VECTOR: Manipulate the canonical Uniswap pool price in a transaction, call PanopticPool liquidation or solvency-sensitive functionality while the tick is distorted, and reverse the swap before transaction completion.\nAFFECTED NODES: panoptic_pool, uniswap_pools, pool_position_balance, collateral_withdraw, sfpm_account_liquidity, sfpm_account_premium\nAFFECTED CODE: PanopticPool spot-tick reads and tick-based liquidation bonus, PanopticPool option solvency and collateral valuation, Uniswap V3 pool slot0 tick\nSEVERITY: high\nREASONING: The architecture explicitly records that PanopticPool reads the Uniswap tick and applies a tick-based liquidation bonus. Uniswap V3 spot ticks are attacker-influenceable through swaps, including temporary same-transaction manipulation. Although factory initialization raises observation cardinality, the loaded evidence does not establish that the liquidation and valuation paths consume a TWAP rather than the current tick; cardinality alone does not prevent spot-price manipulation.\nSUGGESTED MITIGATION: Use a validated TWAP or other manipulation-resistant oracle for solvency, collateral valuation, and liquidation-bonus calculations, enforce a minimum observation period and deviation bounds, and ensure every related path uses the protected price rather than slot0/current tick.",
+      "vulnerability_type": "security_issue",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "panoptic_pool",
+        "uniswap_pools",
+        "pool_position_balance",
+        "collateral_withdraw",
+        "sfpm_account_liquidity",
+        "sfpm_account_premium"
+      ],
+      "evidence": [],
+      "reasoning": "The architecture explicitly records that PanopticPool reads the Uniswap tick and applies a tick-based liquidation bonus. Uniswap V3 spot ticks are attacker-influenceable through swaps, including temporary same-transaction manipulation. Although factory initialization raises observation cardinality, the loaded evidence does not establish that the liquidation and valuation paths consume a TWAP rather than the current tick; cardinality alone does not prevent spot-price manipulation.",
+      "mitigation": "Use a validated TWAP or other manipulation-resistant oracle for solvency, collateral valuation, and liquidation-bonus calculations, enforce a minimum observation period and deviation bounds, and ensure every related path uses the protected price rather than slot0/current tick.",
+      "finding_description": "PanopticPool reads the Uniswap pool tick and uses tick-dependent calculations, including the liquidation bonus and option collateral valuation. An attacker can temporarily move the Uniswap price with a large swap or flash liquidity, invoke liquidation or another price-sensitive pool operation in the same transaction, and then restore the price. The loaded code provides no evidence that these sensitive calculations consistently use a manipulation-resistant TWAP or enforce a sufficiently long observation window.",
+      "impact": "An attacker may cause solvent option positions to be treated as insolvent, obtain liquidation rewards or seize collateral at an artificial price, or distort collateral requirements and withdrawals, producing direct losses for position holders or the pool.",
+      "vulnerable_code": [],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "contracts/libraries/FeesCalc.sol",
+          "contracts/PanopticPool.sol",
+          "contracts/PanopticFactory.sol",
+          "contracts/libraries/PanopticMath.sol",
+          "contracts/CollateralTracker.sol",
+          "contracts/SemiFungiblePositionManager.sol"
+        ],
+        "affected_functions": [
+          "withdraw",
+          "getAccountLiquidity",
+          "getAccountPremium"
+        ]
+      },
+      "created_by": "agent_20261012_230547",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-12T23:07:35.748243",
+      "id": "hyp_eb2bda3c6b3d",
+      "qa_comment": "Upon reviewing PanopticPool._validateSolvency, liquidate, forceExercise, and the oracle helpers in PanopticMath, I determined that the alleged spot-tick vulnerability is mitigated by the implemented design. Solvency valuation uses fast and slow observed oracle ticks, not the instantaneous tick: _validateSolvency computes median observed prices and evaluates collateral at those oracle ticks. Liquidation additionally obtains getUniV3TWAP(), requires the account to be insolvent at that TWAP, and rejects execution when the pre-liquidation slot0 tick differs by more than MAX_TWAP_DELTA_LIQUIDATION (513 ticks). The current tick is used primarily for fee/premium accounting and for post-burn execution economics, while liquidation collateral requirements and the principal bonus calculation use the TWAP. Although liquidate uses finalTick for token-denomination conversions and certain premium paths use currentTick, these values are bounded or applied after the TWAP insolvency gate and do not allow an attacker to make a solvent account liquidatable through a temporary price excursion. The public calculatePortfolioValue function accepts an arbitrary tick but is view-only and does not affect protocol state or solvency."
+    }
+  },
+  "metadata": {
+    "total": 1,
+    "confirmed": 0,
+    "last_modified": "2026-10-12T23:07:35.749141"
+  }
+}

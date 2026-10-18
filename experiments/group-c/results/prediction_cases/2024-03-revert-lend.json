@@ -1,0 +1,45 @@
+{
+  "repo_id": "2024-03-revert-lend",
+  "detector_metadata": {
+    "detector_version": "hound-direct-prediction-case-v1",
+    "llm_model": "openai-codex/gpt-5.6-luna"
+  },
+  "predictions": [
+    {
+      "finding_id": "hyp_425a6cd751dc",
+      "title": "Flash callback may accept forged callbacks without pool and operation authentication",
+      "description": "FlashloanLiquidator.uniswapV3FlashCallback is an externally callable callback that decodes caller-supplied data and performs vault liquidation and swaps. The architecture does not indicate validation that msg.sender is the configured Uniswap V3 pool or that the callback belongs to an active liquidation initiated by liquidate. If either check is absent, an attacker can invoke the callback directly with crafted amounts and liquidation parameters.",
+      "impact": "Unauthorized liquidation execution and arbitrary swap activity could be triggered; depending on repayment and balance handling, attacker-controlled calls may steal liquidator-held tokens or cause loss of vault/liquidation funds.",
+      "vulnerable_code": [],
+      "mitigation": "Require msg.sender to equal the configured flash-loan pool, validate factory/pool provenance where applicable, and bind the callback to an operation-specific pending state containing the expected pool, tokens, amounts, and liquidation target; clear that state after completion.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_c9da7b8b20a3",
+      "title": "TWAP-bound pool swaps may still permit economically harmful execution within the accepted deviation",
+      "description": "AutoCompound performs pool swaps with a TWAP check, but a TWAP bound alone does not establish a user-specific minimum output, maximum input, deadline, or price-impact limit. An attacker can sandwich the transaction or move the pool price within the permitted TWAP deviation, causing the compound swap to execute at an unfavorable rate while still passing validation.",
+      "impact": "Compounded fees or collateral can be exchanged below fair value, transferring value to the attacker and reducing users' position value.",
+      "vulnerable_code": [],
+      "mitigation": "Require caller-supplied or owner-configured minimum output and maximum input values, enforce a short deadline and maximum price impact, and validate the final execution price against both TWAP and transaction-specific slippage limits.",
+      "severity": "medium"
+    },
+    {
+      "finding_id": "hyp_5692808ccf83",
+      "title": "AutoExit configuration may remain bound to a token ID after NFT ownership changes",
+      "description": "AutoExit is described as allowing an NFT owner to configure a position while a separate operator executes it. If configuration is stored by NFT/token ID and is not cleared or revalidated when ownership transfers, a former owner can configure an exit recipient or parameters, transfer the NFT, and leave the new owner exposed to an operator-triggered exit using stale authorization or payout data.",
+      "impact": "The current NFT owner may lose control of the position and proceeds may be redirected to a former owner or another configured recipient.",
+      "vulnerable_code": [],
+      "mitigation": "At execution time, resolve and verify the current NFT owner and bind configuration to the current owner rather than only the token ID. Clear or invalidate configurations on NFT transfer, and require the current owner to reauthorize any payout recipient or exit parameters.",
+      "severity": "high"
+    },
+    {
+      "finding_id": "hyp_b575b2fae562",
+      "title": "ERC-4626 redemption can overstate liquidity when assets are lent out",
+      "description": "If share conversion counts outstanding loans as assets but withdraw and redeem attempt to transfer only immediately available tokens, a holder may receive a valid-looking maxWithdraw or redeem quote that reverts because assets are illiquid. An attacker can force or amplify this condition by borrowing available liquidity or creating positions that leave the vault underfunded.",
+      "impact": "Lenders can be unable to withdraw or redeem during stressed conditions, creating a denial of service and potentially trapping funds while debt resolution occurs.",
+      "vulnerable_code": [],
+      "mitigation": "Base maxWithdraw and maxRedeem on transferable cash after reserves, or implement an explicit withdrawal queue/claim mechanism; ensure preview functions and actual withdrawal paths use consistent liquidity-aware accounting.",
+      "severity": "medium"
+    }
+  ]
+}

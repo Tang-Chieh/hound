@@ -1,0 +1,305 @@
+{
+  "version": "1.0",
+  "hypotheses": {
+    "hyp_132b29f92ec5": {
+      "title": "Reentrancy in Multipool deposit and withdraw enables repeated share redemption",
+      "description": "VULNERABILITY TYPE: reentrancy\nROOT CAUSE: External token calls occur before LP state is fully finalized, while deposit and withdraw lack reentrancy protection.\nATTACK VECTOR: Deploy or use a callback-capable token pair, obtain LP tokens, and reenter withdraw from an ERC20 transfer hook before the outer withdrawal burns the LP tokens.\nAFFECTED NODES: contract_multipool, external_erc20, external_user\nAFFECTED CODE: concentrator/contracts/Multipool.sol:deposit, concentrator/contracts/Multipool.sol:withdraw, concentrator/contracts/Multipool.sol:_pay\nSEVERITY: high\nREASONING: withdraw burns LP tokens only after calculating and externally transferring assets, and neither public deposit nor withdraw uses the contract's nonReentrant modifier. The token addresses are supplied during factory deployment, so callback-capable token behavior is possible for supported pools.\nSUGGESTED MITIGATION: Apply nonReentrant to deposit, withdraw, and other externally reachable state-changing paths involving token calls; burn or otherwise finalize LP accounting before transfers; use checks-effects-interactions ordering and verify balance deltas.",
+      "vulnerability_type": "reentrancy",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_multipool",
+        "external_erc20",
+        "external_user"
+      ],
+      "evidence": [],
+      "reasoning": "withdraw burns LP tokens only after calculating and externally transferring assets, and neither public deposit nor withdraw uses the contract's nonReentrant modifier. The token addresses are supplied during factory deployment, so callback-capable token behavior is possible for supported pools.",
+      "mitigation": "Apply nonReentrant to deposit, withdraw, and other externally reachable state-changing paths involving token calls; burn or otherwise finalize LP accounting before transfers; use checks-effects-interactions ordering and verify balance deltas.",
+      "finding_description": "Multipool.deposit and Multipool.withdraw perform external ERC20 transfers and Uniswap V3 calls without applying the nonReentrant modifier. During token0 or token1 transfer, a callback-capable token can reenter withdraw before the outer call burns the caller's LP tokens. Repeated nested withdrawals can redeem the same LP amount against progressively reduced idle balances and may drain more assets than the caller's intended proportional entitlement.",
+      "impact": "An attacker can extract an excessive share of pool-held token balances, potentially draining idle reserves and fee balances and causing losses to other LP holders.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "deposit(uint256,uint256,uint256,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "withdraw(uint256,uint256,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "_pay(address,address,address,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "concentrator/contracts/Multipool.sol",
+          "concentrator/contracts/Dispatcher.sol",
+          "concentrator/contracts/Factory.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000255",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:03:56.490907",
+      "id": "hyp_132b29f92ec5",
+      "qa_comment": "Upon reviewing Multipool.deposit and withdraw, I determined the alleged repeated-share-redemption vulnerability is not established by the implementation. Although these functions lack the nonReentrant modifier and token calls occur during _withdraw, the specific claim that withdrawal transfers assets before burning LP tokens is inaccurate for the user payout path: withdraw computes amounts, performs its slippage check, and calls _burn(msg.sender, lpAmount) before _pay transfers token0 and token1 to the caller. Reentrancy can occur earlier through Uniswap V3 collect callbacks or _upFeesGrowth fee payments, but a reentrant withdrawal by the same LP holder must burn its LP balance in the inner call; the outer call then either fails because the balance is insufficient or proceeds against liquidity already reduced by the inner withdrawal. It does not redeem the same shares twice. The existing nonReentrant modifier is applied only to rebalanceAll, so adding protection would still be prudent, but the supplied code does not demonstrate an exploitable repeated-redemption path. Additional callback-driven accounting issues would require a separate, concrete exploit sequence."
+    },
+    "hyp_f8f7f300e9a9": {
+      "title": "Dispatcher full withdrawal silently forfeits accrued user fees",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: The full-withdraw branch bypasses _calcFees and _withdrawFee before zeroing the user's tracked shares and advancing fee debt.\nATTACK VECTOR: A user with accrued fees calls Dispatcher.withdraw(pid, user.shares, deviationBP), or supplies an amount greater than the tracked shares, causing the contract to clear the position without paying the accrued fees.\nAFFECTED NODES: contract_dispatcher, storage_dispatcher_poolinfo, external_user\nAFFECTED CODE: concentrator/contracts/Dispatcher.sol:withdraw, concentrator/contracts/Dispatcher.sol:_calcFees, concentrator/contracts/Dispatcher.sol:_withdrawFee\nSEVERITY: medium\nREASONING: The branch condition explicitly skips fee calculation for amount >= user.shares, then updates feeDebt to the latest growth and decreases shares. No later operation can recover the skipped fee entitlement for that user.\nSUGGESTED MITIGATION: Always calculate and settle accrued fees before reducing a user's shares to zero, or explicitly provide a separate full-withdraw-without-claim operation that preserves a claimable fee balance rather than advancing fee debt.",
+      "vulnerability_type": "accounting_error",
+      "severity": "medium",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_dispatcher",
+        "storage_dispatcher_poolinfo",
+        "external_user"
+      ],
+      "evidence": [],
+      "reasoning": "The branch condition explicitly skips fee calculation for amount >= user.shares, then updates feeDebt to the latest growth and decreases shares. No later operation can recover the skipped fee entitlement for that user.",
+      "mitigation": "Always calculate and settle accrued fees before reducing a user's shares to zero, or explicitly provide a separate full-withdraw-without-claim operation that preserves a claimable fee balance rather than advancing fee debt.",
+      "finding_description": "Dispatcher.withdraw only calculates and claims accrued fees when amount < user.shares. When amount is equal to or greater than user.shares, it directly removes the user's LP shares, updates fee debt, and transfers LP tokens without claiming the accumulated fee entitlement.",
+      "impact": "Accrued token fees can become permanently unclaimable by the withdrawing user and remain in the multipool, benefiting later participants or protocol accounting instead of the rightful user.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Dispatcher.sol",
+          "contract": "Dispatcher",
+          "function": "withdraw(uint256,uint256,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Dispatcher.sol",
+          "contract": "Dispatcher",
+          "function": "_withdrawFee(PoolInfo,uint256,uint256,uint256,uint256,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "concentrator/contracts/Multipool.sol",
+          "concentrator/contracts/Dispatcher.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000255",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:03:56.511580",
+      "id": "hyp_f8f7f300e9a9",
+      "qa_comment": "Upon reviewing Dispatcher.withdraw, _calcFees, _withdrawFee, and the corresponding Multipool withdrawal logic, I determined this hypothesis is a false positive. When amount is equal to or greater than user.shares, Dispatcher intentionally skips the separate fee-claim path, advances the fee debt, and withdraws all tracked shares through IMultipool.withdraw. However, accrued user fees are reflected in Multipool's reserves and LP-token value: Dispatcher.withdraw first calls Multipool.snapshot(), which invokes _earn() and updates fee growth, and the subsequent full withdrawal receives the caller's proportional share of the pool's complete reserves, including accrued distributable fees. The separate _calcFees and _withdrawFee flow is needed for partial withdrawals or fee-only claims because it removes an LP amount representing fees while preserving the user's remaining principal shares. For a full redemption, removing all shares inherently realizes both principal and accrued fees, so advancing feeDebt does not forfeit an otherwise recoverable entitlement. No guard is missing that enables loss under the described full-withdraw path; the hypothesis misconstrues the accounting model."
+    },
+    "hyp_92fca074a04e": {
+      "title": "Rebalance is hardcoded to the 0.05% Uniswap pool and can be permanently unavailable",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: The rebalance oracle is hardcoded to fee tier 500 instead of selecting a configured trusted pool or validating that fee 500 exists at deployment.\nATTACK VECTOR: Create or configure a multipool with fee tiers that do not include 500, then any operator rebalanceAll transaction reverts when getAmountOut accesses the absent pool.\nAFFECTED NODES: contract_multipool, contract_factory, external_v3_factory, external_v3_pool\nAFFECTED CODE: concentrator/contracts/Multipool.sol:getAmountOut, concentrator/contracts/Multipool.sol:rebalanceAll, concentrator/contracts/Factory.sol:createMultipool\nSEVERITY: medium\nREASONING: The oracle lookup uses the literal key 500, while deployment only requires each supplied fee to resolve and does not require 500. Missing mapping entries return a zero pool address and the subsequent external observe call reverts.\nSUGGESTED MITIGATION: Use a configured trusted fee tier or a strategy-selected oracle pool, and validate oracle availability during pool creation and before rebalance. Reject zero-duration or unavailable observation configurations.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_multipool",
+        "contract_factory",
+        "external_v3_factory",
+        "external_v3_pool"
+      ],
+      "evidence": [],
+      "reasoning": "The oracle lookup uses the literal key 500, while deployment only requires each supplied fee to resolve and does not require 500. Missing mapping entries return a zero pool address and the subsequent external observe call reverts.",
+      "mitigation": "Use a configured trusted fee tier or a strategy-selected oracle pool, and validate oracle availability during pool creation and before rebalance. Reject zero-duration or unavailable observation configurations.",
+      "finding_description": "Multipool.getAmountOut always reads underlyingTrustedPools[500].poolAddress, regardless of the configured strategy or constructor fee list. Factory.createMultipool accepts arbitrary fee arrays, so a valid multipool created without fee 500 causes rebalanceAll to call observe on address(0) and revert.",
+      "impact": "Liquidity cannot be rebalanced for affected pools, preventing strategy updates and potentially leaving assets in stale positions or blocking operational risk management.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "getAmountOut(bool,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "rebalanceAll(RebalanceParams)"
+        },
+        {
+          "file": "concentrator/contracts/Factory.sol",
+          "contract": "Factory",
+          "function": "createMultipool(address,address,address,uint24[])"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "concentrator/contracts/Multipool.sol",
+          "concentrator/contracts/Factory.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000255",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:03:56.526877",
+      "id": "hyp_92fca074a04e",
+      "qa_comment": "Upon reviewing the Multipool constructor, _addUnderlyingPool, getAmountOut, and rebalanceAll functions, I confirmed the denial-of-service condition. The constructor only validates and stores the fee tiers supplied by the Factory; neither Factory.createMultipool nor Multipool construction requires fee tier 500. However, getAmountOut unconditionally reads underlyingTrustedPools[500].poolAddress and invokes observe on that address. If 500 was not included during deployment, the mapping returns an empty UnderlyingPool and the pool address is address(0), causing the external observe call and tuple decoding to revert. rebalanceAll always invokes getAmountOut after processing the swap, including when amountIn is zero, so operator rebalances cannot complete for such deployments. The owner-only addUnderlyingPool function can remediate the issue if a valid 500-fee Uniswap pool exists, but it does not prevent the initial misconfiguration and cannot help when that pool is unavailable. Therefore, the hardcoded oracle dependency creates a clear configuration-dependent DoS."
+    },
+    "hyp_5c8f93529b0b": {
+      "title": "Unbounded TWAP duration configuration can disable all rebalances",
+      "description": "VULNERABILITY TYPE: denial_of_service\nROOT CAUSE: Missing validation of the TWAP duration before narrowing and using it in signed arithmetic and Uniswap observation queries.\nATTACK VECTOR: The pool owner sets TWAPDURATION to zero, a value larger than available observation history, or a value whose uint32-to-int32 conversion is invalid; subsequent rebalances revert or calculate an invalid oracle value.\nAFFECTED NODES: contract_multipool, external_v3_pool, external_manager_operator\nAFFECTED CODE: concentrator/contracts/Multipool.sol:setParam, concentrator/contracts/Multipool.sol:getAmountOut\nSEVERITY: medium\nREASONING: twapDuration is assigned as uint32(_param) with no lower or upper bound. getAmountOut uses int32(twapDuration) as a divisor and passes the duration to observe, so zero, signed overflow, or insufficient historical observations can make the rebalance path revert.\nSUGGESTED MITIGATION: Require twapDuration > 0, <= type(int32).max, and within a documented maximum supported by the underlying pools; validate observation cardinality or handle unavailable history before allowing the parameter update.",
+      "vulnerability_type": "denial_of_service",
+      "severity": "medium",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_multipool",
+        "external_v3_pool",
+        "external_manager_operator"
+      ],
+      "evidence": [],
+      "reasoning": "twapDuration is assigned as uint32(_param) with no lower or upper bound. getAmountOut uses int32(twapDuration) as a divisor and passes the duration to observe, so zero, signed overflow, or insufficient historical observations can make the rebalance path revert.",
+      "mitigation": "Require twapDuration > 0, <= type(int32).max, and within a documented maximum supported by the underlying pools; validate observation cardinality or handle unavailable history before allowing the parameter update.",
+      "finding_description": "setParam casts the arbitrary _param value to uint32 for twapDuration without requiring it to be nonzero, within a practical observation window, or representable as a safe signed divisor. getAmountOut divides by int32(twapDuration) and requests that observation period from Uniswap V3.",
+      "impact": "The operator cannot rebalance the pool, and an invalid configuration can make recovery require privileged administrative intervention.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "setParam(MANAGING,uint256)"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "getAmountOut(bool,uint256)"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "concentrator/contracts/Multipool.sol",
+          "concentrator/contracts/Factory.sol",
+          "concentrator/contracts/MultiStrategy.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000255",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:03:59.572345",
+      "id": "hyp_5c8f93529b0b",
+      "qa_comment": "Upon reviewing Multipool.setParam and getAmountOut, I confirmed the denial-of-service condition is exploitable through the owner-controlled TWAPDURATION parameter. The TWAPDURATION branch of setParam directly assigns twapDuration = uint32(_param) without enforcing a nonzero value, a maximum supported lookback, or an int32-safe range. In getAmountOut, this value is passed to the underlying Uniswap V3 pool through observe and is also used as the divisor in int32(twapDuration). Setting it to zero causes the average-tick calculation to revert through division by zero, so every rebalanceAll call that reaches getAmountOut fails. A value exceeding the pool's available observation history can likewise cause observe(secondsAgo) to revert, and values above uint32 or int32 limits can truncate or become negative during explicit narrowing conversions. Although the caller able to configure this is privileged, the code provides no validation or recovery guard, and the operator cannot bypass the oracle check; therefore, a misconfigured or malicious owner can disable all rebalances until the parameter is corrected."
+    },
+    "hyp_847c7cc02a4e": {
+      "title": "Fee-on-transfer tokens allow underfunded liquidity minting",
+      "description": "VULNERABILITY TYPE: accounting_error\nROOT CAUSE: No compatibility validation for token transfer semantics and no post-transfer balance-delta check before minting liquidity.\nATTACK VECTOR: A user deposits fee-on-transfer tokens into a pool configured with such a token. The token deducts a transfer fee, but Multipool still mints LP tokens based on the requested amount, allowing the depositor to redeem more of the other underlying asset than their contribution warrants.\nAFFECTED NODES: contract_factory, contract_multipool, external_erc20, external_user, storage_multipool_state\nAFFECTED CODE: Factory.createMultipool: accepts arbitrary token addresses, Multipool.deposit: calculates lpAmount before transfer and mints afterward, Multipool._safeTransferFrom: does not verify the recipient balance delta\nSEVERITY: high\nREASONING: The shown deposit flow transfers the caller's desired amounts only after lpAmount has been calculated and does not measure the actual amount received. The factory imposes no restriction against fee-on-transfer tokens, so successful token transfers can underfund the pool relative to minted LP supply.\nSUGGESTED MITIGATION: Either restrict pool creation to tokens with standard transfer semantics, or measure token0/token1 balance before and after transfer and calculate liquidity and LP issuance from the actual received amounts. Apply the same received-amount accounting to all pool funding paths.",
+      "vulnerability_type": "accounting_error",
+      "severity": "high",
+      "confidence": 0.0,
+      "status": "rejected",
+      "node_refs": [
+        "contract_factory",
+        "contract_multipool",
+        "external_erc20",
+        "external_user",
+        "storage_multipool_state"
+      ],
+      "evidence": [],
+      "reasoning": "The shown deposit flow transfers the caller's desired amounts only after lpAmount has been calculated and does not measure the actual amount received. The factory imposes no restriction against fee-on-transfer tokens, so successful token transfers can underfund the pool relative to minted LP supply.",
+      "mitigation": "Either restrict pool creation to tokens with standard transfer semantics, or measure token0/token1 balance before and after transfer and calculate liquidity and LP issuance from the actual received amounts. Apply the same received-amount accounting to all pool funding paths.",
+      "finding_description": "Factory accepts arbitrary token addresses and Multipool.deposit computes lpAmount before transferring amount0Desired and amount1Desired, then mints that amount after _safeTransferFrom. For fee-on-transfer or tax tokens, the pool receives less than the requested amounts while the depositor receives LP tokens calculated from the larger pre-transfer values.",
+      "impact": "Existing LP holders can suffer direct dilution and loss of token0/token1 reserves; repeated deposits can drain value from the pool if the transfer tax is significant.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "deposit"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "concentrator/contracts/Multipool.sol",
+          "concentrator/contracts/Dispatcher.sol",
+          "concentrator/contracts/Factory.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000255",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:05:00.689237",
+      "id": "hyp_847c7cc02a4e",
+      "qa_comment": "Upon reviewing Multipool.deposit, _pay, _safeTransferFrom, and _deposit, I determined that the alleged underfunded liquidity minting is not clearly exploitable through a conventional fee-on-transfer token. Although deposit calculates lpAmount and liquidity from the requested amounts before calling _pay(token0/token1, msg.sender, address(this), amount), the subsequent Uniswap V3 mint invokes uniswapV3MintCallback, which transfers the nominal owed amounts to the underlying pool. Uniswap V3 verifies that the pool actually receives those owed amounts; a token that deducts a transfer fee on transfers to the underlying pool will therefore cause the mint transaction to revert rather than mint liquidity or LP tokens. The absence of a balance-delta check is still a compatibility and denial-of-service weakness, and unusual tokens that tax only the initial user-to-Multipool transfer while exempting transfers to the V3 pool could potentially create the described accounting discrepancy. However, that behavior is not established by the source, and standard fee-on-transfer semantics make the operation revert before _mint(msg.sender, lpAmount)."
+    },
+    "hyp_d2fcdfe7d2c1": {
+      "title": "Spot-price manipulation can distort deposit LP issuance",
+      "description": "VULNERABILITY TYPE: oracle_manipulation\nROOT CAUSE: Liquidity valuation and mint calculations rely on manipulable current Uniswap V3 spot prices rather than a time-weighted or otherwise validated price.\nATTACK VECTOR: An attacker temporarily moves the price of an underlying Uniswap V3 pool using a large swap or flash liquidity, submits a deposit while the manipulated slot0 price is observed, and reverses the price afterward. The resulting LP amount can be mispriced relative to the pool's assets and positions.\nAFFECTED NODES: contract_multipool, external_v3_pool, external_user, storage_multipool_state\nAFFECTED CODE: Multipool.deposit: uses slot data to calculate LP issuance, Multipool.getSlots: reads current slot0 values from underlying pools\nSEVERITY: high\nREASONING: The loaded code explicitly shows getSlots reading current slot0 values and deposit passing those slots into the internal deposit calculation. Current Uniswap V3 prices are externally manipulable within a transaction unless protected by a TWAP, observation-cardinality requirement, or equivalent bounds.\nSUGGESTED MITIGATION: Use a sufficiently long and validated TWAP for deposit valuation, reject stale or insufficient observations, and enforce deposit minimums based on a manipulation-resistant reference price. Consider adding per-deposit price-impact limits and synchronizing valuation across all underlying positions.",
+      "vulnerability_type": "oracle_manipulation",
+      "severity": "high",
+      "confidence": 1.0,
+      "status": "confirmed",
+      "node_refs": [
+        "contract_multipool",
+        "external_v3_pool",
+        "external_user",
+        "storage_multipool_state"
+      ],
+      "evidence": [],
+      "reasoning": "The loaded code explicitly shows getSlots reading current slot0 values and deposit passing those slots into the internal deposit calculation. Current Uniswap V3 prices are externally manipulable within a transaction unless protected by a TWAP, observation-cardinality requirement, or equivalent bounds.",
+      "mitigation": "Use a sufficiently long and validated TWAP for deposit valuation, reject stale or insufficient observations, and enforce deposit minimums based on a manipulation-resistant reference price. Consider adding per-deposit price-impact limits and synchronizing valuation across all underlying positions.",
+      "finding_description": "Multipool.deposit obtains slot data through getSlots, which reads each underlying Uniswap V3 pool's current slot0 price, and uses that data to calculate liquidity and LP issuance. Unlike the rebalance path, the deposit path has no demonstrated TWAP or manipulation-resistance check.",
+      "impact": "The attacker may mint undervalued or overvalued LP tokens and redeem against reserves, transferring value from existing liquidity providers or causing unfair dilution.",
+      "vulnerable_code": [
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "deposit"
+        },
+        {
+          "file": "concentrator/contracts/Multipool.sol",
+          "contract": "Multipool",
+          "function": "getSlots"
+        }
+      ],
+      "properties": {
+        "graph_name": "SystemArchitecture",
+        "source_files": [
+          "concentrator/contracts/Multipool.sol",
+          "concentrator/contracts/Dispatcher.sol",
+          "concentrator/contracts/Factory.sol"
+        ],
+        "affected_functions": []
+      },
+      "created_by": "agent_20261013_000255",
+      "reported_by_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "junior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "senior_model": "OpenAI:openai-codex/gpt-5.6-luna",
+      "session_id": null,
+      "visibility": "global",
+      "created_at": "2026-10-13T00:05:00.712877",
+      "id": "hyp_d2fcdfe7d2c1",
+      "qa_comment": "Upon reviewing Multipool.deposit, getSlots, _getReserves, and _optimizeAmounts in Multipool.sol, I confirmed that deposit valuation relies directly on manipulable Uniswap V3 spot state. For initialized pools, deposit calls getSlots(), which reads each underlying pool's slot0() currentSqrtRatioX96 and tick without consulting observations, TWAP data, or deviation bounds. Those values are then used by _getReserves to calculate the token amounts represented by existing concentrated-liquidity positions and by _optimizeAmounts to determine the depositor's required token ratio. The resulting reserves are also used to calculate LP issuance, while _deposit again uses the same spot-derived prices when minting liquidity. An attacker can therefore move an underlying pool price through a large swap, submit a deposit while the manipulated slot0 value is active, and reverse the trade afterward, potentially receiving an unfair proportion of LP tokens or diluting existing holders. The configured twapDuration and maxTwapDeviation only affect getAmountOut and rebalanceAll; they do not protect deposit. The minimum amounts, slippage parameters, and max supply limit do not prevent this oracle manipulation."
+    }
+  },
+  "metadata": {
+    "total": 6,
+    "confirmed": 3,
+    "last_modified": "2026-10-13T00:05:00.713617"
+  }
+}

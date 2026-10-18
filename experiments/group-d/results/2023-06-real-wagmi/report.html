@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit: houndD-gpt56_20261012-direct-2023-06-real-wagmi</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #e8ecf1;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 80px 40px;
+            margin: -60px -40px 60px;
+            background: linear-gradient(180deg, rgba(15,20,25,0.95) 0%, rgba(26,31,46,0.9) 100%);
+            border-bottom: 1px solid rgba(136,146,176,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.03) 0%, transparent 50%);
+            animation: pulse 20s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 35px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, rgba(30,40,55,0.8) 0%, rgba(20,25,35,0.9) 100%);
+            border-radius: 24px;
+            padding: 15px;
+            border: 2px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5),
+                        0 0 60px rgba(100,181,246,0.2),
+                        inset 0 0 30px rgba(100,181,246,0.05);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) 
+                    drop-shadow(0 0 20px rgba(100,181,246,0.4));
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .report-meta {
+            font-size: 15px;
+            color: #8892a0;
+            position: relative;
+            z-index: 1;
+            line-height: 1.8;
+        }
+        
+        .report-meta strong {
+            color: #b4bcc8;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, #64b5f6, transparent);
+            opacity: 0.3;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #ffffff;
+            padding-bottom: 15px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, #64b5f6 0%, transparent 50%) bottom left no-repeat;
+            background-size: 100% 2px;
+            letter-spacing: -0.3px;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            animation: expandWidth 1.5s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+            to { width: 100%; }
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #81c7f7;
+            letter-spacing: -0.2px;
+        }
+        
+        p {
+            margin-bottom: 18px;
+            text-align: left;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        .finding {
+            background: linear-gradient(135deg, rgba(36,52,71,0.6) 0%, rgba(26,35,50,0.6) 100%);
+            border-left: 4px solid #dc3545;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-sample {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .code-sample pre {
+            margin: 0;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        
+        .code-sample pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+        
+        .code-file {
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .code-lines {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .code-explanation {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b3d4fc;
+            font-style: italic;
+        }
+        /* Enhanced code layout: gutter + content + copy */
+        .code-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+        }
+        .code-gutter {
+            color: #6b7b94;
+            text-align: right;
+            user-select: none;
+            padding-right: 8px;
+            border-right: 1px solid #2a3f5f;
+        }
+        .code-gutter pre { color: inherit; margin: 0; }
+        .code-content { overflow-x: auto; }
+        .code-content pre { white-space: pre; margin: 0; }
+        .code-line { white-space: pre; }
+        .code-header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(100,181,246,0.12);
+            border: 1px solid rgba(100,181,246,0.35);
+            color: #b3d4fc;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .copy-btn:hover { background: rgba(100,181,246,0.2); }
+        
+        .finding::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,181,246,0.5), transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .finding:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+        }
+        
+        .finding.critical {
+            border-left-color: #dc3545;
+        }
+        
+        .finding.high {
+            border-left-color: #fd7e14;
+        }
+        
+        .finding.medium {
+            border-left-color: #ffc107;
+        }
+        
+        .finding.low {
+            border-left-color: #28a745;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .severity-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .severity-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .severity-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .test-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #3a4556;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+        
+        .status-confirmed {
+            background: #dc3545;
+        }
+        
+        .status-rejected {
+            background: #28a745;
+        }
+        
+        .status-investigating {
+            background: #ffc107;
+        }
+        
+        .status-proposed {
+            background: #6c757d;
+        }
+        
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(136,146,176,0.15);
+            text-align: center;
+            color: #64738c;
+            font-size: 14px;
+        }
+        
+        .footer p {
+            text-align: center;
+            color: #64738c;
+        }
+        
+        /* Proof of Concept Styles */
+        .poc-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(26,31,46,0.7) 0%, rgba(15,20,25,0.8) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .poc-section h4 {
+            color: #64b5f6;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .poc-file {
+            margin-bottom: 1.5rem;
+            background: rgba(20,25,35,0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(100,181,246,0.1);
+        }
+        
+        .poc-file h5 {
+            color: #90caf9;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .poc-description {
+            color: #8892a9;
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .poc-file pre {
+            background: rgba(10,12,18,0.7);
+            border: 1px solid rgba(100,181,246,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        .poc-file code {
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Statistics Section Styles */
+        .stats-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(26,31,46,0.8) 0%, rgba(15,20,25,0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(100,181,246,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(100,181,246,0.05) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(36,52,71,0.7) 0%, rgba(26,35,50,0.7) 100%);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(100,181,246,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            border-color: rgba(100,181,246,0.3);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(100,181,246,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 16px;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+            animation: shimmer-stat 1.5s;
+        }
+        
+        @keyframes shimmer-stat {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 50%, #81c7f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(100,181,246,0.5);
+            animation: pulse-number 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-number {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .stat-number.critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 50%, #ff8787 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(220,53,69,0.5);
+        }
+        
+        .stat-number.high {
+            background: linear-gradient(135deg, #ffb347 0%, #fd7e14 50%, #ffc371 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253,126,20,0.5);
+        }
+        
+        .stat-number.medium {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffc107 50%, #ffe066 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,193,7,0.5);
+        }
+        
+        .stat-number.low {
+            background: linear-gradient(135deg, #6bcf7e 0%, #28a745 50%, #52d869 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(40,167,69,0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            z-index: 1;
+            margin-top: 30px;
+        }
+        
+        .chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .pie-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+        
+        .pie-chart svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(26,31,46,0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(36,52,71,0.6);
+            transform: translateX(5px);
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .legend-text {
+            flex: 1;
+            color: #c8d0db;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .legend-count {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 16px;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #64b5f6, transparent);
+            margin: 15px auto 0;
+        }
+        
+        ul {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        ul li {
+            margin-bottom: 12px;
+            color: #c8d0db;
+            line-height: 1.8;
+        }
+        
+        ul li::marker {
+            color: #64b5f6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            background: rgba(26,35,50,0.3);
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+        }
+        
+        th {
+            background: linear-gradient(135deg, rgba(36,52,71,0.8) 0%, rgba(26,35,50,0.8) 100%);
+            font-weight: 600;
+            color: #64b5f6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            background: rgba(26,35,50,0.4);
+            border-bottom: 1px solid rgba(58,69,86,0.3);
+            color: #c8d0db;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .component-diagram {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(36,52,71,0.4) 0%, rgba(26,35,50,0.4) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100,181,246,0.2);
+        }
+        
+        .component-diagram h3 {
+            color: #81c7f7;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .diagram-content {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e8ecf1;
+            background: rgba(15,20,25,0.6);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SECURITY AUDIT REPORT</h1>
+            <div class="subtitle">Wagmi Concentrator</div>
+            <div class="report-meta">
+                <strong>Project:</strong> houndD-gpt56_20261012-direct-2023-06-real-wagmi<br>
+                <strong>Date:</strong> October 12, 2026<br>
+                <strong>Audit Team:</strong> Hound Security<br>
+                <strong>Lead Auditors:</strong> openai-codex/gpt-5.6-luna
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>The Hound security team conducted this comprehensive audit of the Wagmi Concentrator, reviewing its contract architecture, trust boundaries, asset flows, administrative controls, pricing logic, and interactions with external protocols.</p>
+<p>The review covered the high-level system architecture, including the Factory, Multipool, MultiStrategy, and Dispatcher contracts; their interfaces, storage, deployment artifacts, mathematical libraries, emitted events, ERC20 flows, and dependencies on Uniswap V3 pools and approved swap targets.</p>
+<p>Our team identified three confirmed security issues centered on the use of manipulable spot prices for liquidity-range construction, deposit valuation, and Dispatcher reserve-based accounting. These findings create material risks to liquidity placement, share issuance, fee attribution, and user withdrawals, with severity ranging from medium to high. We also verified that the rebalance swap path includes balance-delta and TWAP-based output validation, while the Factory spot quote is not used internally for settlement. The overall security posture requires remediation of spot-price-dependent accounting and position management before relying on the system for substantial value.</p>
+            
+            <h3 style="margin-top: 30px; color: #64b5f6;">Audit Team</h3>
+            
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(26,31,46,0.4); border: 1px solid rgba(136,146,176,0.2); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(100,181,246,0.1); border-bottom: 1px solid rgba(136,146,176,0.2);">
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Audit Role</th>
+                        <th style="padding: 12px 16px; text-align: left; color: #64b5f6; font-weight: 600;">Model(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Junior Auditors</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Senior Auditor</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(136,146,176,0.1);">
+                        <td style="padding: 12px 16px; color: #8892b0;">Quality Assurance</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 16px; color: #8892b0;">Report Writing</td>
+                        <td style="padding: 12px 16px; color: #e8ecf1;">openai-codex/gpt-5.6-luna</td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        </div>
+        
+        <div class="section">
+            <h2>System Overview</h2>
+            <p>The Wagmi Concentrator is organized around the Factory, Multipool, MultiStrategy, and Dispatcher contracts. Factory deploys the Dispatcher, Multipool, and MultiStrategy instances, initializes their relationships, records created pools, and registers pools with Dispatcher. Deployment relies on embedded bytecode artifacts and on the Uniswap V3 factory and pool interfaces to identify and interact with underlying liquidity pools.</p>
+<p>Multipool is the primary asset-management component. It accepts ERC20 deposits, mints and burns pool shares, maintains trusted Uniswap V3 pool positions, collects fees, performs withdrawals, calculates reserves and quotes, and coordinates rebalancing. It uses FullMath, LiquidityAmounts, TickMath, Babylonian, and ErrLib for arithmetic, liquidity conversion, square-root, tick, and error-handling operations. Multipool can also authorize configured swap targets and transfer assets to and from trusted underlying pools.</p>
+<p>MultiStrategy stores the active strategy and associated Multipool, allowing authorized management operations to change or apply strategy configuration. Dispatcher maintains pool and user accounting, obtains snapshots from Multipool, and performs deposit and withdrawal flows for users. These flows transfer ERC20 assets, calculate share and fee amounts from reported reserves and total supply, and emit events for pool creation, deposits, withdrawals, strategy changes, parameter updates, trusted-pool changes, and rebalancing activity.</p>
+<p>Our analysis revealed that several security-sensitive calculations rely on instantaneous Uniswap V3 state. Multipool position ranges can be derived from the current slot0 tick during initialization and rebalancing, allowing temporary price distortion to influence where liquidity is reopened. Multipool deposits likewise use spot-derived slot data for reserve and liquidity calculations, which can affect the assets accepted and shares minted. Dispatcher snapshot-based accounting can also use manipulated reserve proportions when converting fee entitlements and processing withdrawal-related operations.</p>
+<p>The system does contain meaningful controls: access restrictions limit management and operator actions, trusted pools and approved swap targets are explicitly configured, arithmetic libraries provide checked financial calculations, and the rebalance swap path compares realized balance deltas with a TWAP-derived output and deviation limit. However, those controls do not protect all spot-dependent paths. The Hound team recommends introducing validated TWAP or independent oracle checks for position ticks, deposit valuation, and Dispatcher accounting, together with explicit spot-to-TWAP deviation limits and conservative user-facing minimum-output protections.</p>
+        </div>
+        
+        
+        <div class="stats-section">
+            <h2 class="summary-title">Security Analysis Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number critical">0</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number high">2</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number medium">1</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-number low">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; color: #81c7f7; margin-bottom: 30px; font-size: 20px;">Severity Distribution</h3>
+                <div class="chart-wrapper">
+                    <div class="pie-chart">
+                        
+        <svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="url(#glow)">
+                
+                <path d="M125,125 L125.00,25.00 A100,100 0 1,1 38.40,175.00 Z" 
+                      fill="#fd7e14" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+                <path d="M125,125 L38.40,175.00 A100,100 0 0,1 125.00,25.00 Z" 
+                      fill="#ffc107" 
+                      stroke="rgba(255,255,255,0.1)" 
+                      stroke-width="2"
+                      opacity="0.9">
+                    <animate attributeName="opacity" 
+                             values="0.9;1;0.9" 
+                             dur="3s" 
+                             repeatCount="indefinite"/>
+                </path>
+            
+            </g>
+            <circle cx="125" cy="125" r="60" 
+                    fill="rgba(15,20,25,0.8)" 
+                    stroke="rgba(100,181,246,0.3)" 
+                    stroke-width="2"/>
+            <text x="125" y="125" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="32" 
+                  font-weight="700" 
+                  fill="#64b5f6">3</text>
+            <text x="125" y="145" 
+                  text-anchor="middle" 
+                  dominant-baseline="middle" 
+                  font-size="12" 
+                  font-weight="600" 
+                  fill="#8892b0" 
+                  text-transform="uppercase" 
+                  letter-spacing="1">Issues</text>
+        </svg>
+        
+                    </div>
+                    <div class="chart-legend">
+                        
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fd7e14;"></div>
+                    <div class="legend-text">High</div>
+                    <div class="legend-count">2</div>
+                    <div style="color: #64738c; font-size: 12px;">(66.7%)</div>
+                </div>
+                
+
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <div class="legend-text">Medium</div>
+                    <div class="legend-count">1</div>
+                    <div style="color: #64738c; font-size: 12px;">(33.3%)</div>
+                </div>
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Findings</h2>
+            
+            
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Dispatcher reserve-based share pricing can be manipulated during deposits and withdrawals</h3>
+                <div class="vulnerability-description">
+                    <p>This is a share-pricing and oracle-validation vulnerability in which the Dispatcher relies on instantaneous reserve-based valuations during deposits and withdrawals without visibly enforcing a manipulation-resistant oracle or a bounded spot-to-TWAP deviation. The Dispatcher obtains reserve balances, fee-growth data, and total supply through snapshot() and uses those values to calculate the amount of shares issued or assets returned. A configured MAX_DEVIATION value does not, by itself, demonstrate that the reserve valuation used for share conversion is protected against temporary price manipulation.</p>
+<p>An attacker can execute a large swap or use flash liquidity to distort the underlying Uniswap V3 pool price, then call Dispatcher.deposit() or withdraw() while the manipulated reserve ratio is reflected in snapshot(). After reversing the price manipulation, the attacker may retain excess shares or assets obtained from the incorrect conversion. This can dilute existing shareholders or transfer value from the pool to the attacker. Share conversions should use a sufficiently long TWAP or independently validated oracle, enforce a maximum spot-to-reference deviation before conversion, and apply conservative minimum-output and maximum-input constraints to both deposits and withdrawals.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the Dispatcher contract, specifically the deposit and withdraw share-conversion logic; the Dispatcher pool-information storage used by snapshot(); and the Multipool contract, specifically snapshot() and its reserve-calculation logic</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing Dispatcher.deposit, Dispatcher.withdraw, Multipool.snapshot, and Multipool._getReserves, I confirmed that withdrawal-related share accounting can depend on a manipulable Uniswap V3 spot state. Dispatcher obtains reserves and total supply from snapshot(), then converts accrued token fees into LP shares through _estimateWithdrawalLp(), which averages fee0/reserve0 and fee1/reserve1. Multipool.snapshot first calls _earn(), withdrawing all active liquidity, and then derives reserves using getSlots() and current Uniswap positions; these values are not checked against a TWAP or an independent oracle. Consequently, an attacker can distort an underlying pool price, invoke deposit (which also claims existing fees) or partial withdraw during the distortion, and cause fee entitlements to be converted using manipulated reserve proportions before reversing the price. MAX_DEVIATION in Dispatcher is not an oracle bound: it only scales minimum-output amounts, while deviationBP is caller-supplied. Multipool&#39;s TWAP check is confined to operator rebalance logic and does not protect snapshot-based Dispatcher accounting. The issue is principally a withdrawal and fee-claim manipulation rather than minting new shares from a deposit.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Use a manipulation-resistant TWAP or independently validated oracle for token conversion, enforce maximum deviation against the oracle before any share conversion, and apply conservative minimum-output and maximum-input checks to both deposits and withdrawals. Consider preventing same-transaction reserve-price changes from affecting share accounting.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">concentrator/contracts/Multipool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 212-226</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-1').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226</pre></div>
+                <div class="code-content"><pre id="code-block-1"><code class="language-solidity">function snapshot()
+    external
+    returns (
+        uint256 reserve0,
+        uint256 reserve1,
+        FeeGrowth memory feesGrow,
+        uint256 _totalSupply
+    )
+{
+    _totalSupply = totalSupply();
+    _earn(_totalSupply);
+    Slot0Data[] memory slots = getSlots();
+    (reserve0, reserve1, , ) = _getReserves(slots);
+    feesGrow = feesGrowthInsideLastX128;
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">snapshot() obtains the current total supply, calls getSlots() for instantaneous Uniswap V3 pool state, and derives reserve values through _getReserves() without showing any oracle or spot-to-TWAP deviation check.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">concentrator/contracts/Dispatcher.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 152-169</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-2').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169</pre></div>
+                <div class="code-content"><pre id="code-block-2"><code class="language-solidity">function _withdrawFee(
+    PoolInfo memory pool,
+    uint256 lpAmount,
+    uint256 reserve0,
+    uint256 reserve1,
+    uint256 _totalSupply,
+    uint256 deviationBP
+) private {
+    uint256 amount0OutMin = (reserve0 * lpAmount * deviationBP) /
+        (_totalSupply * MAX_DEVIATION);
+    uint256 amount1OutMin = (reserve1 * lpAmount * deviationBP) /
+        (_totalSupply * MAX_DEVIATION);
+    (uint256 withdrawnAmount0, uint256 withdrawnAmount1) = IMultipool(pool.multipool).withdraw(
+        lpAmount,
+        amount0OutMin,
+        amount1OutMin
+    );
+    _pay(pool.token0, address(this), msg.sender, withdrawnAmount0);</code></pre></div>
+            </div>
+            <div class="code-explanation">_withdrawFee() converts reserve balances and LP supply directly into withdrawal minimums, then executes the withdrawal using those reserve-derived values; the configured deviation parameter is only applied to this calculation and is not an oracle validation.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding high">
+                <span class="severity-badge severity-high">high</span>
+                <h3>Public Multipool deposits can mint shares against a transiently manipulated Uniswap V3 price</h3>
+                <div class="vulnerability-description">
+                    <p>This is a price-oracle validation vulnerability in which public Multipool deposits calculate liquidity and mint LP shares using instantaneous Uniswap V3 slot0 values without visible TWAP or oracle validation. The deposit flow obtains current slot data through getSlots() and passes it to _deposit(), while the available checks only confirm conditions such as positive liquidity and compliance with the maximum total supply. They do not establish that the price used for share issuance is resistant to temporary manipulation or within an acceptable deviation from a trusted reference.</p>
+<p>An attacker can perform a large temporary swap in an underlying trusted Uniswap V3 pool, submit a public deposit while slot0 is distorted, and provide the token composition that receives favorable treatment under the manipulated valuation. Once the price is restored, the attacker may withdraw the resulting position for more value than was deposited, causing losses or dilution for other pool participants. Deposits should use a sufficiently long TWAP or validated oracle, reject transactions when spot price deviates beyond a configured bound, and require user-specified minimum shares or maximum token amounts based on the protected valuation.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the Multipool contract, specifically the public deposit path, _deposit(), and getSlots() functions; the underlying Uniswap V3 pool; and the liquidity and tick-math libraries used to calculate deposit liquidity and shares</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing the Multipool deposit path, I confirmed that share issuance relies on manipulable Uniswap V3 spot prices. In deposit(), existing pools call getSlots(), which reads each trusted pool’s slot0() directly without consulting the configured twapDuration or maxTwapDeviation. Those values are passed to _getReserves(), where LiquidityAmounts.getAmountsForLiquidity() calculates the pool reserves at the manipulated spot, and to _optimizeAmounts(), which determines the token composition accepted from the depositor. The resulting lpAmount is then calculated from those spot-derived reserves before _deposit() mints liquidity using the same instantaneous sqrt price. The only relevant safeguards are user-supplied amount minimums, a positive-liquidity check, and maxTotalSupply; none validates the price or limits deviation from a time-weighted valuation. Although getAmountOut() uses a TWAP, that function is limited to rebalance slippage validation and is not used by deposit(). Therefore, an attacker can temporarily move an underlying pool price, deposit using the favorable spot-derived composition, restore the price, and potentially redeem disproportionately valuable shares.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Base deposit liquidity and share pricing on a sufficiently long TWAP or validated oracle, reject deposits when spot deviates beyond a configured bound, and require user-specified minimum shares or maximum token amounts based on the protected valuation.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">concentrator/contracts/Multipool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 360-377</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-3').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377</pre></div>
+                <div class="code-content"><pre id="code-block-3"><code class="language-solidity">function _deposit(
+    uint256 amount0Desired,
+    uint256 amount1Desired,
+    uint256 _totalSupply,
+    Slot0Data[] memory slots
+) private {
+    uint128 liquidity;
+    uint256 fee0;
+    uint256 fee1;
+    uint256 posNum = multiPosition.length;
+    PositionInfo memory position;
+    for (uint256 i = 0; i &lt; posNum; ) {
+        position = multiPosition[i];
+
+        liquidity = _calcLiquidityAmountToDeposit(
+            slots[i].currentSqrtRatioX96,
+            position,
+            amount0Desired,</code></pre></div>
+            </div>
+            <div class="code-explanation">The deposit implementation accepts Slot0Data supplied by the caller&#39;s deposit flow and uses each position&#39;s currentSqrtRatioX96 directly to calculate liquidity, without validating it against a TWAP or trusted reference.</div>
+        </div>
+        
+                
+            </div>
+            
+
+            <div class="finding medium">
+                <span class="severity-badge severity-medium">medium</span>
+                <h3>Spot-price manipulation can force rebalance liquidity into attacker-selected Uniswap V3 ranges</h3>
+                <div class="vulnerability-description">
+                    <p>This is a price-oracle validation vulnerability in which Multipool position ranges are derived from an attacker-influenceable Uniswap V3 spot tick rather than from a manipulation-resistant observation. During strategy initialization and rebalancing, the contract reads slot0.tick to calculate the lower and upper ticks for liquidity positions. Although the rebalance path validates swap execution using getAmountOut and maxTwapDeviation, that validation does not constrain the separate spot tick used for position placement.</p>
+<p>An attacker can temporarily manipulate the relevant underlying Uniswap V3 pool immediately before an authorized rebalance, causing the operator transaction to read a distorted tick and allocate liquidity to attacker-selected ranges. The attacker can then unwind the manipulation or arbitrage the resulting mispositioned liquidity. This may reduce capital efficiency, expose the pool to unfavorable price ranges, and cause losses through adverse liquidity placement. Position ranges should instead be derived from a sufficiently long TWAP or independently validated oracle, with the rebalance reverted when the spot price falls outside an approved deviation from that reference.</p>
+                </div>
+                <p><strong>Affected Components:</strong> the Multipool contract, specifically the _initializeStrategy(), rebalanceAll(), and _getTicksForPosition() functions; the underlying Uniswap V3 pool used for pricing; and the authorized manager or operator responsible for executing rebalances</p>
+                
+                <div class="qa-comment" style="margin-top: 1em; padding: 15px; background: rgba(70, 130, 180, 0.1); border-left: 3px solid #4682b4; border-radius: 8px;">
+                    <strong style="color: #64b5f6;">QA Review:</strong> 
+                    <span style="color: #c3cfe2; line-height: 1.6;">Upon reviewing Multipool._initializeStrategy, _getTicksForPosition, and rebalanceAll, I confirmed that the hypothesized spot-price manipulation is possible. During initialization, each strategy position obtains the underlying pool&#39;s current tick directly from IUniswapV3Pool.slot0(), then passes that attacker-influenceable value to _getTicksForPosition to derive lowerTick and upperTick. rebalanceAll invokes _initializeStrategy only after withdrawing existing liquidity and executing any configured swap, so an attacker who temporarily moves an underlying pool price and preserves the distortion until the operator transaction executes can cause the new positions to be created around manipulated, attacker-selected ranges. The subsequent swap validation is not an effective defense: getAmountOut() uses a TWAP from the hardcoded fee-500 pool and only checks swap output, while no TWAP, spot/TWAP deviation, or independently supplied tick bound is applied to the ticks used for range construction. Tick spacing and absolute TickMath bounds only ensure syntactic validity, not price authenticity. Exploitability depends on transaction ordering and manipulation cost, but the code provides a clear exploitable path.</span>
+                </div>
+                
+                
+                <div class="suggested-mitigation" style="margin-top: 1em; padding: 15px; background: rgba(255, 193, 7, 0.08); border-left: 3px solid #d39e00; border-radius: 8px;">
+                    <strong>Suggested Mitigation (not independently verified):</strong>
+                    <span style="line-height: 1.6;">Derive rebalance position ticks from a sufficiently long TWAP or an oracle observation with a bounded spot/TWAP deviation, and revert when the current tick is outside the permitted range. Consider calculating and validating all price-sensitive rebalance parameters before execution and protecting the rebalance transaction from stale or manipulated observations.</span>
+                </div>
+                
+                
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">concentrator/contracts/Multipool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 253-270</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-4').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270</pre></div>
+                <div class="code-content"><pre id="code-block-4"><code class="language-solidity">function _getTicksForPosition(
+    int24 tick,
+    int24 positionRange,
+    int24 tickSpacingOffset,
+    int24 tickSpacing
+) private pure returns (int24 lowerTick, int24 upperTick) {
+    int24 floorTick = (tick / tickSpacing) * tickSpacing;
+    if (tickSpacingOffset == 0) {
+        lowerTick = floorTick - (positionRange - tickSpacing) / 2;
+        upperTick = floorTick + (positionRange + tickSpacing) / 2;
+    } else if (tickSpacingOffset &gt; 0) {
+        lowerTick = floorTick + tickSpacing * tickSpacingOffset;
+        upperTick = lowerTick + positionRange;
+    } else {
+        upperTick = floorTick + tickSpacing * tickSpacingOffset;
+        lowerTick = upperTick - positionRange;
+    }
+}</code></pre></div>
+            </div>
+            <div class="code-explanation">The target helper deterministically derives the liquidity position bounds directly from the supplied tick, so any manipulated spot tick changes the attacker-selected range.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">concentrator/contracts/Multipool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 272-289</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-5').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289</pre></div>
+                <div class="code-content"><pre id="code-block-5"><code class="language-solidity">function _initializeStrategy() private returns (Slot0Data[] memory) {
+    uint256 positionsNum = strategy.strategySize();
+    ErrLib.requirement(positionsNum &gt; 0, ErrLib.ErrorCode.STRATEGY_DOES_NOT_EXIST);
+    delete multiPosition;
+    PositionInfo memory position;
+    int24 upperTick;
+    int24 lowerTick;
+    Slot0Data[] memory slots = new Slot0Data[](positionsNum);
+
+    for (uint256 i = 0; i &lt; positionsNum; ) {
+        IMultiStrategy.Strategy memory sPosition = strategy.getStrategyAt(i);
+        UnderlyingPool memory uPool = underlyingTrustedPools[sPosition.poolFeeAmt];
+        position.poolFeeAmt = sPosition.poolFeeAmt;
+        position.weight = sPosition.weight;
+        position.poolAddress = uPool.poolAddress;
+        (slots[i].currentSqrtRatioX96, slots[i].tick, , , , , ) = IUniswapV3Pool(
+            uPool.poolAddress
+        ).slot0();</code></pre></div>
+            </div>
+            <div class="code-explanation">During strategy initialization, the contract reads the underlying Uniswap V3 pool&#39;s live slot0().tick and uses it as the input for position-range calculation, without a TWAP or deviation check.</div>
+        </div>
+        
+        <div class="code-sample">
+            <div class="code-header">
+                <span class="code-file">concentrator/contracts/Multipool.sol</span>
+                <div class="code-header-controls">
+                    <span class="code-lines">Lines 845-862</span>
+                    <button class="copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('code-block-6').innerText);}catch(e){}})()">Copy</button>
+                </div>
+            </div>
+            <div class="code-grid">
+                <div class="code-gutter"><pre>845
+846
+847
+848
+849
+850
+851
+852
+853
+854
+855
+856
+857
+858
+859
+860
+861
+862</pre></div>
+                <div class="code-content"><pre id="code-block-6"><code class="language-solidity">function rebalanceAll(RebalanceParams calldata params) external nonReentrant {
+    ErrLib.requirement(operator == msg.sender, ErrLib.ErrorCode.OPERATOR_NOT_APPROVED);
+    ErrLib.requirement(
+        approvedTargets[params.swapTarget],
+        ErrLib.ErrorCode.SWAP_TARGET_NOT_APPROVED
+    );
+    uint256 _totalSupply = totalSupply();
+    // withdraw all liquidity completely
+    _withdraw(_totalSupply, _totalSupply);
+
+    uint reserve0Before = IERC20(token0).balanceOf(address(this));
+    uint reserve1Before = IERC20(token1).balanceOf(address(this));
+    if (params.amountIn &gt; 0) {
+        _approveToken(params.zeroForOne ? token0 : token1, params.swapTarget, params.amountIn);
+        (bool success, ) = params.swapTarget.call(params.swapData);
+        ErrLib.requirement(success, ErrLib.ErrorCode.ERROR_SWAPPING_TOKENS);
+    }
+    uint reserve0 = IERC20(token0).balanceOf(address(this));</code></pre></div>
+            </div>
+            <div class="code-explanation">The authorized rebalance workflow withdraws existing liquidity and performs the swap before subsequently rebuilding positions, providing the execution context in which the manipulated spot tick can affect placement.</div>
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Hound Security Team<br>
+            Report prepared by: openai-codex/gpt-5.6-luna<br>
+        </div>
+    </div>
+</body>
+</html>
