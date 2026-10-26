@@ -8,7 +8,7 @@ GitHub 文件發布版：2026-10-26。本次發布說明文件，實驗數據仍
 
 ## 摘要
 
-本文件依照 `SMARTAUDITFLOW_MODIFICATIONS_ZH.md` 的結構，整理 Hound 原本的工作流程、Codex OAuth gateway 連線方式、dataset repo 輸入、price-manipulation prompt、直接輸出 `PredictionCase` 的修改，以及正式 LLM Judge 的執行與報告。
+整理 Hound 原本的工作流程、Codex OAuth gateway 連線方式、dataset repo 輸入、price-manipulation prompt、直接輸出 `PredictionCase` 的修改，以及正式 LLM Judge 的執行與報告。
 
 目前 C、D 執行的是兩個獨立的本機 Hound 程式副本，remote 分別為 `Tang-Chieh/Hound_general` 與 `Tang-Chieh/Hound_focus_price_manipulation`。最近一次 Hound 執行在 2026-10-22 開始，2026-10-23 使用其既有 predictions 重新呼叫 LLM Judge；本文件整理時沒有重新執行分析。
 
